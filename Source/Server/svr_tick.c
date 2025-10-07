@@ -1832,10 +1832,8 @@ void plr_update_treenode_terminology(int nr, int tn, int n)
 	buf[2] = n;
 	
 	buf[1] = ST_TREE_ICON;
-	if (m)
-		*(unsigned short*)(buf + 3) = (unsigned short)(sk_corrupt[m-1].icon);
-	else
-		*(unsigned short*)(buf + 3) = (unsigned short)(sk_tree[tn][n].icon);
+	if (m) *(unsigned short*)(buf + 3) = (unsigned short)(sk_corrupt[m-1].icon);
+	else   *(unsigned short*)(buf + 3) = (unsigned short)(sk_tree[tn][n].icon);
 	xsend(nr, buf,  5);
 	
 	for (j=0; j<3; j++)
@@ -1972,9 +1970,573 @@ void plr_update_all_skill_terminology(int nr)
 	for (int n=0; n<(MAXSKILL+5); n++) plr_update_skill_terminology(nr, n);
 }
 
-int get_meta_stat_value(int cn)
+int get_meta_stat_value(int cn, int n)
 {
-	// TODO: The big one.
+	int value = 0;
+	int moonmult = 20;
+	int hpmult=0, endmult=0, manamult=0;
+	int race_reg = 0, race_res = 0, race_med = 0;
+	int len = 100;
+	
+	switch (n)
+	{
+		case  0: 
+			break;
+		case  1: 
+			break;
+		case  2: 
+			break;
+		case  3: 
+			break;
+		case  4: 
+			break;
+		case  5: 
+			break;
+		case  6: 
+			break;
+		case  7: 
+			break;
+		case  8: 
+			break;
+		case  9: 
+			break;
+		case 10: 
+			break;
+		case 11: 
+			break;
+		case 12: 
+			break;
+		case 13: 
+			break;
+		case 14: 
+			break;
+		case 15: 
+			break;
+		case 16: 
+			break;
+		case 17: 
+			break;
+		case 18: 
+			break;
+		case 19: 
+			break;
+		case 20: 
+			break;
+		case 21: 
+			break;
+		case 22: 
+			break;
+		case 23: 
+			break;
+		case 24: 
+			break;
+		case 25: 
+			break;
+		case 26: 
+			break;
+		case 27: 
+			break;
+		case 28: 
+			break;
+		case 29: 
+			break;
+		case 30: 
+			break;
+		case 31: 
+			break;
+		case 32: 
+			break;
+		case 33: 
+			break;
+		case 34: 
+			break;
+		case 35: 
+			break;
+		case 36: 
+			break;
+		case 37: 
+			break;
+		case 38: 
+			break;
+		case 39: 
+			break;
+		case 40: 
+			break;
+		case 41: 
+			break;
+		case 42: 
+			break;
+		case 43: 
+			break;
+		case 44: 
+			break;
+		case 45: 
+			break;
+		case 46: 
+			break;
+		case 47: 
+			break;
+		case 48: 
+			break;
+		case 49: 
+			break;
+		case 50: 
+			break;
+		case 51: 
+			break;
+		case 52: 
+			break;
+		case 53: 
+			break;
+		case 54: 
+			break;
+		case 55: 
+			break;
+		case 56: 
+			break;
+		case 57: 
+			break;
+		case 58: 
+			break;
+		case 59: 
+			break;
+		case 60: 
+			break;
+		case 61: 
+			break;
+		case 62: 
+			break;
+		case 63: 
+			break;
+		case 64: 
+			break;
+		case 65: 
+			break;
+		case 66: 
+			break;
+		case 67: 
+			break;
+		case 68: 
+			break;
+		case 69: 
+			break;
+		case 70: 
+			break;
+		case 71: 
+			break;
+		case 72: 
+			break;
+		case 73: 
+			break;
+		case 74: 
+			break;
+		case 75: 
+			break;
+		case 76: 
+			break;
+		case 77: 
+			break;
+		case 78: 
+			break;
+		case 79: 
+			break;
+		case 80: 
+			break;
+		case 81: 
+			break;
+		case 82: 
+			break;
+		case 83: 
+			break;
+		case 84: 
+			break;
+		case 85: 
+			break;
+		case 86: 
+			break;
+		case 87: 
+			break;
+		case 88: 
+			break;
+		case 89: 
+			break;
+		default: break;
+	}
+	
+	return value;
+	
+	if (pl.worn[WN_SPMOD]==NULL) return;
+	
+	// Player Speed and Attack Speed - WN_SPEED
+	pl_speed = SPEED_CAP - pl.worn[WN_SPEED]; 
+	pl_atksp = pl_speed + pl.worn_p[WN_SPEED]; 
+	pl_movsp = pl_speed + pl.end[0];
+	
+	if (pl_speed > SPEED_CAP) pl_speed = SPEED_CAP; if (pl_speed < 0) pl_speed = 0;
+	if (pl_atksp > SPEED_CAP) pl_atksp = SPEED_CAP; if (pl_atksp < 0) pl_atksp = 0;
+	if (pl_movsp > SPEED_CAP) pl_movsp = SPEED_CAP; if (pl_movsp < 0) pl_movsp = 0;
+
+	// Player Spell Mod and Spell Apt - WN_SPMOD
+	pl_spmod = pl.worn[WN_SPMOD];
+	pl_skmod = 100;
+	pl_spapt = pl.worn_p[WN_SPMOD];
+	
+	// Player Crit chance and Crit Multiplier - WN_CRIT
+	pl_critc = pl.worn[WN_CRIT];
+	pl_critm = pl.worn_p[WN_CRIT];
+	
+	// Player Top damage and Reflection - WN_TOP
+	pl_topdm = pl.worn[WN_TOP]+6+8;
+	pl_reflc = pl.worn_p[WN_TOP];
+	
+	// Player Hit and Parry - WN_HITPAR
+	pl_hitsc = pl.worn[WN_HITPAR];
+	pl_parry = pl.worn_p[WN_HITPAR];
+	
+	// Player Cooldown and Cast Speed - WN_CLDWN
+	pl_coold = pl.worn[WN_CLDWN];
+	pl_casts = pl_speed/2 + pl.worn_p[WN_CLDWN]*2; 
+	
+	if (pl_casts > SPEED_CAP) pl_casts = SPEED_CAP; if (pl_casts < 0) pl_casts = 0;
+	
+	pl_aoebn = pl.end[1];
+	pl_dmgbn = pl.end[2];
+	pl_dmgrd = pl.end[3];
+	pl_flagc = pl.end[4];
+	
+	// Player Flags from special items
+	pl_flags = pl.worn[WN_FLAGS];
+	pl_flagb = pl.worn_p[WN_FLAGS];
+	pl_basel = 100;
+	pl_dmgml = 100;
+	
+	// Book - Damor's Grudge (cooldown bonus)
+	if (pl_flags & (1 <<  0))
+		pl_basel =  90;
+	
+	// Tarot - Strength (damage multiplier)  // *pl_dmgbn/10000*pl_dmgml/100
+	if (pl_flags & (1 <<  1))
+		pl_dmgml = 120;
+	
+	// Player DPS - pl_dlow, pl_dhigh, pl_dps
+	pl_dlow  = (pl.weapon*pl_dmgml/100)/4*pl_dmgbn/10000;
+	pl_dhigh = pl.weapon+pl_topdm;
+	pl_topd2 = ((pl_topdm+pl_topdm*pl_critc*pl_critm/1000000)*pl_dmgml/100)/4*pl_dmgbn/10000;
+	pl_dhigh = ((pl_dhigh+pl_dhigh*pl_critc*pl_critm/1000000)*pl_dmgml/100)/4*pl_dmgbn/10000;
+	pl_hitdm = (pl_dlow+pl_dhigh+(T_LYCA_SK(6)?pl_topd2/2:0))/2;
+	pl_dps   = pl_hitdm*pl_atksp;
+	
+	// Player cooldown rate - pl_cdrate
+	pl_cdrate = 100 * pl_basel / max(25, pl_coold);
+	
+	/*
+		Moon multiplier adjustments
+	*/
+	// FULL MOON
+	if (pl_flagb & (1 <<  8))
+	{
+		moonmult = 30;
+	}
+	// NEW MOON
+	if (pl_flagb & (1 <<  9))
+	{
+		moonmult = 40;
+	}
+	hpmult = endmult = manamult = moonmult;
+	
+	// Reverse Star
+	if (pl_flagc&(1<<10))
+	{
+		pl_skmod = pl_spmod;
+		pl_spmod = 100;
+	}
+	
+	/*
+		Additional skill bonuses for GUI
+	*/
+	sk_proxi = sk_score(44) / (300/12);
+	sk_ghost = sk_score(27)*pl_spmod/100 * 5 / 11;
+	sk_poiso = (sk_score(42)*pl_spmod/100 + 5) * DAM_MULT_POISON / 300;
+	sk_blast = sk_score(24)*pl_spmod/100 * 2 * DAM_MULT_BLAST/1000;
+	sk_scorc = 1000 + sk_score(24)*pl_spmod/100;
+	sk_pulse = (sk_score(43)+(sk_score(43)*(T_ARHR_SK(7)?at_score(AT_INT)/1000:0)))*pl_spmod/100 * 2 * DAM_MULT_PULSE/1000;
+	sk_pucnt = (60*2*100 / (3*pl_cdrate));
+	sk_water = 25 * TICKS;
+	sk_cleav = ((sk_score(40)+(sk_score(40)*(T_WARR_SK(9)?at_score(AT_STR)/1000:0)))*pl_skmod/100+pl.weapon/4+pl_topdm/4+(T_ARTM_SK(4)?pl_reflc:0)) * 2 * DAM_MULT_CLEAVE/1000;
+	sk_warcr = -(2+((sk_score(35)+(sk_score(35)*(T_ARTM_SK(7)?at_score(AT_STR)/2000:0)))*pl_skmod/100/(10/3)) / 5);
+	sk_rally = sk_score(35)*pl_skmod/100/10;
+	sk_shado = (sk_score(46)+(sk_score(46)*(T_SUMM_SK(9)?at_score(AT_WIL)/1000:0)))*pl_spmod/100 * 5 / 11;
+	sk_shadd = 15 + (sk_score(46)+(sk_score(46)*(T_SUMM_SK(9)?at_score(AT_WIL)/1000:0)))*pl_spmod/500;
+	sk_weake = -(sk_score(41)*pl_skmod/100 / 4 + 2);
+	
+	sk_bleed = (sk_cleav + 5) * DAM_MULT_BLEED / 150;
+	
+	sk_hem   = ((pl.hp[5] - pl.a_hp)/10) + ((pl.end[5] - pl.a_end)/10) + ((pl.mana[5] - pl.a_mana)/10);
+	
+	sk_rage  = sk_rage2 = sk_score(22);
+	if (T_LYCA_SK(9)) sk_rage = sk_rage + (sk_rage * sk_hem / 500);
+	sk_rage2 = 10000 * (1000 + (IS_SEYAN_DU?(sk_rage*2/3):(sk_rage))) / 1000;
+	sk_rage  = min(127, IS_SEYAN_DU?(sk_rage/6 + 5):(sk_rage/4 + 5));
+	
+	sk_calm  = sk_calm2 = sk_score(22);
+	if (T_LYCA_SK(7)) sk_calm = sk_calm + (sk_calm * sk_hem / 500);
+	sk_calm2 = 10000 * (1000 - (IS_SEYAN_DU?(sk_calm*2/3):(sk_calm))) / 1000;
+	sk_calm  = min(127, IS_SEYAN_DU?(sk_calm/6 + 5):(sk_calm/4 + 5)) * -1;
+	
+	sk_letha = (sk_score(15)+(sk_score(15)*(T_SORC_SK(7)?at_score(AT_WIL)/2000:0)))*pl_spmod/100/(IS_SEYAN_DU?4:3);
+	sk_bless = min(127, (sk_score(21)*pl_spmod/100*2/3) / 5 + 3);
+	sk_enhan = min(127, (IS_SEYAN_DU?(sk_score(18)*pl_spmod/100/6+3):(sk_score(18)*pl_spmod/100/4+4)));
+	sk_prote = min(127, (IS_SEYAN_DU?(sk_score(17)*pl_spmod/100/6+3):(sk_score(17)*pl_spmod/100/4+4)));
+	sk_mdura = sk_score(11)*pl_spmod/100 * ((pl_flagb&(1<<10))?128:256);
+	sk_mshie = min(127, (IS_SEYAN_DU?(sk_mdura/((pl_flagb&(1<<10))?768:1536)+1):(sk_mdura/((pl_flagb&(1<<10))?512:1024)+1)));
+	sk_mdura = sk_mdura/20;
+	sk_haste = min(300, 10 + (sk_score(47)*pl_spmod/100)/ 6) + min(127, 5 + (sk_score(47)+6)/12);
+	sk_healr = ((pl_flags&(1<<14))?sk_score(26)*pl_spmod/100*1875/20:sk_score(26)*pl_spmod/100*2500)/1000;
+	
+	if (pl_flagb & (1<<7))	// Tarot - Rev.Justice (Leap dmg crits)
+	{
+		sk_leapv = (sk_score(49)*pl_skmod/100+pl.weapon/4) * 2 * DAM_MULT_LEAP/1000 * pl_critm/100;
+	}
+	else
+	{
+		sk_leapv = (sk_score(49)*pl_skmod/100+pl.weapon/4) * 2 * DAM_MULT_RLEAP/1000;
+		sk_leapr = max(0, min(10, (100 - pl_cdrate)/10));
+	}
+	
+	
+	if (IS_MERCENARY || IS_WARRIOR || IS_SORCERER)
+	{
+		sk_blind = -((sk_score(37)+(sk_score(37)*(T_WARR_SK(7)?at_score(AT_AGL)/2000:0)))*pl_skmod/100 / 6 + 2);
+	}
+	else
+	{
+		sk_blind = -(sk_score(37)*pl_skmod/100 / 8 + 1);
+	}
+	
+	// Tarot - Hanged Man (immunity&resistance)
+	if (pl_flags & (1 <<  2))
+	{
+		sk_immun = sk_score(32) + sk_score(23)/3;
+		sk_resis = sk_score(23) * 2/3;
+	}
+	else
+	{
+		sk_immun = sk_score(32);
+		sk_resis = sk_score(23);
+	}
+	if (T_WARR_SK(12))
+	{
+		sk_immun += pl_spapt/5;
+	}
+	
+	// Book - Great Prodigy (concentrate bonus)
+	if (pl_flags & (1 <<  3))
+	{
+		sk_conce = max(1, 100 - 100 * sk_score(34) / 300);
+	}
+	else
+	{
+		sk_conce = max(1, 100 - 100 * sk_score(34) / 400);
+	}
+	
+	// Book - Venom Compendium (poison bonus)
+	if (pl_flags & (1 <<  4))
+		sk_poiso = sk_poiso * 5 / 4;
+	// Tree - 10% faster = 11.1% more damage
+	if (T_SORC_SK(4))
+		sk_poiso = sk_poiso * 10 / 9;
+	// Tarot - Rev.Tower (Venom)
+	if (pl_flagb & (1 << 14))
+		sk_poiso = sk_poiso / 2;
+	
+	sk_razor = (sk_score(7)*pl_spmod/100 + max(0,(pl_atksp-120))/2) * 2 * DAM_MULT_ZEPHYR/1000;
+	
+	if (IS_SEYAN_DU || IS_BRAVER)
+	{
+		sk_weake = -(sk_score(41) / 6 + 2);
+	}
+	
+	// Tarot - Emperor (slow bonus)
+	if (pl_flags & (1 <<  5))
+	{
+		sk_slowv = -(30 + ((sk_score(19)+(sk_score(19)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)/4);
+	}
+	else
+	{
+		sk_slowv = -(30 + ((sk_score(19)+(sk_score(19)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)/3);
+	}
+	
+	// Tarot - Tower (curse bonus)
+	if (pl_flags & (1 <<  6))
+	{
+		sk_curse = -(2 + ((((sk_score(20)+(sk_score(20)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)*5/4)-4)/5);
+	}
+	else
+	{
+		sk_curse = -(2 + (((sk_score(20)+(sk_score(20)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)-4)/5);
+	}
+	
+	sk_metab = 0;
+	
+	// Metabolism skill
+	if (pl.skill[10][0]) sk_metab = sk_score(10)/2;
+	sk_water = max(1, (250 - sk_metab) * (200 - sk_metab) / 200) * 20/10;
+	
+	// Amulet - Water breathing (degen/2)		0 1 1
+	if (!(pl_flagb & (1 <<  0)) && (pl_flagb & (1 <<  1)) && (pl_flagb & (1 <<  2)))
+	{
+		sk_water /= 4;
+	}
+	
+	// Immolate
+	sk_immol = pl.hp[4] * 30 / 100;
+	
+	// Book - Burning
+	if (pl_flagb & (1 << 13)) sk_immol = sk_immol + pl.hp[4]/25;
+	
+	// Immolate damage calc
+	sk_immol = sk_immol*3/2;
+	sk_immol = 10 + sk_immol*4;
+	
+	if (pl_flagc & (1<<2)) // 20% more weaken effect
+		sk_weake = sk_weake * 6/5;
+	if (pl_flagc & (1<<3)) // 20% more slow effect
+		sk_slowv = sk_slowv * 6/5;
+	if (pl_flagc & (1<<4)) // 20% more curse effect
+		sk_curse = sk_curse * 6/5;
+	if (pl_flagc & (1<<5)) // 20% more poison effect
+		sk_poiso = sk_poiso * 6/5;
+	if (pl_flagc & (1<<6)) // 20% more bleed effect
+		sk_bleed = sk_bleed * 6/5;
+	if (pl_flagc & (1<<7)) // 20% more blind effect
+		sk_blind = sk_blind * 6/5;
+	if (pl_flagc & (1<<8)) // 20% more heal effect
+		sk_healr = sk_healr * 6/5;
+	
+	/*
+		Regeneration stats
+	*/
+	race_reg = sk_score(28) * moonmult / 20 + sk_score(28) * pl.hp[5]/2000;
+	race_res = sk_score(29) * moonmult / 20 + sk_score(29) * pl.end[5]/2000;
+	race_med = sk_score(30) * moonmult / 20 + sk_score(30) * pl.mana[5]/2000;
+	
+	// Tarot - Moon :: While not full mana, life regen is mana regen
+	if ((pl_flags & (1 << 11)) && (pl.a_mana<pl.mana[5]))
+	{
+		race_med += race_reg;	race_reg -= race_reg;
+		manamult += hpmult;		hpmult   -= hpmult;
+	}
+	// Tarot - Sun :: While not full life, end regen is life regen
+	if ((pl_flags & (1 << 12)) && (pl.a_hp<pl.hp[5]))
+	{
+		race_reg += race_res;	race_res -= race_res;
+		hpmult   += endmult;	endmult  -= endmult;
+	}
+	// Tarot - World :: While not full end, mana regen is end regen
+	if ((pl_flags & (1 << 13)) && (pl.a_end<pl.end[5]))
+	{
+		race_res += race_med;	race_med -= race_med;
+		endmult  += manamult;	manamult -= manamult;
+	}
+	
+	// Meditate added to Hitpoints
+	if (pl_flagc & (1<<0))
+	{
+		race_reg += race_med/2;
+		hpmult   += manamult/2;
+	}
+	// Rest added to mana
+	if (pl_flagc & (1<<1))
+	{
+		race_med += race_res/2;
+		manamult += endmult/2;
+	}
+	
+	sk_regen = (pl.skill[28][0]?race_reg:0) + hpmult   * 2;
+	sk_restv = (pl.skill[29][0]?race_res:0) + endmult  * 3;
+	sk_medit = (pl.skill[30][0]?race_med:0) + manamult * 1;
+	
+	pl_armor = pl.armor;
+	
+	// Amulet - Standard Ankh			1 0 0
+	if ((pl_flagb & (1 <<  0)) && !(pl_flagb & (1 <<  1)) && !(pl_flagb & (1 <<  2)))
+	{
+		sk_regen += pl.skill[28][0]?race_reg/12:0;
+		sk_restv += pl.skill[29][0]?race_res/12:0;
+		sk_medit += pl.skill[30][0]?race_med/12:0;
+	}
+	// Amulet - Amber Ankh (Life) 		0 1 0
+	if (!(pl_flagb & (1 <<  0)) && (pl_flagb & (1 <<  1)) && !(pl_flagb & (1 <<  2)))
+	{
+		sk_regen += pl.skill[28][0]?race_reg/ 6:0;
+		sk_restv += pl.skill[29][0]?race_res/24:0;
+		sk_medit += pl.skill[30][0]?race_med/24:0;
+	}
+	// Amulet - Turquoise Ankh (End)	1 1 0
+	if ((pl_flagb & (1 <<  0)) && (pl_flagb & (1 <<  1)) && !(pl_flagb & (1 <<  2)))
+	{
+		sk_regen += pl.skill[28][0]?race_reg/24:0;
+		sk_restv += pl.skill[29][0]?race_res/ 6:0;
+		sk_medit += pl.skill[30][0]?race_med/24:0;
+	}
+	// Amulet - Garnet Ankh (Mana)		0 0 1
+	if (!(pl_flagb & (1 <<  0)) && !(pl_flagb & (1 <<  1)) && (pl_flagb & (1 <<  2)))
+	{
+		sk_regen += pl.skill[28][0]?race_reg/24:0;
+		sk_restv += pl.skill[29][0]?race_res/24:0;
+		sk_medit += pl.skill[30][0]?race_med/ 6:0;
+	}
+	// Amulet - True Ankh				1 0 1
+	if ((pl_flagb & (1 <<  0)) && !(pl_flagb & (1 <<  1)) && (pl_flagb & (1 <<  2)))
+	{
+		sk_regen += pl.skill[28][0]?race_reg/ 6:0;
+		sk_restv += pl.skill[29][0]?race_res/ 6:0;
+		sk_medit += pl.skill[30][0]?race_med/ 6:0;
+	}
+	
+	sk_regen = sk_regen * 20/10;
+	sk_restv = sk_restv * 20/10;
+	sk_medit = sk_medit * 20/10;
+	
+	// add *pl_dmgbn/10000 to damage values for the HUD
+	sk_cleav = sk_cleav*pl_dmgbn/10000*pl_dmgml/100;
+	sk_leapv = sk_leapv*pl_dmgbn/10000*pl_dmgml/100;
+	sk_blast = sk_blast*pl_dmgbn/10000*pl_dmgml/100;
+	sk_poiso = sk_poiso*pl_dmgbn/10000*pl_dmgml/100;
+	if (!(pl_flagb&(1<<6))) sk_pulse = sk_pulse*pl_dmgbn/10000*pl_dmgml/100;
+	sk_razor = sk_razor*pl_dmgbn/10000*pl_dmgml/100;
+	sk_immol = sk_immol*pl_dmgbn/10000*pl_dmgml/100;
+	pl_reflc = pl_reflc*pl_dmgbn/10000*pl_dmgml/100;
+	
+	// Acedia - Sprite 5556
+	if (pl.worn[WN_RHAND] == 5556) len = len * 3/4; // less
+	if (pl.worn[WN_LHAND] == 5556) len = len * 6/4; // more
+	
+	coo_clea = 500 * pl_cdrate / 100 * len / 100;
+	coo_leap = 500 * pl_cdrate / 100 * len / 100;
+	coo_blas = (600-T_ARHR_SK(4)*25) * pl_cdrate / 100 * len / 100;
+	coo_pois = 500 * pl_cdrate / 100 * len / 100;
+	coo_puls = 600 * pl_cdrate / 100 * len / 100;
+	coo_ghos = 800 * pl_cdrate / 100 * len / 100;
+	coo_shad = 400 * pl_cdrate / 100 * len / 100;
+	coo_blin = 300 * pl_cdrate / 100 * len / 100;
+	coo_warc = 300 * pl_cdrate / 100 * len / 100;
+	coo_weak = 300 * pl_cdrate / 100 * len / 100;
+	coo_curs = 400 * pl_cdrate / 100 * len / 100;
+	coo_slow = 400 * pl_cdrate / 100 * len / 100;
+	
+	pl_ehp = pl.hp[5]*10000/pl_dmgrd;
+	
+	if (pl_flagc & (1<<9)) // 20% damage shifted to end/mana
+		pl_ehp = pl_ehp * 100 /  80;
+	if (pl_flagc & (1<<11)) // 5% chance to not be hit by melee
+		pl_ehp = pl_ehp * 100 /  95;
+	if (pl_flagc & (1<<12)) // 20% damage shifted to end/mana
+		pl_ehp = pl_ehp * 100 /  80;
+	if (pl_flagc & (1<<14)) // 10% damage null/shifted to endurance
+		pl_ehp = pl_ehp * 100 /  90;
+	if (pl_flags & (1<<9)) // 20% damage null/shifted to mana
+		pl_ehp = pl_ehp * 100 /  80;
 	
 	return -1;
 }
@@ -1983,12 +2545,12 @@ void plr_update_meta_stat_values(int nr, int n)
 {
 	unsigned char buf[256];
 	int cn = player[nr].usnr;
-	short int v;
+	int v;
 	
 	buf[0] = SV_TERM_META;
 	buf[2] = n;
 	
-	v = get_meta_stat_value(cn);
+	v = get_meta_stat_value(cn, n);
 	
 	buf[1] = ST_META_VALUES;
 	if (metaStats[n].flag) *(short int*)(buf + 3)     =     (short int)(v/100);
@@ -1998,6 +2560,11 @@ void plr_update_meta_stat_values(int nr, int n)
 	mcpy(buf+6, metaStats[n].affix, 10);
 	*(unsigned char*)(buf +14) = (unsigned char)metaStats[n].font;
 	xsend(nr, buf, 15);
+}
+
+void plr_update_all_meta_stat_values(int nr)
+{
+	for (int n=0; n<90; n++) plr_update_meta_stat_values(nr, n);
 }
 
 void plr_update_meta_terminology(int nr, int n)

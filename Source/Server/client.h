@@ -475,8 +475,8 @@ struct metaStat
 	char flag;
 	char font;
 	char name[30];
-	char desc[200];
 	char affix[8];
+	char desc[200];
 };
 
 #define MAXPLAYER 250

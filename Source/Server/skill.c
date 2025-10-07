@@ -724,15 +724,139 @@ struct sk_tree sk_corrupt[NUM_CORR]={
 char flag;		// flag is 1 if the expected value is a decimal
 char font;
 char name[30];
-char desc[200];
 char affix[8];
+char desc[200];
 */
 
 // TODO: migrate client terminology to here
 
 struct metaStat metaStats[90] = {
 	
+	{ 1, 1, "Cooldown Duration",   "x",        "" },
+	{ 0, 4, "Spell Aptitude",      "",         "" },
+	{ 1, 4, "Spell Modifier",      "x",        "" }, // if (pl_flagc&(1<<10))  -> 5 Skill Modifier
+	{ 1, 6, "Base Action Speed",   "",         "" },
+	{ 1, 6, "Movement Speed",      "",         "" },
+	{ 0, 7, "Hit Score",           "",         "" },
+	{ 0, 7, "Parry Score",         "",         "" },
+	//
+	{ 0, 9, "  Passive Stats:",    "",         "" },
+	{ 1, 1, "Damage Multiplier",   "%",        "" }, // if (pl_dmgbn!=10000)
+	{ 1, 7, "Est. Melee DPS",      "",         "" },
+	{ 0, 5, "Est. Melee Hit Dmg",  "",         "" },
+	{ 0, 5, "Critical Multiplier", "%",        "" },
+	{ 1, 5, "Critical Chance",     "%",        "" },
+	{ 0, 5, "Melee Ceiling Damage", "",        "" },
+	{ 0, 5, "Melee  Floor  Damage", "",        "" },
+	{ 1, 6, "Attack Speed",         "",        "" },
+	{ 1, 6, "  Cast Speed",         "",        "" },
+	{ 0, 1, "Thorns Score",         "",        "" }, // if (pl_reflc>0)
+	{ 1, 4, "Mana Cost Multiplier", "%",       "" }, // if (pl.skill[34][0])
+	{ 0, 1, "Total AoE Bonus",      "Tiles",   "" }, // if (pl_aoebn)
+	{ 0, 0, "", "", "" }, // blank
+	{ 0, 0, "", "", "" }, // blank
+	{ 0, 0, "", "", "" }, // blank
+	{ 0, 9, "  Active Stats:",      "",        "" },
+	{ 0, 5, "Cleave Hit Damage",    "",        "" }, // if (pl.skill[40][0])
+	{ 1, 5, "Cleave Bleed Degen",   "/s",      "" }, // if (pl.skill[40][0] && !(pl_flags&(1<<8)))
+	{ 1, 5, "Cleave Cooldown",      "Seconds", "" }, // if (pl.skill[40][0])
+	{ 0, 1, "Leap Hit Damage",      "",        "" }, // if (pl.skill[49][0])
+	{ 0, 1, "Leap # of Repeats",    "Repeats", "" }, // if (pl.skill[49][0] && sk_leapr)
+	{ 1, 1, "Leap Cooldown",        "Seconds", "" }, // if (pl.skill[49][0])
+	{ 0, 5, "Rage TD Bonus",        "Top Dmg", "" }, // if (pl.skill[22][0])
+	{ 1, 5, "Rage DoT Bonus",       "%",       "" }, // if (pl.skill[22][0])
+	{ 0, 4, "Blast Hit Damage",     "",        "" }, // if (pl.skill[24][0]) 
+	{ 1, 4, "Blast Cooldown",       "Seconds", "" }, // if (pl.skill[24][0]) 
+	{ 0, 1, "Lethargy Effect",      "I/R Pen", "" }, // if (pl.skill[15][0]) 
+	{ 1, 4, "Poison Degen",         "/s",      "" }, // if (pl.skill[42][0]) // (pl_flagb&(1<<14)) -> Venom
+	{ 1, 4, "Poison Cooldown",      "Seconds", "" }, // if (pl.skill[42][0]) // (pl_flagb&(1<<14)) -> Venom
+	{ 0, 1, "Pulse Hit Damage",     "",        "" }, // if (pl.skill[43][0]) // if (pl_flagb&(1<<6)) -> Pulse Hit Heal
+	{ 0, 1, "Pulse Count",          "",        "" }, // if (pl.skill[43][0])
+	{ 1, 1, "Pulse Cooldown",       "Seconds", "" }, // if (pl.skill[43][0])
+	{ 0, 6, "Zephyr Hit Damage",    "",        "" }, // if (pl.skill[ 7][0])
+	{ 1, 4, "Immolate Degen",       "/s",      "" }, // if (pl_flagc&(1<<13))
+	{ 0, 1, "Ghost Comp Potency",   "",        "" }, // if (pl.skill[27][0])
+	{ 1, 1, "Ghost Comp Cooldown",  "Seconds", "" }, // if (pl.skill[27][0])
+	{ 0, 4, "Shadow Copy Potency",  "",        "" }, // if (pl.skill[46][0])
+	{ 1, 4, "Shadow Copy Duration", "Seconds", "" }, // if (pl.skill[46][0])
+	{ 1, 4, "Shadow Copy Cooldown", "Seconds", "" }, // if (pl.skill[46][0])
+	//
+	{ 0, 9, "  Passive Stats:",     "",        "" },
+	{ 1, 1, "Damage Reduction",     "%",       "" }, // if (pl_dmgrd!=10000)
+	{ 0, 7, "Effective Hitpoints",  "",        "" }, // if (pl_dmgrd!=10000||(pl_flagc&(1<<9|1<<11|1<<12|1<<14))||(pl_flags&(1<<9)))
+	{ 1, 5, "Health Regen Rate",    "/s",      "" },
+	{ 1, 6, "Endurance Regen Rate", "/s",      "" },
+	{ 1, 4, "Mana Regen Rate",      "/s",      "" },
+	{ 0, 1, "Effective Immunity",   "",        "" },
+	{ 0, 1, "Effective Resistance", "",        "" },
+	{ 1, 6, "Attack Speed",         "",        "" },
+	{ 1, 6, "  Cast Speed",         "",        "" },
+	{ 0, 1, "Thorns Score",         "",        "" }, // if (pl_reflc>0)
+	{ 1, 4, "Mana Cost Multiplier", "%",       "" }, // if (pl.skill[34][0])
+	{ 0, 4, "Total AoE Bonus",      "Tiles",   "" }, // if (pl_aoebn)
+	{ 0, 4, "Buffing Apt Bonus",    "",        "" }, // at_score(AT_WIL)/4
+	{ 1, 1, "Underwater Degen",     "/s",      "" },
+	{ 0, 0, "", "", "" }, // blank
+	//
+	{ 0, 9, "  Active Stats:",      "",        "" },
+	{ 0, 1, "Bless Effect", "Attribs", "" }, // if (pl.skill[21][0])
+	{ 0, 1, "Enhance Effect", "WV", "" }, // if (pl.skill[18][0])
+	{ 0, 1, "Protect Effect", "AV", "" }, // if (pl.skill[18][0])
+	{ 0, 4, "M.Shield Effect", "AV", "" }, // if (pl.skill[11][0]) // (pl_flagb&(1<<10)) -> M.Shell Res&Imm
+	{ 1, 4, "M.Shield Duration", "Seconds", "" }, // if (pl.skill[11][0]) // (pl_flagb&(1<<10)) -> M.Shell 
+	{ 0, 6, "Haste Effect", "Speed", "" }, // if (pl.skill[47][0])
+	{ 0, 5, "Calm TD Taken", "Top Dmg", "" }, // if (pl.skill[22][0])
+	{ 1, 5, "Calm DoT Taken", "%", "" }, // if (pl.skill[22][0])
+	{ 0, 1, "Heal Effect", "", "" }, // if (pl.skill[26][0]) // (pl_flags&(1<<14)) -> Regen /s
+	{ 0, 5, "Blind Effect", "", "" }, // if (pl.skill[37][0]) // if (pl_flagb&(5<<11)) -> % Blind
+	{ 1, 5, "Blind Cooldown", "Seconds", "" }, // if (pl.skill[37][0]) // if (pl_flagb&(5<<11)) -> Blind
+	{ 0, 1, "Warcry Effect", "Attribs", "" }, // if (pl.skill[35][0]) // if (pl_flagb&(1<<12)) -> Rally
+	{ 1, 1, "Warcry Cooldown", "Seconds", "" }, // if (pl.skill[35][0]) // if (pl_flagb&(1<<12)) -> Rally
+	{ 0, 0, "", "", "" },
+	{ 0, 0, "", "", "" },
+	{ 0, 0, "", "", "" },
+	{ 0, 0, "", "", "" },
+	{ 0, 0, "", "", "" },
+	{ 0, 0, "", "", "" },
+	{ 0, 0, "", "", "" },
+	{ 0, 0, "", "", "" },
+	{ 0, 0, "", "", "" },
+	
+	{ 0, 0, "", "", "" },
+	{ 0, 0, "", "", "" },
+	{ 0, 0, "", "", "" },
 	{ 0, 0, "", "", "" },
 };
 
-
+/*
+		case 30: if (pl.skill[41][0])
+				 meta_stat(2,n,5,(pl_flags&(1<<10))?"Crush Effect":"Weaken Effect", sk_weake, -1, (pl_flags&(1<<10))?"AV":"WV"); break;
+		case 31: if (pl.skill[41][0])
+				 meta_stat(2,n,5,(pl_flags&(1<<10))?"Crush Cooldown":"Weaken Cooldown", coo_weak/100, coo_weak%100, "Seconds"); break;
+		
+		case 32: if (pl.skill[20][0])
+				 meta_stat(2,n,1,"Curse Effect",         sk_curse,     -1,           "Attribs"); break;
+		case 33: if (pl.skill[20][0])
+				 meta_stat(2,n,1,"Curse Cooldown",       coo_curs/100, coo_curs%100, "Seconds"); break;
+		
+		case 34: if (pl.skill[19][0])
+				 meta_stat(2,n,4,"Slow Effect",          sk_slowv,     -1,           "Speed"  ); break;
+		case 35: if (pl.skill[19][0])
+				 meta_stat(2,n,4,"Slow Cooldown",        coo_slow/100, coo_slow%100, "Seconds"); break;
+		
+		case 36: if (pl.skill[27][0])
+				 meta_stat(2,n,1,"Ghost Comp Potency", 	 sk_ghost,     -1,           ""       ); break;
+		case 37: if (pl.skill[27][0])
+				 meta_stat(2,n,1,"Ghost Comp Cooldown",  coo_ghos/100, coo_ghos%100, "Seconds"); break;
+		
+		case 38: if (pl.skill[46][0])
+				 meta_stat(2,n,4,"Shadow Copy Potency",  sk_shado,     -1,           ""       ); break;
+		case 39: if (pl.skill[46][0])
+				 meta_stat(2,n,4,"Shadow Copy Duration", sk_shadd,     -1,           "Seconds"); break;
+		case 40: if (pl.skill[46][0])
+				 meta_stat(2,n,4,"Shadow Copy Cooldown", coo_shad/100, coo_shad%100, "Seconds"); break;
+		//
+		default: break;
+	}
+}
+*/
