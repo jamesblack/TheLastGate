@@ -1978,260 +1978,468 @@ int get_meta_stat_value(int cn, int n)
 	int race_reg = 0, race_res = 0, race_med = 0;
 	int len = 100;
 	
+	switch (n) // Regen set
+	{
+		case 51: case 52: case 53:
+		/*
+			race_reg = sk_score(28) * moonmult / 20 + sk_score(28) * pl.hp[5]/2000;
+			race_res = sk_score(29) * moonmult / 20 + sk_score(29) * pl.end[5]/2000;
+			race_med = sk_score(30) * moonmult / 20 + sk_score(30) * pl.mana[5]/2000;
+			
+			// Tarot - Moon :: While not full mana, life regen is mana regen
+			if ((pl_flags & (1 << 11)) && (pl.a_mana<pl.mana[5]))
+			{
+				race_med += race_reg;	race_reg -= race_reg;
+				manamult += hpmult;		hpmult   -= hpmult;
+			}
+			// Tarot - Sun :: While not full life, end regen is life regen
+			if ((pl_flags & (1 << 12)) && (pl.a_hp<pl.hp[5]))
+			{
+				race_reg += race_res;	race_res -= race_res;
+				hpmult   += endmult;	endmult  -= endmult;
+			}
+			// Tarot - World :: While not full end, mana regen is end regen
+			if ((pl_flags & (1 << 13)) && (pl.a_end<pl.end[5]))
+			{
+				race_res += race_med;	race_med -= race_med;
+				endmult  += manamult;	manamult -= manamult;
+			}
+			
+			// Meditate added to Hitpoints
+			if (pl_flagc & (1<<0))
+			{
+				race_reg += race_med/2;
+				hpmult   += manamult/2;
+			}
+			// Rest added to mana
+			if (pl_flagc & (1<<1))
+			{
+				race_med += race_res/2;
+				manamult += endmult/2;
+			}
+			
+			sk_regen = (pl.skill[28][0]?race_reg:0) + hpmult   * 2;
+			sk_restv = (pl.skill[29][0]?race_res:0) + endmult  * 3;
+			sk_medit = (pl.skill[30][0]?race_med:0) + manamult * 1;
+			
+			// Amulet - Standard Ankh			1 0 0
+			if ((pl_flagb & (1 <<  0)) && !(pl_flagb & (1 <<  1)) && !(pl_flagb & (1 <<  2)))
+			{
+				sk_regen += pl.skill[28][0]?race_reg/12:0;
+				sk_restv += pl.skill[29][0]?race_res/12:0;
+				sk_medit += pl.skill[30][0]?race_med/12:0;
+			}
+			// Amulet - Amber Ankh (Life) 		0 1 0
+			if (!(pl_flagb & (1 <<  0)) && (pl_flagb & (1 <<  1)) && !(pl_flagb & (1 <<  2)))
+			{
+				sk_regen += pl.skill[28][0]?race_reg/ 6:0;
+				sk_restv += pl.skill[29][0]?race_res/24:0;
+				sk_medit += pl.skill[30][0]?race_med/24:0;
+			}
+			// Amulet - Turquoise Ankh (End)	1 1 0
+			if ((pl_flagb & (1 <<  0)) && (pl_flagb & (1 <<  1)) && !(pl_flagb & (1 <<  2)))
+			{
+				sk_regen += pl.skill[28][0]?race_reg/24:0;
+				sk_restv += pl.skill[29][0]?race_res/ 6:0;
+				sk_medit += pl.skill[30][0]?race_med/24:0;
+			}
+			// Amulet - Garnet Ankh (Mana)		0 0 1
+			if (!(pl_flagb & (1 <<  0)) && !(pl_flagb & (1 <<  1)) && (pl_flagb & (1 <<  2)))
+			{
+				sk_regen += pl.skill[28][0]?race_reg/24:0;
+				sk_restv += pl.skill[29][0]?race_res/24:0;
+				sk_medit += pl.skill[30][0]?race_med/ 6:0;
+			}
+			// Amulet - True Ankh				1 0 1
+			if ((pl_flagb & (1 <<  0)) && !(pl_flagb & (1 <<  1)) && (pl_flagb & (1 <<  2)))
+			{
+				sk_regen += pl.skill[28][0]?race_reg/ 6:0;
+				sk_restv += pl.skill[29][0]?race_res/ 6:0;
+				sk_medit += pl.skill[30][0]?race_med/ 6:0;
+			}
+		*/
+			break;
+		default: break;
+	}
+	
+	switch (n) // Cooldown set (may not be necessary)
+	{
+		case  0: case 26: case 28: case 29: case 33: case 36: case 38: 
+		case 39: case 44: case 47: case 75: case 77: case 79: case 81: 
+		case 83: case 85: case 88: case 91: case 97: case 99: case 101:
+			// pl_coold = pl.worn[WN_CLDWN];
+			// pl_cdrate = 100 * pl_basel / max(25, pl_coold);
+			/*
+			// Acedia - Sprite 5556
+			if (pl.worn[WN_RHAND] == 5556) len = len * 3/4; // less
+			if (pl.worn[WN_LHAND] == 5556) len = len * 6/4; // more
+			*/
+			break;
+		default: break;
+	}
+	
+	switch (n) // Damage Reduction set (may not be necessary)
+	{
+		case 49: case 50:
+			// pl_dmgrd = pl.end[3];
+			break;
+		default: break;
+	}
+	
+	switch (n) // SpellApt set (may not be necessary)
+	{
+		case  1: case 54:
+			// pl_spapt = pl.worn_p[WN_SPMOD];
+			break;
+		default: break;
+	}
+	
 	switch (n)
 	{
 		case  0: // Cooldown Duration				Decimal, 0.00 x
-			// pl_cdrate
+			// pl_cdrate = 100 * pl_basel / max(25, pl_coold);
 			break;
 		case  1: // Spell Aptitude
-			// pl_spapt
+			// pl_spapt = pl.worn_p[WN_SPMOD];
 			break;
 		case  2: // Spell Modifier					Decimal, 0.00 x
-			// pl_spmod
+			// pl_spmod = pl.worn[WN_SPMOD];
 			break;
 		case  3: // Base Action Speed				Decimal, 0.00
-			// pl_speed
+			// pl_speed = SPEED_CAP - pl.worn[WN_SPEED]; 
 			break;
 		case  4: // Movement Speed					Decimal, 0.00
-			// pl_movsp
+			// pl_movsp = pl_speed + pl.end[0];
 			break;
 		case  5: // Hit Score
-			// pl_hitsc
+			// pl_hitsc = pl.worn[WN_HITPAR];
 			break;
 		case  6: // Parry Score
-			// pl_parry
+			// pl_parry = pl.worn_p[WN_HITPAR];
 			break;
 		//
 		case  8: // Damage Multiplier				Decimal, 0.00 %
-			// pl_dmgbn
+			// pl_dmgbn = pl.end[2];
 			break;
 		case  9: // Est. Melee DPS					Decimal, 0.00
-			// pl_dps
+			// pl_dps   = pl_hitdm*pl_atksp;
 			break;
 		case 10: // Est. Melee Hit Dmg
-			// pl_hitdm
+			// pl_hitdm = (pl_dlow+pl_dhigh+(T_LYCA_SK(6)?pl_topd2/2:0))/2;
 			break;
 		case 11: // Critical Multiplier
-			// pl_critm
+			// pl_critm = pl.worn_p[WN_CRIT];
 			break;
 		case 12: // Critical Chance					Decimal, 0.00 %
-			// pl_critc
+			// pl_critc = pl.worn[WN_CRIT];
 			break;
 		case 13: // Melee Ceiling Damage
-			// pl_dhigh
+			// pl_dhigh = pl.weapon+pl_topdm;
 			break;
 		case 14: // Melee  Floor  Damage
-			// pl_dlow
+			// pl_dlow  = (pl.weapon*pl_dmgml/100)/4*pl_dmgbn/10000;
 			break;
 		case 15: case 56: // Attack Speed			Decimal, 0.00
-			// pl_atksp
+			// pl_atksp = pl_speed + pl.worn_p[WN_SPEED]; 
 			break;
 		case 16: case 57: //   Cast Speed			Decimal, 0.00
-			// pl_casts
+			// pl_casts = pl_speed/2 + pl.worn_p[WN_CLDWN]*2; 
 			break;
 		case 17: case 58: // Thorns Score
-			// pl_reflc
+			// pl_reflc = pl.worn_p[WN_TOP];
+			// pl_reflc = pl_reflc*pl_dmgbn/10000*pl_dmgml/100;
 			break;
 		case 18: case 59: // Mana Cost Multiplier	Decimal, 0.00 %
-			// sk_conce
+			// 	if (pl_flags & (1 <<  3))
+			//		sk_conce = max(1, 100 - 100 * sk_score(34) / 300);
+			//	else
+			//		sk_conce = max(1, 100 - 100 * sk_score(34) / 400);
 			break;
 		case 19: case 60: // Total AoE Bonus
-			// pl_aoebn
+			// pl_aoebn = pl.end[1];
 			break;
 		//
 		case 24: // Cleave Hit Damage
-			// sk_cleav
+			// sk_cleav = ((sk_score(40)+(sk_score(40)*(T_WARR_SK(9)?at_score(AT_STR)/1000:0)))*pl_skmod/100+pl.weapon/4+pl_topdm/4+(T_ARTM_SK(4)?pl_reflc:0)) * 2 * DAM_MULT_CLEAVE/1000;
+			// sk_cleav = sk_cleav*pl_dmgbn/10000*pl_dmgml/100;
 			break;
 		case 25: // Cleave Bleed Degen				Decimal, 0.00 /s
-			// sk_bleed
+			// sk_bleed = (sk_cleav + 5) * DAM_MULT_BLEED / 150;
+			//	if (pl_flagc & (1<<6)) // 20% more bleed effect
+			//		sk_bleed = sk_bleed * 6/5;
+			//  ** should multiply by dmgbn as well
 			break;
 		case 26: // Cleave Cooldown					Decimal, 0.00 Seconds
-			// coo_clea
+			// coo_clea = 500 * pl_cdrate / 100 * len / 100;
 			break;
 		case 27: // Leap Hit Damage
-			// sk_leapv
+			// if (pl_flagb & (1<<7))	// Tarot - Rev.Justice (Leap dmg crits)
+			// 		sk_leapv = (sk_score(49)*pl_skmod/100+pl.weapon/4) * 2 * DAM_MULT_LEAP/1000 * pl_critm/100;
+			// else
+			// 		sk_leapv = (sk_score(49)*pl_skmod/100+pl.weapon/4) * 2 * DAM_MULT_RLEAP/1000;
+			// sk_leapv = sk_leapv*pl_dmgbn/10000*pl_dmgml/100;
 			break;
 		case 28: // Leap # of Repeats
-			// sk_leapr
+			// if (!(pl_flagb & (1<<7)))
+			// 		sk_leapr = max(0, min(10, (100 - pl_cdrate)/10));
 			break;
 		case 29: // Leap Cooldown					Decimal, 0.00 Seconds
-			// coo_leap
+			// coo_leap = 500 * pl_cdrate / 100 * len / 100;
 			break;
 		case 30: // Rage TD Bonus
-			// sk_rage
+			// sk_hem   = ((pl.hp[5] - pl.a_hp)/10) + ((pl.end[5] - pl.a_end)/10) + ((pl.mana[5] - pl.a_mana)/10);
+			// sk_rage  = sk_rage2 = sk_score(22);
+			// if (T_LYCA_SK(9)) sk_rage = sk_rage + (sk_rage * sk_hem / 500);
+			// sk_rage  = min(127, IS_SEYAN_DU?(sk_rage/6 + 5):(sk_rage/4 + 5));
 			break;
 		case 31: // Rage DoT Bonus					Decimal, 0.00 %
-			// sk_rage2
+			// sk_rage  = sk_rage2 = sk_score(22);
+			// if (T_LYCA_SK(9)) sk_rage = sk_rage + (sk_rage * sk_hem / 500);
+			// sk_rage2 = 10000 * (1000 + (IS_SEYAN_DU?(sk_rage*2/3):(sk_rage))) / 1000;
 			break;
 		case 32: // Blast Hit Damage
-			// sk_blast
+			// sk_blast = sk_score(24)*pl_spmod/100 * 2 * DAM_MULT_BLAST/1000;
+			// sk_blast = sk_blast*pl_dmgbn/10000*pl_dmgml/100;
 			break;
 		case 33: // Blast Cooldown					Decimal, 0.00 Seconds
-			// coo_blas
+			// coo_blas = (600-T_ARHR_SK(4)*25) * pl_cdrate / 100 * len / 100;
 			break;
 		case 34: // Lethargy Effect
-			// sk_letha
+			// sk_letha = (sk_score(15)+(sk_score(15)*(T_SORC_SK(7)?at_score(AT_WIL)/2000:0)))*pl_spmod/100/(IS_SEYAN_DU?4:3);
 			break;
 		case 35: // Poison Degen					Decimal, 0.00 /s
-			// sk_poiso
+			// sk_poiso = (sk_score(42)*pl_spmod/100 + 5) * DAM_MULT_POISON / 300;
+			//	if (pl_flags & (1 <<  4)) // Book - Venom Compendium (poison bonus)
+			//		sk_poiso = sk_poiso * 5 / 4;
+			//	if (T_SORC_SK(4)) // Tree - 10% faster = 11.1% more damage
+			//		sk_poiso = sk_poiso * 10 / 9;
+			//	if (pl_flagb & (1 << 14)) // Tarot - Rev.Tower (Venom)
+			//		sk_poiso = sk_poiso / 2;
+			//	if (pl_flagc & (1<<5)) // 20% more poison effect
+			//		sk_poiso = sk_poiso * 6/5;
+			// sk_poiso = sk_poiso*pl_dmgbn/10000*pl_dmgml/100;
 			break;
-		case 36: // Poison Cooldown					Decimal, 0.00 Seconds
-			// coo_pois
+		case 36: case 91: // Poison/Venom Cooldn	Decimal, 0.00 Seconds
+			// coo_pois = 500 * pl_cdrate / 100 * len / 100;
 			break;
 		case 37: // Pulse Hit Damage
-			// sk_pulse
+			// sk_pulse = (sk_score(43)+(sk_score(43)*(T_ARHR_SK(7)?at_score(AT_INT)/1000:0)))*pl_spmod/100 * 2 * DAM_MULT_PULSE/1000;
+			// if (!(pl_flagb&(1<<6))) sk_pulse = sk_pulse*pl_dmgbn/10000*pl_dmgml/100;
 			break;
 		case 38: // Pulse Count
-			// sk_pucnt
+			// sk_pucnt = (60*2*100 / (3*pl_cdrate));
 			break;
 		case 39: // Pulse Cooldown					Decimal, 0.00 Seconds
-			// coo_puls
+			// coo_puls = 600 * pl_cdrate / 100 * len / 100;
 			break;
 		case 40: // Zephyr Hit Damage
-			// sk_razor
+			// sk_razor = (sk_score(7)*pl_spmod/100 + max(0,(pl_atksp-120))/2) * 2 * DAM_MULT_ZEPHYR/1000;
+			// sk_razor = sk_razor*pl_dmgbn/10000*pl_dmgml/100;
 			break;
 		case 41: // Immolate Degen					Decimal, 0.00 /s
-			// sk_immol
+			// sk_immol = pl.hp[4] * 30 / 100;
+			// 	if (pl_flagb & (1 << 13)) 
+			//		sk_immol = sk_immol + pl.hp[4]/25;
+			// 	sk_immol = sk_immol*3/2;
+			//	sk_immol = 10 + sk_immol*4;
 			break;
 		case 43: case 84: // Ghost Comp Potency
-			// sk_ghost
+			// sk_ghost = sk_score(27)*pl_spmod/100 * 5 / 11;
 			break;
 		case 44: case 85: // Ghost Comp Cooldown	Decimal, 0.00 Seconds
-			// coo_ghos
+			// coo_ghos = 800 * pl_cdrate / 100 * len / 100;
 			break;
 		case 45: case 86: // Shadow Copy Potency
-			// sk_shado
+			// sk_shado = (sk_score(46)+(sk_score(46)*(T_SUMM_SK(9)?at_score(AT_WIL)/1000:0)))*pl_spmod/100 * 5 / 11;
 			break;
 		case 46: case 87: // Shadow Copy Duration	Decimal, 0.00 Seconds
-			// sk_shadd
+			// sk_shadd = 15 + (sk_score(46)+(sk_score(46)*(T_SUMM_SK(9)?at_score(AT_WIL)/1000:0)))*pl_spmod/500;
 			break;
 		case 47: case 88: // Shadow Copy Cooldown	Decimal, 0.00 Seconds
-			// coo_shad
+			// coo_shad = 400 * pl_cdrate / 100 * len / 100;
 			break;
 		//
 		case 49: // Damage Reduction				Decimal, 0.00 %
-			// pl_dmgrd
+			// pl_dmgrd = pl.end[3];
 			break;
 		case 50: // Effective Hitpoints
-			// pl_ehp
+			// pl_ehp = pl.hp[5]*10000/pl_dmgrd;
+			//	if (pl_flagc & (1<<9)) // 20% damage shifted to end/mana
+			//		pl_ehp = pl_ehp * 100 /  80;
+			//	if (pl_flagc & (1<<11)) // 5% chance to not be hit by melee
+			//		pl_ehp = pl_ehp * 100 /  95;
+			//	if (pl_flagc & (1<<12)) // 20% damage shifted to end/mana
+			//		pl_ehp = pl_ehp * 100 /  80;
+			//	if (pl_flagc & (1<<14)) // 10% damage null/shifted to endurance
+			//		pl_ehp = pl_ehp * 100 /  90;
+			//	if (pl_flags & (1<<9)) // 20% damage null/shifted to mana
+			//		pl_ehp = pl_ehp * 100 /  80;
 			break;
 		case 51: // Health Regen Rate				Decimal, 0.00 /s
-			// sk_regen
+			// sk_regen = sk_regen * 20/10;
 			break;
 		case 52: // Endurance Regen Rate			Decimal, 0.00 /s
-			// sk_restv
+			// sk_restv = sk_restv * 20/10;
 			break;
 		case 53: // Mana Regen Rate					Decimal, 0.00 /s
-			// sk_medit
+			// sk_medit = sk_medit * 20/10;
 			break;
 		case 54: // Effective Immunity
-			// sk_immun
+			//	if (pl_flags & (1 <<  2))
+			//		sk_immun = sk_score(32) + sk_score(23)/3;
+			//	else
+			//		sk_immun = sk_score(32);
+			//	if (T_WARR_SK(12))
+			//		sk_immun += pl_spapt/5;
 			break;
 		case 55: // Effective Resistance
-			// sk_resis
+			// 	if (pl_flags & (1 <<  2))
+			//		sk_resis = sk_score(23) * 2/3;
+			//	else
+			//		sk_resis = sk_score(23);
 			break;
 		case 61: // Buffing Apt Bonus
 			// at_score(AT_WIL)/4
 			break;
 		case 62: // Underwater Degen				Decimal, 0.00 /s
-			// sk_water
+			// 	sk_water = 25 * TICKS;
+			//	sk_metab = 0;
+			//	if (pl.skill[10][0]) 
+			//		sk_metab = sk_score(10)/2;
+			//	sk_water = max(1, (250 - sk_metab) * (200 - sk_metab) / 200) * 20/10;
+			// 	if (!(pl_flagb & (1 <<  0)) && (pl_flagb & (1 <<  1)) && (pl_flagb & (1 <<  2))) // Amulet - Water breathing (degen/2)		0 1 1
+			//		sk_water /= 4;
 			break;
 		case 65: // Bless Effect
-			// sk_bless
+			// sk_bless = min(127, (sk_score(21)*pl_spmod/100*2/3) / 5 + 3);
 			break;
 		case 66: // Enhance Effect
-			// sk_enhan
+			// sk_enhan = min(127, (IS_SEYAN_DU?(sk_score(18)*pl_spmod/100/6+3):(sk_score(18)*pl_spmod/100/4+4)));
 			break;
 		case 67: // Protect Effect
-			// sk_prote
+			// sk_prote = min(127, (IS_SEYAN_DU?(sk_score(17)*pl_spmod/100/6+3):(sk_score(17)*pl_spmod/100/4+4)));
 			break;
 		case 68: // M.Shield Effect
-			// sk_mshie
+			// sk_mdura = sk_score(11)*pl_spmod/100 * ((pl_flagb&(1<<10))?128:256);
+			// sk_mshie = min(127, (IS_SEYAN_DU?(sk_mdura/((pl_flagb&(1<<10))?768:1536)+1):(sk_mdura/((pl_flagb&(1<<10))?512:1024)+1)));
 			break;
 		case 69: // M.Shield Duration				Decimal, 0.00 Seconds
-			// sk_mdura
+			// sk_mdura = sk_score(11)*pl_spmod/100 * ((pl_flagb&(1<<10))?128:256);
+			// sk_mdura = sk_mdura/20; // ***(no decimal)
 			break;
 		case 70: // Haste Effect
-			// sk_haste
+			// sk_haste = min(300, 10 + (sk_score(47)*pl_spmod/100)/ 6) + min(127, 5 + (sk_score(47)+6)/12);
 			break;
 		case 71: // Calm TD Taken
-			// sk_calm
+			// sk_hem   = ((pl.hp[5] - pl.a_hp)/10) + ((pl.end[5] - pl.a_end)/10) + ((pl.mana[5] - pl.a_mana)/10);
+			// sk_calm  = sk_calm2 = sk_score(22);
+			// if (T_LYCA_SK(7)) sk_calm = sk_calm + (sk_calm * sk_hem / 500);
+			// sk_calm  = min(127, IS_SEYAN_DU?(sk_calm/6 + 5):(sk_calm/4 + 5)) * -1;
 			break;
 		case 72: // Calm DoT Taken					Decimal, 0.00 %
-			// sk_calm2
+			// sk_hem   = ((pl.hp[5] - pl.a_hp)/10) + ((pl.end[5] - pl.a_end)/10) + ((pl.mana[5] - pl.a_mana)/10);
+			// sk_calm  = sk_calm2 = sk_score(22);
+			// if (T_LYCA_SK(7)) sk_calm = sk_calm + (sk_calm * sk_hem / 500);
+			// sk_calm2 = 10000 * (1000 - (IS_SEYAN_DU?(sk_calm*2/3):(sk_calm))) / 1000;
 			break;
 		case 73: // Heal Effect
-			// sk_healr
+			// sk_healr = ((pl_flags&(1<<14))?sk_score(26)*pl_spmod/100*1875/20:sk_score(26)*pl_spmod/100*2500)/1000;
+			//	if (pl_flagc & (1<<8)) // 20% more heal effect
+			//		sk_healr = sk_healr * 6/5;
 			break;
 		case 74: // Blind Effect
-			// sk_blind
+			// if (IS_MERCENARY || IS_WARRIOR || IS_SORCERER)
+			// 		sk_blind = -((sk_score(37)+(sk_score(37)*(T_WARR_SK(7)?at_score(AT_AGL)/2000:0)))*pl_skmod/100 / 6 + 2);
+			// else
+			// 		sk_blind = -(sk_score(37)*pl_skmod/100 / 8 + 1);
 			break;
-		case 75: // Blind Cooldown					Decimal, 0.00 Seconds
-			// coo_blin
+		case 75: case 97: // Blind/Douse Cooldown					Decimal, 0.00 Seconds
+			// coo_blin = 300 * pl_cdrate / 100 * len / 100;
 			break;
 		case 76: // Warcry Effect
-			// sk_warcr
+			// sk_warcr = -(2+((sk_score(35)+(sk_score(35)*(T_ARTM_SK(7)?at_score(AT_STR)/2000:0)))*pl_skmod/100/(10/3)) / 5);
 			break;
-		case 77: // Warcry Cooldown					Decimal, 0.00 Seconds
-			// coo_warc
+		case 77: case 99: // Warcry/Rally Cooldn	Decimal, 0.00 Seconds
+			// coo_warc = 300 * pl_cdrate / 100 * len / 100;
 			break;
 		case 78: // Weaken Effect
-			// sk_weake
+			// sk_weake = -(sk_score(41)*pl_skmod/100 / 4 + 2);
+			//	if (IS_SEYAN_DU || IS_BRAVER)
+			//		sk_weake = -(sk_score(41) / 6 + 2);
+			//	if (pl_flagc & (1<<2)) // 20% more weaken effect
+			//		sk_weake = sk_weake * 6/5;
 			break;
-		case 79: // Weaken Cooldown					Decimal, 0.00 Seconds
-			// coo_weak
+		case 79: case 101: // Weaken/Crush Cooldn	Decimal, 0.00 Seconds
+			// coo_weak = 300 * pl_cdrate / 100 * len / 100;
 			break;
 		case 80: // Curse Effect
-			// sk_curse
+			// 	if (pl_flags & (1 <<  6)) // Tarot - Tower (curse bonus)
+			//		sk_curse = -(2 + ((((sk_score(20)+(sk_score(20)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)*5/4)-4)/5);
+			//	else
+			//		sk_curse = -(2 + (((sk_score(20)+(sk_score(20)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)-4)/5);
 			break;
 		case 81: // Curse Cooldown					Decimal, 0.00 Seconds
-			// coo_curs
+			// coo_curs = 400 * pl_cdrate / 100 * len / 100;
 			break;
 		case 82: // Slow Effect
-			// sk_slowv
+			// 	if (pl_flags & (1 <<  5)) // Tarot - Emperor (slow bonus)
+			//		sk_slowv = -(30 + ((sk_score(19)+(sk_score(19)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)/4);
+			//	else
+			//		sk_slowv = -(30 + ((sk_score(19)+(sk_score(19)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)/3);
 			break;
 		case 83: // Slow Cooldown					Decimal, 0.00 Seconds
-			// coo_slow
+			// coo_slow = 400 * pl_cdrate / 100 * len / 100;
 			break;
 		//
 		case 89: // Skill Modifier					Decimal, 0.00 x
-			// pl_skmod
+			// 	if (pl_flagc&(1<<10))
+			//		pl_skmod = pl_spmod;
 			break;
 		case 90: // Venom Degen						Decimal, 0.00 /s
-			// sk_poiso
-			break;
-		case 91: // Venom Cooldown					Decimal, 0.00 Seconds
-			// coo_pois
+			// sk_poiso = (sk_score(42)*pl_spmod/100 + 5) * DAM_MULT_POISON / 300;
+			//	if (pl_flags & (1 <<  4)) // Book - Venom Compendium (poison bonus)
+			//		sk_poiso = sk_poiso * 5 / 4;
+			//	if (T_SORC_SK(4)) // Tree - 10% faster = 11.1% more damage
+			//		sk_poiso = sk_poiso * 10 / 9;
+			//	if (pl_flagb & (1 << 14)) // Tarot - Rev.Tower (Venom)
+			//		sk_poiso = sk_poiso / 2;
+			//	if (pl_flagc & (1<<5)) // 20% more poison effect
+			//		sk_poiso = sk_poiso * 6/5;
+			// sk_poiso = sk_poiso*pl_dmgbn/10000*pl_dmgml/100;
 			break;
 		case 92: // Pulse Hit Heal
-			// sk_pulse
+			// sk_pulse = (sk_score(43)+(sk_score(43)*(T_ARHR_SK(7)?at_score(AT_INT)/1000:0)))*pl_spmod/100 * 2 * DAM_MULT_PULSE/1000;
 			break;
 		case 93: // M.Shell Effect
-			// sk_mshie
+			// sk_mdura = sk_score(11)*pl_spmod/100 * ((pl_flagb&(1<<10))?128:256);
+			// sk_mshie = min(127, (IS_SEYAN_DU?(sk_mdura/((pl_flagb&(1<<10))?768:1536)+1):(sk_mdura/((pl_flagb&(1<<10))?512:1024)+1)));
 			break;
 		case 94: // M.Shell Duration				Decimal, 0.00 Seconds
-			// sk_mdura
+			// sk_mdura = sk_score(11)*pl_spmod/100 * ((pl_flagb&(1<<10))?128:256);
+			// sk_mdura = sk_mdura/20;
 			break;
 		case 95: // Regen Effect
-			// sk_healr
+			// sk_healr = ((pl_flags&(1<<14))?sk_score(26)*pl_spmod/100*1875/20:sk_score(26)*pl_spmod/100*2500)/1000;
+			//	if (pl_flagc & (1<<8)) // 20% more heal effect
+			//		sk_healr = sk_healr * 6/5;
 			break;
 		case 96: // Douse Effect					Decimal, 0.00 %
-			// sk_blind
-			break;
-		case 97: // Douse Cooldown					Decimal, 0.00 Seconds
-			// coo_blin
+			// if (IS_MERCENARY || IS_WARRIOR || IS_SORCERER)
+			//		sk_blind = -((sk_score(37)+(sk_score(37)*(T_WARR_SK(7)?at_score(AT_AGL)/2000:0)))*pl_skmod/100 / 6 + 2);
+			//	else
+			//		sk_blind = -(sk_score(37)*pl_skmod/100 / 8 + 1);
+			//	if (pl_flagc & (1<<7)) // 20% more blind effect
+			//		sk_blind = sk_blind * 6/5;
 			break;
 		case 98: // Rally Effect
-			// sk_rally
-			break;
-		case 99: // Rally Cooldown					Decimal, 0.00 Seconds
-			// coo_warc
+			// sk_rally = sk_score(35)*pl_skmod/100/10;
 			break;
 		case 100: // Crush Effect
-			// sk_weake
-			break;
-		case 101: // Crush Cooldown					Decimal, 0.00 Seconds
-			// coo_weak
+			// sk_weake = -(sk_score(41)*pl_skmod/100 / 4 + 2);
+			//	if (IS_SEYAN_DU || IS_BRAVER)
+			//		sk_weake = -(sk_score(41) / 6 + 2);
+			// 	if (pl_flagc & (1<<2)) // 20% more weaken effect
+			//		sk_weake = sk_weake * 6/5;
 			break;
 		//
 		default: break;
