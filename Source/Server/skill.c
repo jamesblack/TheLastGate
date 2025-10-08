@@ -730,133 +730,120 @@ char desc[200];
 
 // TODO: migrate client terminology to here
 
-struct metaStat metaStats[90] = {
-	
-	{ 1, 1, "Cooldown Duration",   "x",        "" },
-	{ 0, 4, "Spell Aptitude",      "",         "" },
-	{ 1, 4, "Spell Modifier",      "x",        "" }, // if (pl_flagc&(1<<10))  -> 5 Skill Modifier
-	{ 1, 6, "Base Action Speed",   "",         "" },
-	{ 1, 6, "Movement Speed",      "",         "" },
-	{ 0, 7, "Hit Score",           "",         "" },
-	{ 0, 7, "Parry Score",         "",         "" },
+struct metaStat metaStats[102] = {
 	//
-	{ 0, 9, "  Passive Stats:",    "",         "" },
-	{ 1, 1, "Damage Multiplier",   "%",        "" }, // if (pl_dmgbn!=10000)
-	{ 1, 7, "Est. Melee DPS",      "",         "" },
-	{ 0, 5, "Est. Melee Hit Dmg",  "",         "" },
-	{ 0, 5, "Critical Multiplier", "%",        "" },
-	{ 1, 5, "Critical Chance",     "%",        "" },
-	{ 0, 5, "Melee Ceiling Damage", "",        "" },
-	{ 0, 5, "Melee  Floor  Damage", "",        "" },
-	{ 1, 6, "Attack Speed",         "",        "" },
-	{ 1, 6, "  Cast Speed",         "",        "" },
-	{ 0, 1, "Thorns Score",         "",        "" }, // if (pl_reflc>0)
-	{ 1, 4, "Mana Cost Multiplier", "%",       "" }, // if (pl.skill[34][0])
-	{ 0, 1, "Total AoE Bonus",      "Tiles",   "" }, // if (pl_aoebn)
-	{ 0, 0, "", "", "" }, // blank
-	{ 0, 0, "", "", "" }, // blank
-	{ 0, 0, "", "", "" }, // blank
-	{ 0, 9, "  Active Stats:",      "",        "" },
-	{ 0, 5, "Cleave Hit Damage",    "",        "" }, // if (pl.skill[40][0])
-	{ 1, 5, "Cleave Bleed Degen",   "/s",      "" }, // if (pl.skill[40][0] && !(pl_flags&(1<<8)))
-	{ 1, 5, "Cleave Cooldown",      "Seconds", "" }, // if (pl.skill[40][0])
-	{ 0, 1, "Leap Hit Damage",      "",        "" }, // if (pl.skill[49][0])
-	{ 0, 1, "Leap # of Repeats",    "Repeats", "" }, // if (pl.skill[49][0] && sk_leapr)
-	{ 1, 1, "Leap Cooldown",        "Seconds", "" }, // if (pl.skill[49][0])
-	{ 0, 5, "Rage TD Bonus",        "Top Dmg", "" }, // if (pl.skill[22][0])
-	{ 1, 5, "Rage DoT Bonus",       "%",       "" }, // if (pl.skill[22][0])
-	{ 0, 4, "Blast Hit Damage",     "",        "" }, // if (pl.skill[24][0]) 
-	{ 1, 4, "Blast Cooldown",       "Seconds", "" }, // if (pl.skill[24][0]) 
-	{ 0, 1, "Lethargy Effect",      "I/R Pen", "" }, // if (pl.skill[15][0]) 
-	{ 1, 4, "Poison Degen",         "/s",      "" }, // if (pl.skill[42][0]) // (pl_flagb&(1<<14)) -> Venom
-	{ 1, 4, "Poison Cooldown",      "Seconds", "" }, // if (pl.skill[42][0]) // (pl_flagb&(1<<14)) -> Venom
-	{ 0, 1, "Pulse Hit Damage",     "",        "" }, // if (pl.skill[43][0]) // if (pl_flagb&(1<<6)) -> Pulse Hit Heal
-	{ 0, 1, "Pulse Count",          "",        "" }, // if (pl.skill[43][0])
-	{ 1, 1, "Pulse Cooldown",       "Seconds", "" }, // if (pl.skill[43][0])
-	{ 0, 6, "Zephyr Hit Damage",    "",        "" }, // if (pl.skill[ 7][0])
-	{ 1, 4, "Immolate Degen",       "/s",      "" }, // if (pl_flagc&(1<<13))
-	{ 0, 1, "Ghost Comp Potency",   "",        "" }, // if (pl.skill[27][0])
-	{ 1, 1, "Ghost Comp Cooldown",  "Seconds", "" }, // if (pl.skill[27][0])
-	{ 0, 4, "Shadow Copy Potency",  "",        "" }, // if (pl.skill[46][0])
-	{ 1, 4, "Shadow Copy Duration", "Seconds", "" }, // if (pl.skill[46][0])
-	{ 1, 4, "Shadow Copy Cooldown", "Seconds", "" }, // if (pl.skill[46][0])
+	//   Topmost standard stats
 	//
-	{ 0, 9, "  Passive Stats:",     "",        "" },
-	{ 1, 1, "Damage Reduction",     "%",       "" }, // if (pl_dmgrd!=10000)
-	{ 0, 7, "Effective Hitpoints",  "",        "" }, // if (pl_dmgrd!=10000||(pl_flagc&(1<<9|1<<11|1<<12|1<<14))||(pl_flags&(1<<9)))
-	{ 1, 5, "Health Regen Rate",    "/s",      "" },
-	{ 1, 6, "Endurance Regen Rate", "/s",      "" },
-	{ 1, 4, "Mana Regen Rate",      "/s",      "" },
-	{ 0, 1, "Effective Immunity",   "",        "" },
-	{ 0, 1, "Effective Resistance", "",        "" },
-	{ 1, 6, "Attack Speed",         "",        "" },
-	{ 1, 6, "  Cast Speed",         "",        "" },
-	{ 0, 1, "Thorns Score",         "",        "" }, // if (pl_reflc>0)
-	{ 1, 4, "Mana Cost Multiplier", "%",       "" }, // if (pl.skill[34][0])
-	{ 0, 4, "Total AoE Bonus",      "Tiles",   "" }, // if (pl_aoebn)
-	{ 0, 4, "Buffing Apt Bonus",    "",        "" }, // at_score(AT_WIL)/4
-	{ 1, 1, "Underwater Degen",     "/s",      "" },
-	{ 0, 0, "", "", "" }, // blank
+	{ 1, 1, "Cooldown Duration",    "x",       "Cooldown Duration is the multiplier that cooldown from skills is applied with, the lower the better. Affected by Cooldown Rate." },
+	{ 0, 4, "Spell Aptitude",       "",        "Spell Aptitude is how powerful a spell you can receive from any source. Determined by Willpower, Intuition, and base class Spell Modifier." },
+	{ 1, 4, "Spell Modifier",       "x",       "Spell Modifier is a multiplier which effects the strength of spells you cast. Determined by your character class." },
+	{ 1, 6, "Base Action Speed",    "",        "Base Action speed is the base speed at which ALL actions are performed. Determined by Agility and Strength." },
+	{ 1, 6, "Movement Speed",       "",        "Movement Speed is the speed at which your character runs around Astonia." },
+	{ 0, 7, "Hit Score",            "",        "Your Hit Score is the value used to determine the rate of hitting enemies in melee combat. Granted by your weapon skill and other sources." },
+	{ 0, 7, "Parry Score",          "",        "Your Parry Score is the value used to determine the rate of avoiding damage from enemies. Granted by your weapon skill and other sources." },
 	//
-	{ 0, 9, "  Active Stats:",      "",        "" },
-	{ 0, 1, "Bless Effect", "Attribs", "" }, // if (pl.skill[21][0])
-	{ 0, 1, "Enhance Effect", "WV", "" }, // if (pl.skill[18][0])
-	{ 0, 1, "Protect Effect", "AV", "" }, // if (pl.skill[18][0])
-	{ 0, 4, "M.Shield Effect", "AV", "" }, // if (pl.skill[11][0]) // (pl_flagb&(1<<10)) -> M.Shell Res&Imm
-	{ 1, 4, "M.Shield Duration", "Seconds", "" }, // if (pl.skill[11][0]) // (pl_flagb&(1<<10)) -> M.Shell 
-	{ 0, 6, "Haste Effect", "Speed", "" }, // if (pl.skill[47][0])
-	{ 0, 5, "Calm TD Taken", "Top Dmg", "" }, // if (pl.skill[22][0])
-	{ 1, 5, "Calm DoT Taken", "%", "" }, // if (pl.skill[22][0])
-	{ 0, 1, "Heal Effect", "", "" }, // if (pl.skill[26][0]) // (pl_flags&(1<<14)) -> Regen /s
-	{ 0, 5, "Blind Effect", "", "" }, // if (pl.skill[37][0]) // if (pl_flagb&(5<<11)) -> % Blind
-	{ 1, 5, "Blind Cooldown", "Seconds", "" }, // if (pl.skill[37][0]) // if (pl_flagb&(5<<11)) -> Blind
-	{ 0, 1, "Warcry Effect", "Attribs", "" }, // if (pl.skill[35][0]) // if (pl_flagb&(1<<12)) -> Rally
-	{ 1, 1, "Warcry Cooldown", "Seconds", "" }, // if (pl.skill[35][0]) // if (pl_flagb&(1<<12)) -> Rally
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
-	
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
-	{ 0, 0, "", "", "" },
+	//   Offense Stats
+	//
+	{ 0, 9, "  Passive Stats:",     "",        "" }, //  7
+	{ 1, 1, "Damage Multiplier",    "%",       "Damage Multiplier is the final multiplier for all damage you deal." },
+	{ 1, 7, "Est. Melee DPS",       "",        "Melee DPS is the average of your damage per hit, times your attack speed. Does not account for bonus damage from your Hit Score." },
+	{ 0, 5, "Est. Melee Hit Dmg",   "",        "Melee Hit Dmg ranges from 1/4 of your Weapon Value, to 1/4 of (your Weapon Value, plus half Strength, plus 14) times your Crit Chance & Crit Multi." },
+	{ 0, 5, "Critical Multiplier",  "%",       "Critical Multiplier is the damage multiplier upon dealing a successful critical hit." },
+	{ 1, 5, "Critical Chance",      "%",       "Critical Chance is the chance, out of 100.00, that you will inflict a melee critical hit. Determined by your equipped weapon, and increased by Braveness and other sources of Crit Chance." },
+	{ 0, 5, "Melee Ceiling Damage", "",        "Melee Ceiling Damage is the highest possible damage a melee hit may deal. This is affected by increases to Top Damage and your critical hit scores." },
+	{ 0, 5, "Melee  Floor  Damage", "",        "Melee Floor Damage is the lowest possible damage a melee hit may deal. Determined by 1/4 of your Weapon Value." },
+	{ 1, 6, "Attack Speed",         "",        "Attack speed is the speed at which melee attacks are performed. This is increased by Agility and other sources of Attack Speed." },
+	{ 1, 6, "  Cast Speed",         "",        "Cast Speed is the speed at which casting and action animations occur per second. This is increased by Willpower and other sources of Cast Speed." },
+	{ 0, 1, "Thorns Score",         "",        "Thorns is damage dealt to attackers when you are successfully hit (even if you take no damage). Does not damage attackers if they fail to hit you." },
+	{ 1, 4, "Mana Cost Multiplier", "%",       "Mana Cost Multiplier is the multiplier of mana for spells, determined by your Concentrate skill." },
+	{ 0, 1, "Total AoE Bonus",      "Tiles",   "Total AoE Bonus is a flat increase to area-of-effect skills." },
+	{ 0, 0, "", "", "" }, // blank
+	{ 0, 0, "", "", "" }, // blank
+	{ 0, 0, "", "", "" }, // blank
+	{ 0, 9, "  Active Stats:",      "",        "" }, // 23
+	{ 0, 5, "Cleave Hit Damage",    "",        "Damage dealt by your Cleave skill, before reduction from target Parry Score and Armor Value. Surrounding targets take 3/4 of this value." },
+	{ 1, 5, "Cleave Bleed Degen",   "/s",      "Effective damage over time dealt by Bleeding caused by Cleave, before reduction from target Parry Score, Armor Value and Immunity." },
+	{ 1, 5, "Cleave Cooldown",      "Seconds", "Skill exhaustion duration expected upon using your Cleave skill." },
+	{ 0, 1, "Leap Hit Damage",      "",        "Damage dealt by your Leap skill if your target is at or near maximum hitpoints." },
+	{ 0, 1, "Leap # of Repeats",    "Repeats", "Damage dealt by your Leap skill, before reduction from target Parry Score and Armor Value. Surrounding targets take 3/4 of this value." },
+	{ 1, 1, "Leap Cooldown",        "Seconds", "Skill exhaustion duration expected upon using your Leap skill." },
+	{ 0, 5, "Rage TD Bonus",        "Top Dmg", "Effective increase to top damage granted while under the effect of your Rage skill." },
+	{ 1, 5, "Rage DoT Bonus",       "%",       "Effective multiplier to damage over time granted while under the effect of your Rage skill." },
+	{ 0, 4, "Blast Hit Damage",     "",        "Damage dealt by your Blast spell, before reduction from target Immunity and Armor Value. Surrounding targets take 3/4 of this value." },
+	{ 1, 4, "Blast Cooldown",       "Seconds", "Skill exhaustion duration expected upon using your Blast spell." },
+	{ 0, 1, "Lethargy Effect",      "I/R Pen", "Effective penetration of target Immunity and Resistance when casting debuffs." },
+	{ 1, 4, "Poison Degen",         "/s",      "Effective damage over time dealt by your Poison spell, before reduction from target Immunity." },
+	{ 1, 4, "Poison Cooldown",      "Seconds", "Skill exhaustion duration expected upon using your Poison spell." },
+	{ 0, 1, "Pulse Hit Damage",     "",        "Damage dealt by the Pulse spell to surrounding enemies when pulsing, before reduction from target Immunity and Armor Value." },
+	{ 0, 1, "Pulse Count",          "",        "Number of pulses expected during the duration of your Pulse spell, determined by the rate of pulses from Cooldown Rate." },
+	{ 1, 1, "Pulse Cooldown",       "Seconds", "Skill exhaustion duration expected upon using your Pulse spell." },
+	{ 0, 6, "Zephyr Hit Damage",    "",        "Damage granted by your Zephyr spell, before reduction from target Parry Score and Armor Value. This occurs one second after a successful hit." },
+	{ 1, 4, "Immolate Degen",       "/s",      "Effective damage over time dealt to nearby enemies while affected by Immolate, before reduction from enemy Immunity." },
+	{ 0, 0, "", "", "" }, // blank
+	{ 0, 1, "Ghost Comp Potency",   "",        "Effective power of your Ghost Companion, granted by your Ghost Companion spell. A higher number grants a stronger companion." },
+	{ 1, 1, "Ghost Comp Cooldown",  "Seconds", "Skill exhaustion duration expected upon using your Ghost Companion spell." },
+	{ 0, 4, "Shadow Copy Potency",  "",        "Effective power of your Shadow Copy, granted by your Shadow Copy spell. A higher number grants a stronger companion." },
+	{ 1, 4, "Shadow Copy Duration", "Seconds", "Effective duration of your Shadow Copy, granted by your Shadow Copy spell." },
+	{ 1, 4, "Shadow Copy Cooldown", "Seconds", "Skill exhaustion duration expected upon using your Shadow Copy spell." },
+	//
+	//   Defense Stats
+	//
+	{ 0, 9, "  Passive Stats:",     "",        "" }, // 48
+	{ 1, 1, "Damage Reduction",     "%",       "Damage Reduction is the final multiplier for all damage you take." },
+	{ 0, 7, "Effective Hitpoints",  "",        "Your effective total hitpoints, taken by dividing your maximum hitpoints by your damage reduction multiplier, as well as any effects which nullify damage or transfer it to endurance or mana." },
+	{ 1, 5, "Health Regen Rate",    "/s",      "Rate at which health is regenerated per second. This is improved by the Regenerate skill, and can be further adjusted by various items." },
+	{ 1, 6, "Endurance Regen Rate", "/s",      "Rate at which endurance is regenerated per second. This is improved by the Rest skill, and can be further adjusted by various items." },
+	{ 1, 4, "Mana Regen Rate",      "/s",      "Rate at which mana is regenerated per second. This is improved by the Meditate skill, and can be further adjusted by various items." },
+	{ 0, 1, "Effective Immunity",   "",        "Estimated Immunity score. This displays your 'true' Immunity value after adjustments that do not display on the skill list." },
+	{ 0, 1, "Effective Resistance", "",        "Estimated Resistance score. This displays your 'true' Resistance value after adjustments that do not display on the skill list." },
+	{ 1, 6, "Attack Speed",         "",        "Attack speed is the speed at which melee attacks are performed. This is increased by Agility and other sources of Attack Speed." },
+	{ 1, 6, "  Cast Speed",         "",        "Cast Speed is the speed at which casting and action animations occur per second. This is increased by Willpower and other sources of Cast Speed." },
+	{ 0, 1, "Thorns Score",         "",        "Thorns is damage dealt to attackers when you are successfully hit (even if you take no damage). Does not damage attackers if they fail to hit you." },
+	{ 1, 4, "Mana Cost Multiplier", "%",       "Mana Cost Multiplier is the multiplier of mana for spells, determined by your Concentrate skill." },
+	{ 0, 4, "Total AoE Bonus",      "Tiles",   "Total AoE Bonus is a flat increase to area-of-effect skills." },
+	{ 0, 4, "Buffing Apt Bonus",    "",        "Aptitude Bonus granted to target allies when casting friendly spells. This is granted by Willpower." },
+	{ 1, 1, "Underwater Degen",     "/s",      "Rate at which health is lost while underwater. This can be reduced by the Metabolism skill, and can be further reduced by other items." },
+	{ 0, 0, "", "", "" }, // blank
+	{ 0, 9, "  Active Stats:",      "",        "" }, // 64
+	{ 0, 1, "Bless Effect",         "Attribs", "Estimated increase to attributes granted by your Bless spell." },
+	{ 0, 1, "Enhance Effect",       "WV",      "Effective increase to Weapon Value granted by your Enhance spell." },
+	{ 0, 1, "Protect Effect",       "AV",      "Effective increase to Armor Value granted by your Protect spell." },
+	{ 0, 4, "M.Shield Effect",      "AV",      "Effective increase to Armor Value granted by your Magic Shield spell. Decreases as you take damage." },
+	{ 1, 4, "M.Shield Duration",    "Seconds", "Estimated duration of your Magic Shell, not including reductions from taking damage." },
+	{ 0, 6, "Haste Effect",         "Speed",   "Estimated increase to Speed granted by your Haste spell." },
+	{ 0, 5, "Calm TD Taken",        "Top Dmg", "Effective reduction to incoming top damage granted while under the effect of your Calm skill." },
+	{ 1, 5, "Calm DoT Taken",       "%",       "Effective multiplier to incoming damage over time granted while under the effect of your Calm skill." },
+	{ 0, 1, "Heal Effect",          "",        "Effective flat healing expected when casting your heal spell." },
+	{ 0, 5, "Blind Effect",         "",        "Effective reduction of target Hit and Parry Scores when using your Blind skill, before reduction from target Immunity." },
+	{ 1, 5, "Blind Cooldown",       "Seconds", "Skill exhaustion duration expected upon using your Blind skill." },
+	{ 0, 1, "Warcry Effect",        "Attribs", "Effective reduction of target attributes when using your Warcry skill, before reduction from target Immunity." },
+	{ 1, 1, "Warcry Cooldown",      "Seconds", "Skill exhaustion duration expected upon using your Warcry skill." },
+	{ 0, 5, "Weaken Effect",        "WV",      "Effective reduction of target Weapon Value when using your Weaken skill, before reduction from target Immunity." },
+	{ 1, 5, "Weaken Cooldown",      "Seconds", "Skill exhaustion duration expected upon using your Weaken skill." },
+	{ 0, 2, "Curse Effect",         "Attribs", "Effective reduction of target attributes when casting your Curse spell, before reduction from target Immunity." },
+	{ 1, 2, "Curse Cooldown",       "Seconds", "Skill exhaustion duration expected upon using your Curse spell." },
+	{ 0, 4, "Slow Effect",          "Speed",   "Effective reduction of target action speed when casting your Slow spell, before reduction from target Immunity." },
+	{ 1, 4, "Slow Cooldown",        "Seconds", "Skill exhaustion duration expected upon using your Slow spell." },
+	{ 0, 1, "Ghost Comp Potency",   "",        "Effective power of your Ghost Companion, granted by your Ghost Companion spell. A higher number grants a stronger companion." },
+	{ 1, 1, "Ghost Comp Cooldown",  "Seconds", "Skill exhaustion duration expected upon using your Ghost Companion spell." },
+	{ 0, 4, "Shadow Copy Potency",  "",        "Effective power of your Shadow Copy, granted by your Shadow Copy spell. A higher number grants a stronger companion." },
+	{ 1, 4, "Shadow Copy Duration", "Seconds", "Effective duration of your Shadow Copy, granted by your Shadow Copy spell." },
+	{ 1, 4, "Shadow Copy Cooldown", "Seconds", "Skill exhaustion duration expected upon using your Shadow Copy spell." },
+	//
+	//   Alternative values
+	//
+	{ 1, 5, "Skill Modifier",       "x",       "Skill Modifier is a multiplier which effects the strength of skills you use." },
+	{ 1, 4, "Venom Degen",          "/s",      "Effective damage over time dealt by each individual stack of your Venom spell, before reduction from target Immunity. This can be stacked up to three times." },
+	{ 1, 4, "Venom Cooldown",       "Seconds", "Skill exhaustion duration expected upon using your Venom spell." },
+	{ 0, 1, "Pulse Hit Heal",       "",        "Healing caused by the Pulse spell to surrounding allies when pulsing." },
+	{ 0, 4, "M.Shell Effect",       "Res&Imm", "Effective increase to Resistance and Immunity Scores granted by your Magic Shell spell. Decreases as you take or avoid debuffs." },
+	{ 1, 4, "M.Shell Duration",     "Seconds", "Estimated duration of your Magic Shell, not including reductions from taking or avoid debuffs." },
+	{ 1, 1, "Regen Effect",         "/s",      "Effective healing over time expected when casting your Regen spell." },
+	{ 1, 5, "Douse Effect",         "%",       "Effective reduction of target Spell Modifier when using your Douse skill, before reduction from target Immunity." },
+	{ 1, 5, "Douse Cooldown",       "Seconds", "Skill exhaustion duration expected upon using your Douse skill." },
+	{ 0, 1, "Rally Effect",         "Hit/Par", "Effective bonus to hit and parry score granted to allies when using your Rally skill. Half of this value is granted to yourself as well." },
+	{ 1, 1, "Rally Cooldown",       "Seconds", "Skill exhaustion duration expected upon using your Rally skill." },
+	{ 0, 5, "Crush Effect",         "AV",      "Effective reduction of target Armor Value when using your Crush skill, before reduction from target Immunity." },
+	{ 1, 5, "Crush Cooldown",       "Seconds", "Skill exhaustion duration expected upon using your Crush skill." },
 };
 
-/*
-		case 30: if (pl.skill[41][0])
-				 meta_stat(2,n,5,(pl_flags&(1<<10))?"Crush Effect":"Weaken Effect", sk_weake, -1, (pl_flags&(1<<10))?"AV":"WV"); break;
-		case 31: if (pl.skill[41][0])
-				 meta_stat(2,n,5,(pl_flags&(1<<10))?"Crush Cooldown":"Weaken Cooldown", coo_weak/100, coo_weak%100, "Seconds"); break;
-		
-		case 32: if (pl.skill[20][0])
-				 meta_stat(2,n,1,"Curse Effect",         sk_curse,     -1,           "Attribs"); break;
-		case 33: if (pl.skill[20][0])
-				 meta_stat(2,n,1,"Curse Cooldown",       coo_curs/100, coo_curs%100, "Seconds"); break;
-		
-		case 34: if (pl.skill[19][0])
-				 meta_stat(2,n,4,"Slow Effect",          sk_slowv,     -1,           "Speed"  ); break;
-		case 35: if (pl.skill[19][0])
-				 meta_stat(2,n,4,"Slow Cooldown",        coo_slow/100, coo_slow%100, "Seconds"); break;
-		
-		case 36: if (pl.skill[27][0])
-				 meta_stat(2,n,1,"Ghost Comp Potency", 	 sk_ghost,     -1,           ""       ); break;
-		case 37: if (pl.skill[27][0])
-				 meta_stat(2,n,1,"Ghost Comp Cooldown",  coo_ghos/100, coo_ghos%100, "Seconds"); break;
-		
-		case 38: if (pl.skill[46][0])
-				 meta_stat(2,n,4,"Shadow Copy Potency",  sk_shado,     -1,           ""       ); break;
-		case 39: if (pl.skill[46][0])
-				 meta_stat(2,n,4,"Shadow Copy Duration", sk_shadd,     -1,           "Seconds"); break;
-		case 40: if (pl.skill[46][0])
-				 meta_stat(2,n,4,"Shadow Copy Cooldown", coo_shad/100, coo_shad%100, "Seconds"); break;
-		//
-		default: break;
-	}
-}
-*/
