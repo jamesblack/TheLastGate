@@ -1972,91 +1972,56 @@ void plr_update_all_skill_terminology(int nr)
 
 int get_meta_stat_value(int cn, int n)
 {
-	int m, power, value = 0, cdlen = 100;
+	int m, in, power, durat, value = 0, cdlen = 100;
 	int hpmult, endmult, manamult, moonmult = 20;
 	int race_reg = 0, race_res = 0, race_med = 0;
 	int dmg_wpn, dmg_low, dmg_hgh, dmg_top, dmg_hit, dmg_dps, dmg_bns, dmg_str;
+	int regen = 0, restn = 0, medit = 0;
 	
 	switch (n) // Regen set
 	{
 		case 51: case 52: case 53:
-		/*
-			race_reg = sk_score(28) * moonmult / 20 + sk_score(28) * pl.hp[5]/2000;
-			race_res = sk_score(29) * moonmult / 20 + sk_score(29) * pl.end[5]/2000;
-			race_med = sk_score(30) * moonmult / 20 + sk_score(30) * pl.mana[5]/2000;
+			int n1 = st_skillcount(cn, 42)*10; // Full
+			int n2 = st_skillcount(cn, 54)*10; // New
+			int n3 = st_skillcount(cn, 99)* 5; // Half
 			
-			// Tarot - Moon :: While not full mana, life regen is mana regen
-			if ((pl_flags & (1 << 11)) && (pl.a_mana<pl.mana[5]))
-			{
-				race_med += race_reg;	race_reg -= race_reg;
-				manamult += hpmult;		hpmult   -= hpmult;
-			}
-			// Tarot - Sun :: While not full life, end regen is life regen
-			if ((pl_flags & (1 << 12)) && (pl.a_hp<pl.hp[5]))
-			{
-				race_reg += race_res;	race_res -= race_res;
-				hpmult   += endmult;	endmult  -= endmult;
-			}
-			// Tarot - World :: While not full end, mana regen is end regen
-			if ((pl_flags & (1 << 13)) && (pl.a_end<pl.end[5]))
-			{
-				race_res += race_med;	race_med -= race_med;
-				endmult  += manamult;	manamult -= manamult;
-			}
+			if (IS_GLOB_MAYHEM)				moonmult = 10;
+			if (globs->fullmoon)			moonmult = (30*(100+n1+n3))/100;
+			if (globs->newmoon)				moonmult = (40*(100+n2+n3))/100;
 			
-			// Meditate added to Hitpoints
-			if (pl_flagc & (1<<0))
-			{
-				race_reg += race_med/2;
-				hpmult   += manamult/2;
-			}
-			// Rest added to mana
-			if (pl_flagc & (1<<1))
-			{
-				race_med += race_res/2;
-				manamult += endmult/2;
-			}
+			hpmult = endmult = manamult = moonmult;
 			
-			sk_regen = (pl.skill[28][0]?race_reg:0) + hpmult   * 2;
-			sk_restv = (pl.skill[29][0]?race_res:0) + endmult  * 3;
-			sk_medit = (pl.skill[30][0]?race_med:0) + manamult * 1;
+			race_reg = M_SK(cn, SK_REGEN) * moonmult / 20 + M_SK(cn, SK_REGEN) * ch[cn].hp[5]  /2000;
+			race_res = M_SK(cn, SK_REST)  * moonmult / 20 + M_SK(cn, SK_REST)  * ch[cn].end[5] /2000;
+			race_med = M_SK(cn, SK_MEDIT) * moonmult / 20 + M_SK(cn, SK_MEDIT) * ch[cn].mana[5]/2000;
 			
-			// Amulet - Standard Ankh			1 0 0
-			if ((pl_flagb & (1 <<  0)) && !(pl_flagb & (1 <<  1)) && !(pl_flagb & (1 <<  2)))
+			if (do_get_iflag(cn, SF_MOON)  && (ch[cn].a_mana < ch[cn].mana[5] * 1000)) // Tarot - Moon
+			{ race_med += race_reg;  race_reg -= race_reg;  manamult += hpmult;    hpmult   -= hpmult; }
+			if (do_get_iflag(cn, SF_SUN)   && (ch[cn].a_hp   < ch[cn].hp[5]   * 1000)) // Tarot - Sun
+			{ race_reg += race_res;  race_res -= race_res;  hpmult   += endmult;   endmult  -= endmult; }
+			if (do_get_iflag(cn, SF_WORLD) && (ch[cn].a_end  < ch[cn].end[5]  * 1000)) // Tarot - World
+			{ race_res += race_med;  race_med -= race_med;  endmult  += manamult;  manamult -= manamult; }
+			
+			if (do_get_iflag(cn, SF_EN_MEDIREGN)) // Meditate added to Hitpoints
+			{ race_reg += race_med/2;  hpmult   += manamult/2; }
+			if (do_get_iflag(cn, SF_EN_RESTMEDI)) // Rest added to mana
+			{ race_med += race_res/2;  manamult += endmult/2; }
+			
+			regen = race_reg + hpmult   * 2;
+			restn = race_res + endmult  * 3;
+			medit = race_med + manamult * 1;
+			
+			if (in = ch[cn].worn[WN_NECK]) switch (it[in].temp)
 			{
-				sk_regen += pl.skill[28][0]?race_reg/12:0;
-				sk_restv += pl.skill[29][0]?race_res/12:0;
-				sk_medit += pl.skill[30][0]?race_med/12:0;
+				case IT_ANKHAMULET: regen += (race_reg/ 8); restn += (race_res/ 8); medit += (race_med/ 8); break;
+				case IT_AMBERANKH:  regen += (race_reg/ 4); restn += (race_res/12); medit += (race_med/12); break;
+				case IT_TURQUANKH:  regen += (race_reg/12); restn += (race_res/ 4); medit += (race_med/12); break;
+				case IT_GARNEANKH:  regen += (race_reg/12); restn += (race_res/12); medit += (race_med/ 4); break;
+				case IT_TRUEANKH:   regen += (race_reg/ 4); restn += (race_res/ 4); medit += (race_med/ 4); break;
+				default: break;
 			}
-			// Amulet - Amber Ankh (Life) 		0 1 0
-			if (!(pl_flagb & (1 <<  0)) && (pl_flagb & (1 <<  1)) && !(pl_flagb & (1 <<  2)))
-			{
-				sk_regen += pl.skill[28][0]?race_reg/ 6:0;
-				sk_restv += pl.skill[29][0]?race_res/24:0;
-				sk_medit += pl.skill[30][0]?race_med/24:0;
-			}
-			// Amulet - Turquoise Ankh (End)	1 1 0
-			if ((pl_flagb & (1 <<  0)) && (pl_flagb & (1 <<  1)) && !(pl_flagb & (1 <<  2)))
-			{
-				sk_regen += pl.skill[28][0]?race_reg/24:0;
-				sk_restv += pl.skill[29][0]?race_res/ 6:0;
-				sk_medit += pl.skill[30][0]?race_med/24:0;
-			}
-			// Amulet - Garnet Ankh (Mana)		0 0 1
-			if (!(pl_flagb & (1 <<  0)) && !(pl_flagb & (1 <<  1)) && (pl_flagb & (1 <<  2)))
-			{
-				sk_regen += pl.skill[28][0]?race_reg/24:0;
-				sk_restv += pl.skill[29][0]?race_res/24:0;
-				sk_medit += pl.skill[30][0]?race_med/ 6:0;
-			}
-			// Amulet - True Ankh				1 0 1
-			if ((pl_flagb & (1 <<  0)) && !(pl_flagb & (1 <<  1)) && (pl_flagb & (1 <<  2)))
-			{
-				sk_regen += pl.skill[28][0]?race_reg/ 6:0;
-				sk_restv += pl.skill[29][0]?race_res/ 6:0;
-				sk_medit += pl.skill[30][0]?race_med/ 6:0;
-			}
-		*/
+			if (in = get_gear(cn, IT_RINGWARMTH) && it[in].active)
+			{ regen += (race_reg/ 8); restn += (race_res/ 8); medit += (race_med/ 8); }
 			break;
 		default: break;
 	}
@@ -2067,7 +2032,7 @@ int get_meta_stat_value(int cn, int n)
 		dmg_wpn = ch[cn].weapon;
 		dmg_top = ch[cn].top_damage + (6 + 8);
 		dmg_str = do_get_iflag(cn, SF_STRENGTH)?6:5;
-		dmg_bns = ch[cn].dmg_bonus
+		dmg_bns = ch[cn].dmg_bonus;
 		//
 		dmg_low = ( dmg_wpn*dmg_str/5)/4*dmg_bns/10000;
 		dmg_hgh =   dmg_wpn+dmg_top;
@@ -2087,6 +2052,14 @@ int get_meta_stat_value(int cn, int n)
 			if (it[ch[cn].worn[WN_RHAND]].temp==IT_TW_ACEDIA || it[ch[cn].worn[WN_RHAND]].orig_temp==IT_TW_ACEDIA) cdlen = cdlen * 3/4; // Acedia less
 			if (it[ch[cn].worn[WN_LHAND]].temp==IT_TW_ACEDIA || it[ch[cn].worn[WN_LHAND]].orig_temp==IT_TW_ACEDIA) cdlen = cdlen * 6/4; // Acedia more
 			break;
+		default: break;
+	}
+	
+	switch (n) // M.Shield and M.Shell duration
+	{
+		case 68: case 69: case 93: case 94:
+		power = spell_multiplier(M_SK(cn, SK_REGEN), cn);
+		durat = do_get_iflag(cn, SF_EMPRESS)?SP_DUR_MSHELL(power):SP_DUR_MSHIELD(power);
 		default: break;
 	}
 	
@@ -2152,28 +2125,31 @@ int get_meta_stat_value(int cn, int n)
 			break;
 		//
 		case 24: // Cleave Hit Damage
-			// sk_cleav = ((sk_score(40)+(sk_score(40)*(T_WARR_SK(9)?at_score(AT_STR)/1000:0)))*pl_skmod/100+pl.weapon/4+pl_topdm/4+(T_ARTM_SK(4)?pl_reflc:0)) * 2 * DAM_MULT_CLEAVE/1000;
-			// sk_cleav = sk_cleav*pl_dmgbn/10000*pl_dmgml/100;
+			power = skill_multiplier(M_SK(cn, SK_CLEAVE) + ch[cn].weapon/4 + ch[cn].top_damage/4, cn)*2;
+			if (T_ARTM_SK(cn, 4))         power = power + ch[cn].gethit_dam;
+			if (T_WARR_SK(cn, 9))         power = power + (power * M_AT(cn, AT_STR)  / 2000);
+			if (m=st_skillcount(cn, 45))  power = power + (power * M_AT(cn, AT_STR)*m/ 5000);
+			value = power * ((do_get_iflag(cn, SF_STRENGTH)?6:5)/5)*(ch[cn].dmg_bonus/10000);
 			break;
 		case 25: // Cleave Bleed Degen				Decimal, 0.00 /s
-			// sk_bleed = (sk_cleav + 5) * DAM_MULT_BLEED / 150;
-			//	if (pl_flagc & (1<<6)) // 20% more bleed effect
-			//		sk_bleed = sk_bleed * 6/5;
-			//  ** should multiply by dmgbn as well
+			power = skill_multiplier(M_SK(cn, SK_CLEAVE) + ch[cn].weapon/4 + ch[cn].top_damage/4, cn)*2;
+			if (T_ARTM_SK(cn, 4))         power = power + ch[cn].gethit_dam;
+			if (T_WARR_SK(cn, 9))         power = power + (power * M_AT(cn, AT_STR)  / 2000);
+			if (m=st_skillcount(cn, 45))  power = power + (power * M_AT(cn, AT_STR)*m/ 5000);
+			if (do_get_iflag(cn, SF_EN_MOREBLEE)) power = power*6/5;
+			value = BLEEDFORM(power, (do_get_iflag(cn, SF_GUNGNIR)?SP_DUR_BLEED/3:SP_DUR_BLEED));
+			value = value * ((do_get_iflag(cn, SF_STRENGTH)?6:5)/5)*(ch[cn].dmg_bonus/10000) / 20;
 			break;
 		case 26: // Cleave Cooldown					Decimal, 0.00 Seconds
 			value = 5 * cdlen;
 			break;
 		case 27: // Leap Hit Damage
-			// if (pl_flagb & (1<<7))	// Tarot - Rev.Justice (Leap dmg crits)
-			// 		sk_leapv = (sk_score(49)*pl_skmod/100+pl.weapon/4) * 2 * DAM_MULT_LEAP/1000 * pl_critm/100;
-			// else
-			// 		sk_leapv = (sk_score(49)*pl_skmod/100+pl.weapon/4) * 2 * DAM_MULT_RLEAP/1000;
-			// sk_leapv = sk_leapv*pl_dmgbn/10000*pl_dmgml/100;
+			power = skill_multiplier(M_SK(cn, SK_LEAP) + ch[cn].weapon/4 + ch[cn].top_damage/4, cn) * 2;
+			if (do_get_iflag(cn, SF_JUSTIC_R)) value = power * ch[cn].crit_multi / 100;
+			else                               value = power + power * (ch[cn].crit_multi-100) / 1000;
 			break;
 		case 28: // Leap # of Repeats
-			// if (!(pl_flagb & (1<<7)))
-			// 		sk_leapr = max(0, min(10, (100 - pl_cdrate)/10));
+			value = max(0, min(10, (100-cdlen)/10)) + do_get_iflag(cn, SF_SIGN_SLAY)?1:0;
 			break;
 		case 29: // Leap Cooldown					Decimal, 0.00 Seconds
 			value = 5 * cdlen;
@@ -2266,59 +2242,55 @@ int get_meta_stat_value(int cn, int n)
 				value = value * 100 / 80;
 			break;
 		case 51: // Health Regen Rate				Decimal, 0.00 /s
-			// sk_regen = sk_regen * 20/10;
+			value = regen * 20/10;
 			break;
 		case 52: // Endurance Regen Rate			Decimal, 0.00 /s
-			// sk_restv = sk_restv * 20/10;
+			value = restn * 20/10;
 			break;
 		case 53: // Mana Regen Rate					Decimal, 0.00 /s
-			// sk_medit = sk_medit * 20/10;
+			value = medit * 20/10;
 			break;
 		case 54: // Effective Immunity
-			//	if (pl_flags & (1 <<  2))
-			//		sk_immun = sk_score(32) + sk_score(23)/3;
-			//	else
-			//		sk_immun = sk_score(32);
-			//	if (T_WARR_SK(12))
-			//		sk_immun += ch[cn].spell_apt/5;
+			value = M_SK(cn, SK_IMMUN);
+			if (do_get_iflag(cn, SF_HANGED)) value += M_SK(cn, SK_RESIST)/3;
+			if (T_WARR_SK(cn, 12))           value += ch[cn].spell_apt/5;
 			break;
 		case 55: // Effective Resistance
-			// 	if (pl_flags & (1 <<  2))
-			//		sk_resis = sk_score(23) * 2/3;
-			//	else
-			//		sk_resis = sk_score(23);
+			value = M_SK(cn, SK_RESIST);
+			if (do_get_iflag(cn, SF_HANGED)) value -= M_SK(cn, SK_RESIST)/3;
 			break;
 		case 61: // Buffing Apt Bonus
 			value = M_AT(cn, AT_WIL)/4;
 			break;
 		case 62: // Underwater Degen				Decimal, 0.00 /s
-			// 	sk_water = 25 * TICKS;
-			//	sk_metab = 0;
-			//	if (pl.skill[10][0]) 
-			//		sk_metab = sk_score(10)/2;
-			//	sk_water = max(1, (250 - sk_metab) * (200 - sk_metab) / 200) * 20/10;
-			// 	if (!(pl_flagb & (1 <<  0)) && (pl_flagb & (1 <<  1)) && (pl_flagb & (1 <<  2))) // Amulet - Water breathing (degen/2)		0 1 1
-			//		sk_water /= 4;
+			value = spell_metabolism(250, get_target_metabolism(cn)) * 20/10;
+			if (in = has_buff(cn, SK_CALM))   value = value * (1000 - bu[in].data[4]) / 1000;
+			if (do_get_iflag(cn, SF_WBREATH)) value /= 4;
 			break;
 		case 65: // Bless Effect
-			// sk_bless = min(127, (sk_score(21)*pl_spmod/100*2/3) / 5 + 3);
+			power = spell_multiplier(M_SK(cn, SK_BLESS), cn);
+			value = min(127, (power*2/3) / 5 + 3);
 			break;
 		case 66: // Enhance Effect
-			// sk_enhan = min(127, (IS_SEYAN_DU?(sk_score(18)*pl_spmod/100/6+3):(sk_score(18)*pl_spmod/100/4+4)));
+			power = spell_multiplier(M_SK(cn, SK_ENHANCE), cn);
+			if (IS_SEYA_OR_BRAV(co)) value = min(127, power / 6 + 3);
+			else                     value = min(127, power / 4 + 4);
 			break;
 		case 67: // Protect Effect
-			// sk_prote = min(127, (IS_SEYAN_DU?(sk_score(17)*pl_spmod/100/6+3):(sk_score(17)*pl_spmod/100/4+4)));
+			power = spell_multiplier(M_SK(cn, SK_PROTECT), cn);
+			if (IS_SEYA_OR_BRAV(co)) value = min(127, power / 6 + 3);
+			else                     value = min(127, power / 4 + 4);
 			break;
-		case 68: // M.Shield Effect
-			// sk_mdura = sk_score(11)*pl_spmod/100 * ((pl_flagb&(1<<10))?128:256);
-			// sk_mshie = min(127, (IS_SEYAN_DU?(sk_mdura/((pl_flagb&(1<<10))?768:1536)+1):(sk_mdura/((pl_flagb&(1<<10))?512:1024)+1)));
+		case 68: case 93: // M.Shield/Shell Effect
+			if (do_get_iflag(cn, SF_EMPRESS)) value = min(127, durat / (IS_SEYA_OR_BRAV(co)? 768: 512) + 1);
+			else                              value = min(127, durat / (IS_SEYA_OR_BRAV(co)?1536:1024) + 1);
 			break;
-		case 69: // M.Shield Duration				Decimal, 0.00 Seconds
-			// sk_mdura = sk_score(11)*pl_spmod/100 * ((pl_flagb&(1<<10))?128:256);
-			// sk_mdura = sk_mdura/20; // ***(no decimal)
+		case 69: case 94: // M.Shield/Shell Dur		Decimal, 0.00 Seconds
+			value = durat * 100 / 20;
 			break;
 		case 70: // Haste Effect
-			// sk_haste = min(300, 10 + (sk_score(47)*pl_spmod/100)/ 6) + min(127, 5 + (sk_score(47)+6)/12);
+			power = spell_multiplier(M_SK(cn, SK_HASTE), cn);
+			value = min(300,10+(power)/6)+min(127,5+(power+6)/12);
 			break;
 		case 71: // Calm TD Taken
 			// sk_hem   = ((pl.hp[5] - pl.a_hp)/10) + ((pl.end[5] - pl.a_end)/10) + ((pl.mana[5] - pl.a_mana)/10);
@@ -2387,8 +2359,7 @@ int get_meta_stat_value(int cn, int n)
 			break;
 		//
 		case 89: // Skill Modifier					Decimal, 0.00 x
-			// 	if (pl_flagc&(1<<10))
-			//		pl_skmod = pl_spmod;
+			value = skill_multiplier(100, cn);
 			break;
 		case 90: // Venom Degen						Decimal, 0.00 /s
 			// sk_poiso = (sk_score(42)*pl_spmod/100 + 5) * DAM_MULT_POISON / 300;
@@ -2404,14 +2375,6 @@ int get_meta_stat_value(int cn, int n)
 			break;
 		case 92: // Pulse Hit Heal
 			// sk_pulse = (sk_score(43)+(sk_score(43)*(T_ARHR_SK(7)?at_score(AT_INT)/1000:0)))*pl_spmod/100 * 2 * DAM_MULT_PULSE/1000;
-			break;
-		case 93: // M.Shell Effect
-			// sk_mdura = sk_score(11)*pl_spmod/100 * ((pl_flagb&(1<<10))?128:256);
-			// sk_mshie = min(127, (IS_SEYAN_DU?(sk_mdura/((pl_flagb&(1<<10))?768:1536)+1):(sk_mdura/((pl_flagb&(1<<10))?512:1024)+1)));
-			break;
-		case 94: // M.Shell Duration				Decimal, 0.00 Seconds
-			// sk_mdura = sk_score(11)*pl_spmod/100 * ((pl_flagb&(1<<10))?128:256);
-			// sk_mdura = sk_mdura/20;
 			break;
 		case 95: // Regen Effect
 			// sk_healr = ((pl_flags&(1<<14))?sk_score(26)*pl_spmod/100*1875/20:sk_score(26)*pl_spmod/100*2500)/1000;

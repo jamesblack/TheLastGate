@@ -2917,11 +2917,11 @@ int spell_haste(int cn, int co, int power, int fromscroll)
 	if (!(in = make_new_buff(cn, SK_HASTE, BUF_SPR_HASTE, power, SP_DUR_HASTE, 1))) 
 		return 0;
 	
-	bu[in].speed				= min(300, 10 + (power  )/ 6);
-	bu[in].atk_speed			= min(127,  5 + (power+6)/12);
-	bu[in].cast_speed		= min(127,  5 + (power+6)/12);
+	bu[in].speed                    = min(300, 10 + (power  )/ 6);
+	bu[in].atk_speed                = min(127,  5 + (power+6)/12);
+	bu[in].cast_speed               = min(127,  5 + (power+6)/12);
 	
-	if (T_SORC_SK(co, 12))		 m += bu[in].speed/5;
+	if (T_SORC_SK(co, 12))       m += bu[in].speed/5;
 	if (n=st_skillcount(co, 60)) m += bu[in].speed*n/20;
 	
 	bu[in].move_speed = min(127, m);
