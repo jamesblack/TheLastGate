@@ -1972,7 +1972,7 @@ void plr_update_all_skill_terminology(int nr)
 
 int get_meta_stat_value(int cn, int n)
 {
-	int m, in, power, durat, value = 0, cdlen = 100;
+	int m, in = 0, power, durat, value = 0, cdlen = 100;
 	int hpmult, endmult, manamult, moonmult = 20;
 	int race_reg = 0, race_res = 0, race_med = 0;
 	int dmg_wpn, dmg_low, dmg_hgh, dmg_top, dmg_hit, dmg_dps, dmg_bns, dmg_str;
@@ -2029,17 +2029,18 @@ int get_meta_stat_value(int cn, int n)
 	switch (n) // Melee set
 	{
 		case  9: case 10: case 13: case 14: case 17: case 58:
-		dmg_wpn = ch[cn].weapon;
-		dmg_top = ch[cn].top_damage + (6 + 8);
-		dmg_str = do_get_iflag(cn, SF_STRENGTH)?6:5;
-		dmg_bns = ch[cn].dmg_bonus;
-		//
-		dmg_low = ( dmg_wpn*dmg_str/5)/4*dmg_bns/10000;
-		dmg_hgh =   dmg_wpn+dmg_top;
-		dmg_top = ((dmg_top+dmg_top*pl_critc*pl_critm/1000000)*dmg_str/5)/4*dmg_bns/10000;
-		dmg_hgh = ((dmg_hgh+dmg_hgh*pl_critc*pl_critm/1000000)*dmg_str/5)/4*dmg_bns/10000;
-		dmg_hit = ( dmg_low+dmg_hgh+(T_LYCA_SK(cn,6)?dmg_top/2:0))/2;
-		dmg_dps = dmg_hit*max(0, min(SPEED_CAP, (SPEED_CAP-ch[cn].speed) + ch[cn].atk_speed));
+			dmg_wpn = ch[cn].weapon;
+			dmg_top = ch[cn].top_damage + (6 + 8);
+			dmg_str = do_get_iflag(cn, SF_STRENGTH)?6:5;
+			dmg_bns = ch[cn].dmg_bonus;
+			//
+			dmg_low = ( dmg_wpn*dmg_str/5)/4*dmg_bns/10000;
+			dmg_hgh =   dmg_wpn+dmg_top;
+			dmg_top = ((dmg_top+dmg_top*pl_critc*pl_critm/1000000)*dmg_str/5)/4*dmg_bns/10000;
+			dmg_hgh = ((dmg_hgh+dmg_hgh*pl_critc*pl_critm/1000000)*dmg_str/5)/4*dmg_bns/10000;
+			dmg_hit = ( dmg_low+dmg_hgh+(T_LYCA_SK(cn,6)?dmg_top/2:0))/2;
+			dmg_dps = dmg_hit*max(0, min(SPEED_CAP, (SPEED_CAP-ch[cn].speed) + ch[cn].atk_speed));
+			break;
 		default: break;
 	}
 	
@@ -2058,8 +2059,23 @@ int get_meta_stat_value(int cn, int n)
 	switch (n) // M.Shield and M.Shell duration
 	{
 		case 68: case 69: case 93: case 94:
-		power = spell_multiplier(M_SK(cn, SK_REGEN), cn);
-		durat = do_get_iflag(cn, SF_EMPRESS)?SP_DUR_MSHELL(power):SP_DUR_MSHIELD(power);
+			power = spell_multiplier(M_SK(cn, SK_REGEN), cn);
+			durat = do_get_iflag(cn, SF_EMPRESS)?SP_DUR_MSHELL(power):SP_DUR_MSHIELD(power);
+			break;
+		default: break;
+	}
+	
+	switch (n) // Rage/Calm power from hp/en/mp
+	{
+		case 30: case 31: case 71: case 72:
+			int hpbonus = (ch[cn].hp[5]*1000   - ch[cn].a_hp)  /1000;
+			int enbonus = (ch[cn].end[5]*1000  - ch[cn].a_end) /1000;
+			int mpbonus = (ch[cn].mana[5]*1000 - ch[cn].a_mana)/1000;
+			power = skill_multiplier(M_SK(cn, SK_RAGE), cn);
+			if (T_LYCA_SK(cn, 7))         in  = (hpbonus + enbonus + mpbonus)/2;
+			if (m=st_skillcount(cn, 103)) in += (hpbonus + enbonus + mpbonus)*m/5;
+			power = power + (power * tmp / 5000);
+			break;
 		default: break;
 	}
 	
@@ -2129,7 +2145,7 @@ int get_meta_stat_value(int cn, int n)
 			if (T_ARTM_SK(cn, 4))         power = power + ch[cn].gethit_dam;
 			if (T_WARR_SK(cn, 9))         power = power + (power * M_AT(cn, AT_STR)  / 2000);
 			if (m=st_skillcount(cn, 45))  power = power + (power * M_AT(cn, AT_STR)*m/ 5000);
-			value = power * ((do_get_iflag(cn, SF_STRENGTH)?6:5)/5)*(ch[cn].dmg_bonus/10000);
+			value = power;
 			break;
 		case 25: // Cleave Bleed Degen				Decimal, 0.00 /s
 			power = skill_multiplier(M_SK(cn, SK_CLEAVE) + ch[cn].weapon/4 + ch[cn].top_damage/4, cn)*2;
@@ -2138,7 +2154,6 @@ int get_meta_stat_value(int cn, int n)
 			if (m=st_skillcount(cn, 45))  power = power + (power * M_AT(cn, AT_STR)*m/ 5000);
 			if (do_get_iflag(cn, SF_EN_MOREBLEE)) power = power*6/5;
 			value = BLEEDFORM(power, (do_get_iflag(cn, SF_GUNGNIR)?SP_DUR_BLEED/3:SP_DUR_BLEED));
-			value = value * ((do_get_iflag(cn, SF_STRENGTH)?6:5)/5)*(ch[cn].dmg_bonus/10000) / 20;
 			break;
 		case 26: // Cleave Cooldown					Decimal, 0.00 Seconds
 			value = 5 * cdlen;
@@ -2155,37 +2170,36 @@ int get_meta_stat_value(int cn, int n)
 			value = 5 * cdlen;
 			break;
 		case 30: // Rage TD Bonus
-			// sk_hem   = ((pl.hp[5] - pl.a_hp)/10) + ((pl.end[5] - pl.a_end)/10) + ((pl.mana[5] - pl.a_mana)/10);
-			// sk_rage  = sk_rage2 = sk_score(22);
-			// if (T_LYCA_SK(9)) sk_rage = sk_rage + (sk_rage * sk_hem / 500);
-			// sk_rage  = min(127, IS_SEYAN_DU?(sk_rage/6 + 5):(sk_rage/4 + 5));
+			value = min(127, power/4 + 5);
 			break;
 		case 31: // Rage DoT Bonus					Decimal, 0.00 %
-			// sk_rage  = sk_rage2 = sk_score(22);
-			// if (T_LYCA_SK(9)) sk_rage = sk_rage + (sk_rage * sk_hem / 500);
-			// sk_rage2 = 10000 * (1000 + (IS_SEYAN_DU?(sk_rage*2/3):(sk_rage))) / 1000;
+			value = 10000 * (2000 + power) / 2000;
 			break;
 		case 32: // Blast Hit Damage
-			// sk_blast = sk_score(24)*pl_spmod/100 * 2 * DAM_MULT_BLAST/1000;
-			// sk_blast = sk_blast*pl_dmgbn/10000*pl_dmgml/100;
+			power = spell_multiplier(M_SK(cn, SK_BLAST), cn) * 2;
+			if (do_get_iflag(cn, SF_TW_IRA))   in = power * ch[cn].crit_multi / 100 - power;
+			if (do_get_iflag(cn, SF_JUDGE)) value = do_hurt(cn, co, (power+max(0, in))*85/100, 1);
+			else                            value = do_hurt(cn, co, (power+max(0, in)), 1);
 			break;
 		case 33: // Blast Cooldown					Decimal, 0.00 Seconds
 			value = (T_ARHR_SK(cn,4)?575:600) * cdlen / 100;
 			break;
 		case 34: // Lethargy Effect
-			// sk_letha = (sk_score(15)+(sk_score(15)*(T_SORC_SK(7)?at_score(AT_WIL)/2000:0)))*pl_spmod/100/(IS_SEYAN_DU?4:3);
+			power = spell_multiplier(M_SK(cn, SK_LETHARGY), cn);
+			if (T_SORC_SK(cn, 7))        power = power + (power * M_AT(cn, AT_WIL)/2000);
+			if (m=st_skillcount(cn, 55)) power = power + (power*M_AT(cn, AT_WIL)*m/5000);
+			if (IS_SEYAN_DU(cn))         value = -((bu[in].power+3)/6);
+			else                         value = -(bu[in].power/4);
 			break;
 		case 35: // Poison Degen					Decimal, 0.00 /s
-			// sk_poiso = (sk_score(42)*pl_spmod/100 + 5) * DAM_MULT_POISON / 300;
-			//	if (pl_flags & (1 <<  4)) // Book - Venom Compendium (poison bonus)
-			//		sk_poiso = sk_poiso * 5 / 4;
-			//	if (T_SORC_SK(4)) // Tree - 10% faster = 11.1% more damage
-			//		sk_poiso = sk_poiso * 10 / 9;
-			//	if (pl_flagb & (1 << 14)) // Tarot - Rev.Tower (Venom)
-			//		sk_poiso = sk_poiso / 2;
-			//	if (pl_flagc & (1<<5)) // 20% more poison effect
-			//		sk_poiso = sk_poiso * 6/5;
-			// sk_poiso = sk_poiso*pl_dmgbn/10000*pl_dmgml/100;
+			power = spell_multiplier(M_SK(cn, SK_POISON), cn);
+			durat = SP_DUR_POISON;
+			if (do_get_iflag(cn, SF_EN_MOREPOIS)) power = power*6/5;
+			if (do_get_iflag(cn, SF_BOOK_VENO))   durat = durat*8/10;
+			if (T_SORC_SK(cn, 4))                 durat = durat*8/10;
+			if (m=st_skillcount(cn, 52))          durat = durat*(100-m*5)/100;
+			value = PL_POISFORM(power, durat);
+			if (do_get_iflag(cn, SF_TOWER_R))     value /= 2;
 			break;
 		case 36: case 91: // Poison/Venom Cooldn	Decimal, 0.00 Seconds
 			value = 5 * cdlen;
@@ -2293,16 +2307,10 @@ int get_meta_stat_value(int cn, int n)
 			value = min(300,10+(power)/6)+min(127,5+(power+6)/12);
 			break;
 		case 71: // Calm TD Taken
-			// sk_hem   = ((pl.hp[5] - pl.a_hp)/10) + ((pl.end[5] - pl.a_end)/10) + ((pl.mana[5] - pl.a_mana)/10);
-			// sk_calm  = sk_calm2 = sk_score(22);
-			// if (T_LYCA_SK(7)) sk_calm = sk_calm + (sk_calm * sk_hem / 500);
-			// sk_calm  = min(127, IS_SEYAN_DU?(sk_calm/6 + 5):(sk_calm/4 + 5)) * -1;
+			value = -(min(127, power/4 + 5));
 			break;
 		case 72: // Calm DoT Taken					Decimal, 0.00 %
-			// sk_hem   = ((pl.hp[5] - pl.a_hp)/10) + ((pl.end[5] - pl.a_end)/10) + ((pl.mana[5] - pl.a_mana)/10);
-			// sk_calm  = sk_calm2 = sk_score(22);
-			// if (T_LYCA_SK(7)) sk_calm = sk_calm + (sk_calm * sk_hem / 500);
-			// sk_calm2 = 10000 * (1000 - (IS_SEYAN_DU?(sk_calm*2/3):(sk_calm))) / 1000;
+			value = 10000 * (2000 - power) / 2000;
 			break;
 		case 73: // Heal Effect
 			// sk_healr = ((pl_flags&(1<<14))?sk_score(26)*pl_spmod/100*1875/20:sk_score(26)*pl_spmod/100*2500)/1000;
@@ -2340,19 +2348,23 @@ int get_meta_stat_value(int cn, int n)
 			value = 3 * cdlen;
 			break;
 		case 80: // Curse Effect
-			// 	if (pl_flags & (1 <<  6)) // Tarot - Tower (curse bonus)
-			//		sk_curse = -(2 + ((((sk_score(20)+(sk_score(20)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)*5/4)-4)/5);
-			//	else
-			//		sk_curse = -(2 + (((sk_score(20)+(sk_score(20)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)-4)/5);
+			power = spell_multiplier(M_SK(cn, SK_CURSE), cn);
+			if (do_get_iflag(cn, SF_EN_MORECURS)) power = power*6/5;
+			if (T_SORC_SK(cn,  9))                power = power + (power * M_AT(cn, AT_INT)/2000);
+			if (n=st_skillcount(cn, 57))          power = power + (power*M_AT(cn, AT_INT)*n/5000);
+			if (do_get_iflag(cn, SF_TOWER))       value = -(5 + CURSE2FORM(power, 4));
+			else                                  value = -(3 + (power - 4) / 5);
 			break;
 		case 81: // Curse Cooldown					Decimal, 0.00 Seconds
 			value = 4 * cdlen;
 			break;
 		case 82: // Slow Effect
-			// 	if (pl_flags & (1 <<  5)) // Tarot - Emperor (slow bonus)
-			//		sk_slowv = -(30 + ((sk_score(19)+(sk_score(19)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)/4);
-			//	else
-			//		sk_slowv = -(30 + ((sk_score(19)+(sk_score(19)*(T_SORC_SK(9)?at_score(AT_INT)/2500:0)))*pl_spmod/100)/3);
+			power = spell_multiplier(M_SK(cn, SK_SLOW), cn);
+			if (do_get_iflag(cn, SF_EN_MORESLOW)) power = power*6/5;
+			if (T_SORC_SK(cn,  9))                power = power + (power * M_AT(cn, AT_INT)/2000);
+			if (n=st_skillcount(cn, 57))          power = power + (power*M_AT(cn, AT_INT)*n/5000);
+			if (do_get_iflag(cn, SF_EMPEROR))     value = -(min(300, 30 + SLOW2FORM(power)));
+			else                                  value = -(min(300, 30 + SLOWFORM(power)));
 			break;
 		case 83: // Slow Cooldown					Decimal, 0.00 Seconds
 			value = 4 * cdlen;
@@ -2398,6 +2410,13 @@ int get_meta_stat_value(int cn, int n)
 		//
 		default: break;
 	}
+	
+	// TODO: if 'value' is affected by damage multipliers, put the check here.
+	// HIT:
+	// value = value * ((do_get_iflag(cn, SF_STRENGTH)?6:5)/5)*(ch[cn].dmg_bonus/10000);
+	// DOT:
+	// if (in = has_buff(cn, SK_RAGE)) value = value * (2000 + bu[in].data[4]) / 2000;
+	// value = value * ((do_get_iflag(cn, SF_STRENGTH)?6:5)/5)*(ch[cn].dmg_bonus/10000) / 20;
 	
 	return value;
 }
