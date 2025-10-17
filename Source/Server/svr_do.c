@@ -14438,7 +14438,7 @@ void do_regenerate(int cn)
 						}
 						else if (bu[in].temp==SK_PULSE2 && IS_MY_ALLY(cn, co))
 						{
-							ch[co].a_hp += spell_multiplier(pulse_dam * DAM_MULT_PULSE / 2, cn);
+							ch[co].a_hp += pulse_dam * DAM_MULT_PULSE / 2;
 							if (ch[co].a_hp > ch[co].hp[5] * 1000) ch[co].a_hp = ch[co].hp[5] * 1000;
 							spell_charge(cn, co, pulse_dam);
 							

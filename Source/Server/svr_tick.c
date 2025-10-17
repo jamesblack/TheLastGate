@@ -2140,12 +2140,12 @@ int get_meta_stat_value(int cn, int n)
 			value = ch[cn].aoe_bonus;
 			break;
 		//
-		case 24: // Cleave Hit Damage
+		case 24: // Cleave Hit Damage				Decimal, 0.00
 			power = skill_multiplier(M_SK(cn, SK_CLEAVE) + ch[cn].weapon/4 + ch[cn].top_damage/4, cn)*2;
 			if (T_ARTM_SK(cn, 4))         power = power + ch[cn].gethit_dam;
 			if (T_WARR_SK(cn, 9))         power = power + (power * M_AT(cn, AT_STR)  / 2000);
 			if (m=st_skillcount(cn, 45))  power = power + (power * M_AT(cn, AT_STR)*m/ 5000);
-			value = power;
+			value = power * DAM_MULT_CLEAVE/10;
 			break;
 		case 25: // Cleave Bleed Degen				Decimal, 0.00 /s
 			power = skill_multiplier(M_SK(cn, SK_CLEAVE) + ch[cn].weapon/4 + ch[cn].top_damage/4, cn)*2;
@@ -2158,10 +2158,10 @@ int get_meta_stat_value(int cn, int n)
 		case 26: // Cleave Cooldown					Decimal, 0.00 Seconds
 			value = 5 * cdlen;
 			break;
-		case 27: // Leap Hit Damage
+		case 27: // Leap Hit Damage					Decimal, 0.00
 			power = skill_multiplier(M_SK(cn, SK_LEAP) + ch[cn].weapon/4 + ch[cn].top_damage/4, cn) * 2;
-			if (do_get_iflag(cn, SF_JUSTIC_R)) value = power * ch[cn].crit_multi / 100;
-			else                               value = power + power * (ch[cn].crit_multi-100) / 1000;
+			if (do_get_iflag(cn, SF_JUSTIC_R)) value = power * ch[cn].crit_multi / 100 * DAM_MULT_LEAP/10;
+			else                               value = power + power * (ch[cn].crit_multi-100) / 1000 * DAM_MULT_RLEAP/10;
 			break;
 		case 28: // Leap # of Repeats
 			value = max(0, min(10, (100-cdlen)/10)) + do_get_iflag(cn, SF_SIGN_SLAY)?1:0;
@@ -2175,11 +2175,12 @@ int get_meta_stat_value(int cn, int n)
 		case 31: // Rage DoT Bonus					Decimal, 0.00 %
 			value = 10000 * (2000 + power) / 2000;
 			break;
-		case 32: // Blast Hit Damage
+		case 32: // Blast Hit Damage				Decimal, 0.00
 			power = spell_multiplier(M_SK(cn, SK_BLAST), cn) * 2;
 			if (do_get_iflag(cn, SF_TW_IRA))   in = power * ch[cn].crit_multi / 100 - power;
-			if (do_get_iflag(cn, SF_JUDGE)) value = do_hurt(cn, co, (power+max(0, in))*85/100, 1);
-			else                            value = do_hurt(cn, co, (power+max(0, in)), 1);
+			if (do_get_iflag(cn, SF_JUDGE)) power = (power+max(0, in))*85/100;
+			else                            power = power+max(0, in);
+			value = power * DAM_MULT_BLAST/10;
 			break;
 		case 33: // Blast Cooldown					Decimal, 0.00 Seconds
 			value = (T_ARHR_SK(cn,4)?575:600) * cdlen / 100;
@@ -2191,7 +2192,7 @@ int get_meta_stat_value(int cn, int n)
 			if (IS_SEYAN_DU(cn))         value = -((bu[in].power+3)/6);
 			else                         value = -(bu[in].power/4);
 			break;
-		case 35: // Poison Degen					Decimal, 0.00 /s
+		case 35: case 90: // Poison/Venom Degen		Decimal, 0.00 /s
 			power = spell_multiplier(M_SK(cn, SK_POISON), cn);
 			durat = SP_DUR_POISON;
 			if (do_get_iflag(cn, SF_EN_MOREPOIS)) power = power*6/5;
@@ -2204,38 +2205,50 @@ int get_meta_stat_value(int cn, int n)
 		case 36: case 91: // Poison/Venom Cooldn	Decimal, 0.00 Seconds
 			value = 5 * cdlen;
 			break;
-		case 37: // Pulse Hit Damage
-			// sk_pulse = (sk_score(43)+(sk_score(43)*(T_ARHR_SK(7)?at_score(AT_INT)/1000:0)))*pl_spmod/100 * 2 * DAM_MULT_PULSE/1000;
-			// if (!(pl_flagb&(1<<6))) sk_pulse = sk_pulse*pl_dmgbn/10000*pl_dmgml/100;
+		case 37: case 92: // Pulse Hit Damage/Heal	Decimal, 0.00
+			power = M_SK(cn, SK_PULSE);
+			if (T_ARHR_SK(cn, 7))        power = power + (power * M_AT(cn, AT_INT)/2000);
+			if (m=st_skillcount(cn, 79)) power = power + (power*M_AT(cn, AT_INT)*m/5000);
+			power = spell_multiplier(power, cn);
+			if (n==37) value = power * 2;
+			else       value = power * DAM_MULT_PULSE / 20;
 			break;
 		case 38: // Pulse Count
-			// sk_pucnt = (60*2*100 / (3*pl_cdrate));
+			value = 60*2*100 / 3 * cdlen;
 			break;
 		case 39: // Pulse Cooldown					Decimal, 0.00 Seconds
 			value = 6 * cdlen;
 			break;
-		case 40: // Zephyr Hit Damage
-			// sk_razor = (sk_score(7)*pl_spmod/100 + max(0,(pl_atksp-120))/2) * 2 * DAM_MULT_ZEPHYR/1000;
-			// sk_razor = sk_razor*pl_dmgbn/10000*pl_dmgml/100;
+		case 40: // Zephyr Hit Damage				Decimal, 0.00
+			power = spell_multiplier(M_SK(cn, SK_ZEPHYR), cn);
+			power = power + max(0, ((SPEED_CAP - ch[cn].speed) + ch[cn].atk_speed - 120)) / 3;
+			if (T_WARR_SK(cn,  4))				power = power*6/5;
+			if (m=st_skillcount(cn, 40))		power = power*(20+m)/20;
+			value = power * 2 * DAM_MULT_ZEPHYR/10;
 			break;
 		case 41: // Immolate Degen					Decimal, 0.00 /s
-			// sk_immol = pl.hp[4] * 30 / 100;
-			// 	if (pl_flagb & (1 << 13)) 
-			//		sk_immol = sk_immol + pl.hp[4]/25;
-			// 	sk_immol = sk_immol*3/2;
-			//	sk_immol = 10 + sk_immol*4;
+			power = ch[cn].hp[4] / 3;
+			if (do_get_iflag(cn, SF_BOOK_BURN)) power = power + ch[cn].hp[4]/20;
+			value = power * 3/2;
 			break;
 		case 43: case 84: // Ghost Comp Potency
-			// sk_ghost = sk_score(27)*pl_spmod/100 * 5 / 11;
+			power = spell_multiplier(M_SK(cn, SK_GHOST), cn);
+			value = power * 5 / 11;
 			break;
 		case 44: case 85: // Ghost Comp Cooldown	Decimal, 0.00 Seconds
 			value = 8 * cdlen;
 			break;
 		case 45: case 86: // Shadow Copy Potency
-			// sk_shado = (sk_score(46)+(sk_score(46)*(T_SUMM_SK(9)?at_score(AT_WIL)/1000:0)))*pl_spmod/100 * 5 / 11;
+			power = spell_multiplier(M_SK(cn, SK_SHADOW), cn);
+			if (T_SUMM_SK(cn, 9))        power = power + (power * M_AT(cn, AT_WIL)  /2000);
+			if (m=st_skillcount(cn, 69)) power = power + (power * M_AT(cn, AT_WIL)*m/5000);
+			value = power;
 			break;
 		case 46: case 87: // Shadow Copy Duration	Decimal, 0.00 Seconds
-			// sk_shadd = 15 + (sk_score(46)+(sk_score(46)*(T_SUMM_SK(9)?at_score(AT_WIL)/1000:0)))*pl_spmod/500;
+			power = spell_multiplier(M_SK(cn, SK_SHADOW), cn);
+			if (T_SUMM_SK(cn, 9))        power = power + (power * M_AT(cn, AT_WIL)  /2000);
+			if (m=st_skillcount(cn, 69)) power = power + (power * M_AT(cn, AT_WIL)*m/5000);
+			value = SP_DUR_SHADOW(power);
 			break;
 		case 47: case 88: // Shadow Copy Cooldown	Decimal, 0.00 Seconds
 			value = 4 * cdlen;
@@ -2246,14 +2259,10 @@ int get_meta_stat_value(int cn, int n)
 			break;
 		case 50: // Effective Hitpoints
 			value = ch[cn].hp[5] * 10000 / ch[cn].dmg_reduction;
-			if (do_get_iflag(cn, SF_EN_TAKEASEN) || do_get_iflag(cn, SF_EN_TAKEASMA)) // 20% damage shifted to end/mana
-				value = value * 100 / 80;
-			if (T_SKAL_SK(cn, 12) || T_ARHR_SK(cn, 12)) // 20% damage shifted to end/mana
-				value = value * 100 / 80;
-			if (do_get_iflag(cn, SF_TW_CLOAK)) // 10% damage null/shifted to endurance
-				value = value * 100 / 90;
-			if (do_get_iflag(cn, SF_PREIST)) // 20% damage null/shifted to mana
-				value = value * 100 / 80;
+			if (do_get_iflag(cn, SF_EN_TAKEASEN) || do_get_iflag(cn, SF_EN_TAKEASMA)) value = value * 100 / 80;
+			if (T_SKAL_SK(cn, 12) || T_ARHR_SK(cn, 12))                               value = value * 100 / 80;
+			if (do_get_iflag(cn, SF_TW_CLOAK))                                        value = value * 100 / 90;
+			if (do_get_iflag(cn, SF_PREIST))                                          value = value * 100 / 80;
 			break;
 		case 51: // Health Regen Rate				Decimal, 0.00 /s
 			value = regen * 20/10;
@@ -2312,16 +2321,20 @@ int get_meta_stat_value(int cn, int n)
 		case 72: // Calm DoT Taken					Decimal, 0.00 %
 			value = 10000 * (2000 - power) / 2000;
 			break;
-		case 73: // Heal Effect
-			// sk_healr = ((pl_flags&(1<<14))?sk_score(26)*pl_spmod/100*1875/20:sk_score(26)*pl_spmod/100*2500)/1000;
-			//	if (pl_flagc & (1<<8)) // 20% more heal effect
-			//		sk_healr = sk_healr * 6/5;
+		case 73: case 95: // Heal/Regen Effect
+			power = M_SK(cn, SK_HEAL);
+			if (do_get_iflag(cn, SF_EN_MOREHEAL)) power = power*6/5;
+			if (m=st_skillcount(cn, 94))          power = power*(100+m*10)/100;
+			if (!IS_PLAYER(cn))                   power = power*2/3;
+			if (do_get_iflag(cn, SF_TW_SUPERBIA)) power/= 2;
+			if (do_get_iflag(cn, SF_STAR))        value = (power * 1875/10) * 20;
+			else                                  value = spell_multiplier(power * 4/5, cn);
 			break;
 		case 74: // Blind Effect
 			power = skill_multiplier(M_SK(cn, SK_BLIND), cn);
 			if (do_get_iflag(cn, SF_EN_MOREBLIN)) power = power*6/5;
 			if (T_WARR_SK(cn, 7))                 power = power + (power * M_AT(cn, AT_AGL)  /2000);
-			if (n=st_skillcount(cn, 43))          power = power + (power * M_AT(cn, AT_AGL)*n/5000);
+			if (m=st_skillcount(cn, 43))          power = power + (power * M_AT(cn, AT_AGL)*m/5000);
 			if (IS_ANY_MERC(cn)) value = max(-127, -(power/6 + 2));
 			else                 value = max(-127, -(power/8 + 1));
 			break;
@@ -2351,7 +2364,7 @@ int get_meta_stat_value(int cn, int n)
 			power = spell_multiplier(M_SK(cn, SK_CURSE), cn);
 			if (do_get_iflag(cn, SF_EN_MORECURS)) power = power*6/5;
 			if (T_SORC_SK(cn,  9))                power = power + (power * M_AT(cn, AT_INT)/2000);
-			if (n=st_skillcount(cn, 57))          power = power + (power*M_AT(cn, AT_INT)*n/5000);
+			if (m=st_skillcount(cn, 57))          power = power + (power*M_AT(cn, AT_INT)*m/5000);
 			if (do_get_iflag(cn, SF_TOWER))       value = -(5 + CURSE2FORM(power, 4));
 			else                                  value = -(3 + (power - 4) / 5);
 			break;
@@ -2362,7 +2375,7 @@ int get_meta_stat_value(int cn, int n)
 			power = spell_multiplier(M_SK(cn, SK_SLOW), cn);
 			if (do_get_iflag(cn, SF_EN_MORESLOW)) power = power*6/5;
 			if (T_SORC_SK(cn,  9))                power = power + (power * M_AT(cn, AT_INT)/2000);
-			if (n=st_skillcount(cn, 57))          power = power + (power*M_AT(cn, AT_INT)*n/5000);
+			if (m=st_skillcount(cn, 57))          power = power + (power*M_AT(cn, AT_INT)*m/5000);
 			if (do_get_iflag(cn, SF_EMPEROR))     value = -(min(300, 30 + SLOW2FORM(power)));
 			else                                  value = -(min(300, 30 + SLOWFORM(power)));
 			break;
@@ -2373,31 +2386,11 @@ int get_meta_stat_value(int cn, int n)
 		case 89: // Skill Modifier					Decimal, 0.00 x
 			value = skill_multiplier(100, cn);
 			break;
-		case 90: // Venom Degen						Decimal, 0.00 /s
-			// sk_poiso = (sk_score(42)*pl_spmod/100 + 5) * DAM_MULT_POISON / 300;
-			//	if (pl_flags & (1 <<  4)) // Book - Venom Compendium (poison bonus)
-			//		sk_poiso = sk_poiso * 5 / 4;
-			//	if (T_SORC_SK(4)) // Tree - 10% faster = 11.1% more damage
-			//		sk_poiso = sk_poiso * 10 / 9;
-			//	if (pl_flagb & (1 << 14)) // Tarot - Rev.Tower (Venom)
-			//		sk_poiso = sk_poiso / 2;
-			//	if (pl_flagc & (1<<5)) // 20% more poison effect
-			//		sk_poiso = sk_poiso * 6/5;
-			// sk_poiso = sk_poiso*pl_dmgbn/10000*pl_dmgml/100;
-			break;
-		case 92: // Pulse Hit Heal
-			// sk_pulse = (sk_score(43)+(sk_score(43)*(T_ARHR_SK(7)?at_score(AT_INT)/1000:0)))*pl_spmod/100 * 2 * DAM_MULT_PULSE/1000;
-			break;
-		case 95: // Regen Effect
-			// sk_healr = ((pl_flags&(1<<14))?sk_score(26)*pl_spmod/100*1875/20:sk_score(26)*pl_spmod/100*2500)/1000;
-			//	if (pl_flagc & (1<<8)) // 20% more heal effect
-			//		sk_healr = sk_healr * 6/5;
-			break;
 		case 96: // Douse Effect					Decimal, 0.00 %
 			power = skill_multiplier(M_SK(cn, SK_BLIND), cn);
 			if (do_get_iflag(cn, SF_EN_MOREBLIN)) power = power*6/5;
 			if (T_WARR_SK(cn, 7))                 power = power + (power * M_AT(cn, AT_AGL)  /2000);
-			if (n=st_skillcount(cn, 43))          power = power + (power * M_AT(cn, AT_AGL)*n/5000);
+			if (m=st_skillcount(cn, 43))          power = power + (power * M_AT(cn, AT_AGL)*m/5000);
 			if (IS_ANY_MERC(cn)) value = max(-127, -(power/6 + 2));
 			else                 value = max(-127, -(power/8 + 1));
 			break;
@@ -2411,12 +2404,17 @@ int get_meta_stat_value(int cn, int n)
 		default: break;
 	}
 	
-	// TODO: if 'value' is affected by damage multipliers, put the check here.
-	// HIT:
-	// value = value * ((do_get_iflag(cn, SF_STRENGTH)?6:5)/5)*(ch[cn].dmg_bonus/10000);
-	// DOT:
-	// if (in = has_buff(cn, SK_RAGE)) value = value * (2000 + bu[in].data[4]) / 2000;
-	// value = value * ((do_get_iflag(cn, SF_STRENGTH)?6:5)/5)*(ch[cn].dmg_bonus/10000) / 20;
+	switch (n) // Global damage multiplier
+	{
+		case 24: case 27: case 32: case 37: case 40:
+			value = value * ((do_get_iflag(cn, SF_STRENGTH)?6:5)/5)*(ch[cn].dmg_bonus/10000);
+			break;
+		case 25: case 35: case 41: case 90:
+			if (in = has_buff(cn, SK_RAGE)) value = value * (2000 + bu[in].data[4]) / 2000;
+			value = value * ((do_get_iflag(cn, SF_STRENGTH)?6:5)/5)*(ch[cn].dmg_bonus/10000) / 20;
+			break;
+		default: break;
+	}
 	
 	return value;
 }
