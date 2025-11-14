@@ -1390,7 +1390,7 @@ void eng_display_win(int plr_sprite,int init)
 	int y,n,m,v,pr,hh,xx,yy;
 	char *tmp,buf[50];
 	int pl_flags, pl_flagb;
-	int buffs[MAXBUFFS][2], debuffs[MAXBUFFS][2], bf, df;
+	int buffs[MAXBUFFS][2], debuffs[MAXBUFFS][2], bf, df, effect;
 
 	//if (load) dd_xputtext(670,300+MAXTS,1,"%3d%%",load);
 
@@ -1875,10 +1875,16 @@ void eng_display_win(int plr_sprite,int init)
 		// Draw buffs and debuffs
 		for (n=0; n<MAXBUFFS; n++)
 		{
-			if (buffs[n][0])
-				copyspritex(  buffs[n][0], 848+(n/5)*20,      8+(n%5)*23, 15-min(15,  buffs[n][1]));
-			if (debuffs[n][0])
+			if (buffs[n][0]) {
+				effect = 15 - min(15, buffs[n][1]); // The original shading Math
+				effect |= 2048;
+				copyspritex(  buffs[n][0], 848+(n/5)*20,      8+(n%5)*23, effect);
+			}
+			if (debuffs[n][0]) {
+				effect = 15 - min(15, debuffs[n][1]); // The original shading Math
+				effect |= 2048;
 				copyspritex(debuffs[n][0], 848+5*20-(n/5)*20, 8+(n%5)*23, 15-min(15,debuffs[n][1]));
+			}
 		}
 		
 		if (show_shop==112) // New Depot
