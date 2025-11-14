@@ -1335,7 +1335,7 @@ void dd_init_sprites(void)
 	dd_set_background(RED+BLUE);
 }
 
-#define LEFFECT	(gamma-4880)   //120
+#define LEFFECT	(buff ? 120 : gamma-4880)   //120
 
 int gamma=5000;
 
