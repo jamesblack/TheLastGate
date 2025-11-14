@@ -1342,7 +1342,7 @@ int gamma=5000;
 #pragma argsused
 unsigned short do_effect(unsigned short val,int effect,int seed1,int seed2,int sprite)
 {
-	int r,g,b,invis=0,tmp,grey=0,infra=0,water=0,bloody=0,red=0,green=0;
+	int r,g,b,invis=0,tmp,grey=0,infra=0,water=0,bloody=0,red=0,green=0,buff=0;
 
 	if (effect&16)   { effect-=  16; red   =1; } //red border
 	if (effect&32)   { effect-=  32; green =1; } //green border
@@ -1351,6 +1351,7 @@ unsigned short do_effect(unsigned short val,int effect,int seed1,int seed2,int s
 	if (effect&256)  { effect-= 256; infra =1; } //grey scale
 	if (effect&512)  { effect-= 512; water =1; } //grey scale
 //	if (effect&1024) { effect-=1024; bloody=1; } //grey scale
+	if (effect&2048) { effect-= 2048; buff=1; } //buff
 
 	switch (RGBM) {
 		case 0:
@@ -1914,7 +1915,7 @@ void dd_show_map(unsigned short *src,int xo,int yo,int magnify)
 
 void do_rgb8_effect(int *r1,int *g1,int *b1,int effect)
 {
-    int r,g,b,invis=0,tmp,grey=0,infra=0,water=0,bloody=0,red=0,green=0;
+    int r,g,b,invis=0,tmp,grey=0,infra=0,water=0,bloody=0,red=0,green=0,buff=0;
 
     if (effect&16) { effect-=16; red=1; } //red border
     if (effect&32) { effect-=32; green=1; } //green border
@@ -1923,7 +1924,8 @@ void do_rgb8_effect(int *r1,int *g1,int *b1,int effect)
     if (effect&256) { effect-=256; infra=1; } //infrared
     if (effect&512) { effect-=512; water=1; } //under water
 //    if (effect&1024) { effect-=1024; bloody=1; } //bloody
-		
+	if (effect&2048) { effect-=2048; buff=1; } //buff
+
     r=*r1;
     g=*g1;
     b=*b1;
