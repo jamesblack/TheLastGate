@@ -1131,7 +1131,7 @@ void *dd_load_bitmap(char *name,int *xs,int *ys,LPDIRECTDRAWSURFACE sur)
 // tiles in the upper left corner of the cache area will be destroyed by loading a new
 // sprite
 
-#define MAXEFFECT	1024
+#define MAXEFFECT	4096
 
 #define current_tick GetTickCount()
 
