@@ -108,9 +108,9 @@ int is_ascroll(int in);
 #define IS_EQCLOAK(in)			(it[(in)].placement & PL_CLOAK)
 #define IS_EQRING(in)			(it[(in)].placement & PL_RING)
 
-#define IS_TWOHAND(in)			(it[(in)].placement & PL_TWOHAND)
-#define IS_OFFHAND(in)			(it[(in)].placement & PL_SHIELD)
-#define IS_USETWOHAND(cn)		(it[ch[(cn)].worn[WN_RHAND]].placement & PL_TWOHAND)
+#define IS_TWOHAND(in)			((it[(in)].placement & PL_TWOHAND) ? 1 : 0)
+#define IS_OFFHAND(in)			((it[(in)].placement & PL_SHIELD) ? 1 : 0)
+#define IS_USETWOHAND(cn)		((it[ch[(cn)].worn[WN_RHAND]].placement & PL_TWOHAND) ? 1 : 0)
 
 #define IS_SOULSTONED(in)		(it[(in)].flags & IF_SOULSTONE)
 #define IS_ENCHANTED(in)		(it[(in)].flags & IF_ENCHANTED)
