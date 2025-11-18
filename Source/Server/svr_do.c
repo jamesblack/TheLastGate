@@ -1405,6 +1405,7 @@ void do_help(int cn, char *topic)
 			do_char_log(cn, 1, "The following commands are available (PAGE 6):\n");
 			do_char_log(cn, 1, " \n");
 			//                 "!        .         .   |     .         .        !"
+			do_char_log(cn, 1, "#tell <player> <text>  tells player text.\n");
 			do_char_log(cn, 1, "#topaz                 list topaz rings.\n");
 			do_char_log(cn, 1, "#trash                 delete item from cursor.\n");
 			do_char_log(cn, 1, "#twohander             list twohander stats.\n");
@@ -1426,6 +1427,7 @@ void do_help(int cn, char *topic)
 			do_char_log(cn, 1, "The following commands are available (PAGE 5):\n");
 			do_char_log(cn, 1, " \n");
 			//                 "!        .         .   |     .         .        !"
+			do_char_log(cn, 1, "#shout <text>          to all players.\n");
 			if (IS_SEYAN_DU(cn))
 				do_char_log(cn, 1, "#shrine <page>         list unattained shrines.\n");
 			do_char_log(cn, 1, "#skua                  leave purple/gorn/kwai.\n");
@@ -1444,7 +1446,6 @@ void do_help(int cn, char *topic)
 			do_char_log(cn, 1, "#tarot                 list tarot cards.\n");
 			if (ch[cn].house_id)
 				do_char_log(cn, 1, "#tavern                exit the game (@house).\n");
-			do_char_log(cn, 1, "#tell <player> <text>  tells player text.\n");
 		}
 		else if (strcmp(topic, "4")==0)
 		{
@@ -1457,6 +1458,7 @@ void do_help(int cn, char *topic)
 			do_char_log(cn, 1, "#quest <page>          list available quests.\n");
 			do_char_log(cn, 1, "#rank                  show exp for next rank.\n");
 			do_char_log(cn, 1, "#ranks                 show exp for all ranks.\n");
+			do_char_log(cn, 1, "#refund                refund greater scrolls.\n");
 			do_char_log(cn, 1, "#ring <type>           list ring stats.\n");
 			do_char_log(cn, 1, "#ruby                  list ruby rings.\n");
 			do_char_log(cn, 1, "#sapphire              list sapphire rings.\n");
@@ -1470,7 +1472,6 @@ void do_help(int cn, char *topic)
 			do_char_log(cn, 1, "#silence               you won't hear enemies.\n");
 			do_char_log(cn, 1, "#seen <player>         when last seen here?.\n");
 			do_char_log(cn, 1, "#shield                list shield stats.\n");
-			do_char_log(cn, 1, "#shout <text>          to all players.\n");
 		}
 		else if (strcmp(topic, "3")==0)
 		{
@@ -2524,12 +2525,66 @@ void do_listtarots(int cn, char *topic)
 
 void do_refundgattrib(int cn, int n)
 {
-	if (ch[cn].attrib[n][1]) ;
+	int in=0, m;
+	static char *at_names[5] = { "Braveness", "Willpower", "Intuition", "Agility", "Strength" };
+	
+	if (!(m = ch[cn].attrib[n][1])) // The g.skill value is 0! We don't need to do anything here.
+	{
+		do_char_log(cn, 0, "This attribute does not have any greater attribute points spent on it.\n");
+		return;
+	}
+	
+	if (!(m = m/2)) // Nothing left to give back.
+	{
+		ch[cn].attrib[n][1] = 0;
+		do_char_log(cn, 5, "Your greater %s attribute points have been reset to 0.\n", at_names[n]);
+		return;
+	}
+	
+	in = god_create_item(IT_OS_BRV+n);
+	it[in].stack = m;
+	
+	if (!god_give_char(in, cn))
+	{
+		do_char_log(cn, 0, "You get the feeling you should clear some space in your backpack first.\n");
+		it[in].used = USE_EMPTY;
+		return;
+	}
+	
+	ch[cn].attrib[n][1] = 0;
+	do_char_log(cn, 1, "Your greater %s attribute points have been reset to 0, and half of the scrolls were returned to you.\n", at_names[n]);
 }
 
 void do_refundgskill(int cn, int n)
 {
-	if (ch[cn].skill[n][1]) ;
+	int in=0, m;
+	
+	if (!(m = ch[cn].skill[n][1])) // The g.skill value is 0! We don't need to do anything here.
+	{
+		do_char_log(cn, 0, "This skill does not have any greater skill points spent on it.\n");
+		return;
+	}
+	
+	if (!(m = m/2)) // Nothing left to give back.
+	{
+		ch[cn].skill[n][1] = 0;
+		do_char_log(cn, 5, "Your greater %s skill points have been reset to 0.\n", at_names[n]);
+		return;
+	}
+	
+	in = god_create_item(IT_OS_SK);
+	it[in].data[1] = n;
+	it[in].stack = m;
+	
+	if (!god_give_char(in, cn))
+	{
+		do_char_log(cn, 0, "You get the feeling you should clear some space in your backpack first.\n");
+		it[in].used = USE_EMPTY;
+		return;
+	}
+	
+	ch[cn].skill[n][1] = 0;
+	do_char_log(cn, 1, "Your greater %s skill points have been reset to 0, and half of the scrolls were returned to you.\n", skilltab[n].name);
 }
 
 void do_refundgskills(int cn, char *topic)
@@ -2646,10 +2701,7 @@ void do_refundgskills(int cn, char *topic)
 	else if (strcmp(topic, "49")==0 || strcmp(topic, "Leap")==0 || strcmp(topic, "leap")==0)
 		do_refundgskill(cn, 49);
 	else
-	{
 		do_char_log(cn, 0, "Unknown skill/attribute name \"%s\".\n", topic);
-		return;
-	}
 }
 
 void do_changehouse(int cn, char *topic, int v)
@@ -6792,6 +6844,11 @@ void do_command(int cn, char *ptr)
 			break;
 		}
 		;
+		if (prefix(cmd, "refun"))
+		{
+			break;
+		}
+		;
 		if (prefix(cmd, "resetnp"))
 		{
 			break;
@@ -6833,6 +6890,12 @@ void do_command(int cn, char *ptr)
 		if (prefix(cmd, "recall") && f_giu)
 		{
 			god_goto(cn, cn, "512", "512");
+			return;
+		}
+		;
+		if (prefix(cmd, "refund"))
+		{
+			do_refundgskills(cn, arg[1]);
 			return;
 		}
 		;

@@ -8328,7 +8328,15 @@ void build_plh_plants(int x, int y, int v)
 	
 	if (RANDOM(31)) return;
 	
-	map[x + y * MAPX].fsprite = plh_styles.shrubs[v][RANDOM(NUM_PLH_SHRUB_V)];
+	in = plh_styles.shrubs[v][RANDOM(NUM_PLH_SHRUB_V)];
+	
+	
+	switch (in)
+	{	// these shrubs don't have matching half sprites and need to be placed instead
+		case TS_SHRUB_CONS1: build_drop(x, y, 17); break;
+		case TS_SHRUB_CONS2: build_drop(x, y, 47); break;
+		default: map[x + y * MAPX].fsprite = in; break;
+	}
 }
 
 int update_house(int cn, int type, int v)
