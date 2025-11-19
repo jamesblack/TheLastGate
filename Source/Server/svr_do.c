@@ -1405,6 +1405,7 @@ void do_help(int cn, char *topic)
 			do_char_log(cn, 1, "The following commands are available (PAGE 6):\n");
 			do_char_log(cn, 1, " \n");
 			//                 "!        .         .   |     .         .        !"
+			do_char_log(cn, 1, "#tell <player> <text>  tells player text.\n");
 			do_char_log(cn, 1, "#topaz                 list topaz rings.\n");
 			do_char_log(cn, 1, "#trash                 delete item from cursor.\n");
 			do_char_log(cn, 1, "#twohander             list twohander stats.\n");
@@ -1426,6 +1427,7 @@ void do_help(int cn, char *topic)
 			do_char_log(cn, 1, "The following commands are available (PAGE 5):\n");
 			do_char_log(cn, 1, " \n");
 			//                 "!        .         .   |     .         .        !"
+			do_char_log(cn, 1, "#shout <text>          to all players.\n");
 			if (IS_SEYAN_DU(cn))
 				do_char_log(cn, 1, "#shrine <page>         list unattained shrines.\n");
 			do_char_log(cn, 1, "#skua                  leave purple/gorn/kwai.\n");
@@ -1444,7 +1446,6 @@ void do_help(int cn, char *topic)
 			do_char_log(cn, 1, "#tarot                 list tarot cards.\n");
 			if (ch[cn].house_id)
 				do_char_log(cn, 1, "#tavern                exit the game (@house).\n");
-			do_char_log(cn, 1, "#tell <player> <text>  tells player text.\n");
 		}
 		else if (strcmp(topic, "4")==0)
 		{
@@ -1457,6 +1458,7 @@ void do_help(int cn, char *topic)
 			do_char_log(cn, 1, "#quest <page>          list available quests.\n");
 			do_char_log(cn, 1, "#rank                  show exp for next rank.\n");
 			do_char_log(cn, 1, "#ranks                 show exp for all ranks.\n");
+			do_char_log(cn, 1, "#refund                refund greater scrolls.\n");
 			do_char_log(cn, 1, "#ring <type>           list ring stats.\n");
 			do_char_log(cn, 1, "#ruby                  list ruby rings.\n");
 			do_char_log(cn, 1, "#sapphire              list sapphire rings.\n");
@@ -1470,7 +1472,6 @@ void do_help(int cn, char *topic)
 			do_char_log(cn, 1, "#silence               you won't hear enemies.\n");
 			do_char_log(cn, 1, "#seen <player>         when last seen here?.\n");
 			do_char_log(cn, 1, "#shield                list shield stats.\n");
-			do_char_log(cn, 1, "#shout <text>          to all players.\n");
 		}
 		else if (strcmp(topic, "3")==0)
 		{
@@ -1577,7 +1578,7 @@ void do_listmax(int cn)
 	//
 	for (n=0;n<5;n++)
 	{
-		if (ch[cn].attrib[n][1])
+		if (ch[cn].attrib[n][1])		// Attribute has been given a g.scroll
 		{
 			do_char_log(cn, (B_AT(cn, n)==ch[cn].attrib[n][2])?7:5, 
 			"%20s  %3d  %3d (+%2d)\n", 
@@ -1600,20 +1601,17 @@ void do_listmax(int cn)
 	//
 	for (n=0;n<50;n++)
 	{
-		if (ch[cn].skill[n][2]) 
+		if (ch[cn].skill[n][1])			// Skill has been given a g.scroll
 		{
-			if (ch[cn].skill[n][1]) 
-			{
-				do_char_log(cn, (B_SK(cn, n)==ch[cn].skill[n][2])?7:5, 
-				"%20s  %3d  %3d (+%2d)\n", 
-				skilltab[n].name, B_SK(cn, n), ch[cn].skill[n][2], ch[cn].skill[n][1]);
-			}
-			else
-			{
-				do_char_log(cn, (B_SK(cn, n)==ch[cn].skill[n][2])?2:1, 
-				"%20s  %3d  %3d\n", 
-				skilltab[n].name, B_SK(cn, n), ch[cn].skill[n][2]);
-			}
+			do_char_log(cn, (B_SK(cn, n)==ch[cn].skill[n][2])?7:5, 
+			"%20s  %3d  %3d (+%2d)\n", 
+			skilltab[n].name, B_SK(cn, n), ch[cn].skill[n][2], ch[cn].skill[n][1]);
+		}
+		else if (ch[cn].skill[n][2]) 	// Skill has a maximum on the template
+		{
+			do_char_log(cn, (B_SK(cn, n)==ch[cn].skill[n][2])?2:1, 
+			"%20s  %3d  %3d\n", 
+			skilltab[n].name, B_SK(cn, n), ch[cn].skill[n][2]);
 		}
 	}
 	do_char_log(cn, 1, " \n");
@@ -2523,6 +2521,187 @@ void do_listtarots(int cn, char *topic)
 		do_char_log(cn, 1, "20 or 21      lists JUDGE    and WORLD    cards\n");
 		do_char_log(cn, 1, " \n");
 	}
+}
+
+void do_refundgattrib(int cn, int n)
+{
+	int in=0, m;
+	static char *at_names[5] = { "Braveness", "Willpower", "Intuition", "Agility", "Strength" };
+	
+	if (!(m = ch[cn].attrib[n][1])) // The g.skill value is 0! We don't need to do anything here.
+	{
+		do_char_log(cn, 0, "This attribute does not have any greater attribute points spent on it.\n");
+		return;
+	}
+	
+	if (!(m = m/2)) // Nothing left to give back.
+	{
+		ch[cn].attrib[n][1] = 0;
+		do_char_log(cn, 5, "Your greater %s attribute points have been reset to 0.\n", at_names[n]);
+		return;
+	}
+	
+	in = god_create_item(IT_OS_BRV+n);
+	it[in].stack = m;
+	
+	if (!god_give_char(in, cn))
+	{
+		do_char_log(cn, 0, "You get the feeling you should clear some space in your backpack first.\n");
+		it[in].used = USE_EMPTY;
+		return;
+	}
+	
+	ch[cn].attrib[n][1] = 0;
+	do_char_log(cn, 1, "Your greater %s attribute points have been reset to 0, and half of the scrolls were returned to you.\n", at_names[n]);
+}
+
+void do_refundgskill(int cn, int n)
+{
+	int in=0, m;
+	
+	if (!(m = ch[cn].skill[n][1])) // The g.skill value is 0! We don't need to do anything here.
+	{
+		do_char_log(cn, 0, "This skill does not have any greater skill points spent on it.\n");
+		return;
+	}
+	
+	if (!(m = m/2)) // Nothing left to give back.
+	{
+		ch[cn].skill[n][1] = 0;
+		do_char_log(cn, 5, "Your greater %s skill points have been reset to 0.\n", at_names[n]);
+		return;
+	}
+	
+	in = god_create_item(IT_OS_SK);
+	it[in].data[1] = n;
+	it[in].stack = m;
+	
+	if (!god_give_char(in, cn))
+	{
+		do_char_log(cn, 0, "You get the feeling you should clear some space in your backpack first.\n");
+		it[in].used = USE_EMPTY;
+		return;
+	}
+	
+	ch[cn].skill[n][1] = 0;
+	do_char_log(cn, 1, "Your greater %s skill points have been reset to 0, and half of the scrolls were returned to you.\n", skilltab[n].name);
+}
+
+void do_refundgskills(int cn, char *topic)
+{
+	if (strcmp(topic, "Braveness")==0 || strcmp(topic, "braveness")==0)
+		do_refundgattrib(cn, AT_BRV);
+	else if (strcmp(topic, "Willpower")==0 || strcmp(topic, "willpower")==0)
+		do_refundgattrib(cn, AT_WIL);
+	else if (strcmp(topic, "Intuition")==0 || strcmp(topic, "intuition")==0)
+		do_refundgattrib(cn, AT_INT);
+	else if (strcmp(topic, "Agility")==0 || strcmp(topic, "agility")==0)
+		do_refundgattrib(cn, AT_AGL);
+	else if (strcmp(topic, "Strength")==0 || strcmp(topic, "strength")==0)
+		do_refundgattrib(cn, AT_STR);
+	
+	else if (strcmp(topic,  "0")==0 || strcmp(topic, "HandtoHand")==0 || strcmp(topic, "handtohand")==0)
+		do_refundgskill(cn,  0);
+	else if (strcmp(topic,  "1")==0 || strcmp(topic, "Precision")==0 || strcmp(topic, "precision")==0)
+		do_refundgskill(cn,  1);
+	else if (strcmp(topic,  "2")==0 || strcmp(topic, "Dagger")==0 || strcmp(topic, "dagger")==0)
+		do_refundgskill(cn,  2);
+	else if (strcmp(topic,  "3")==0 || strcmp(topic, "Sword")==0 || strcmp(topic, "sword")==0)
+		do_refundgskill(cn,  3);
+	else if (strcmp(topic,  "4")==0 || strcmp(topic, "Axe")==0 || strcmp(topic, "axe")==0)
+		do_refundgskill(cn,  4);
+	else if (strcmp(topic,  "5")==0 || strcmp(topic, "Staff")==0 || strcmp(topic, "staff")==0)
+		do_refundgskill(cn,  5);
+	else if (strcmp(topic,  "6")==0 || strcmp(topic, "TwoHanded")==0  || strcmp(topic, "twohanded")==0)
+		do_refundgskill(cn,  6);
+	else if (strcmp(topic,  "7")==0 || strcmp(topic, "Zephyr")==0 || strcmp(topic, "zephyr")==0)
+		do_refundgskill(cn,  7);
+	else if (strcmp(topic,  "8")==0 || strcmp(topic, "Stealth")==0 || strcmp(topic, "stealth")==0)
+		do_refundgskill(cn,  8);
+	else if (strcmp(topic,  "9")==0 || strcmp(topic, "Perception")==0 || strcmp(topic, "perception")==0)
+		do_refundgskill(cn,  9);
+	else if (strcmp(topic, "10")==0 || strcmp(topic, "Metabolism")==0 || strcmp(topic, "metabolism")==0)
+		do_refundgskill(cn, 10);
+	else if (strcmp(topic, "11")==0 || strcmp(topic, "MagicShield")==0 || strcmp(topic, "magicshield")==0)
+		do_refundgskill(cn, 11);
+	else if (strcmp(topic, "12")==0 || strcmp(topic, "Tactics")==0 || strcmp(topic, "tactics")==0)
+		do_refundgskill(cn, 12);
+	else if (strcmp(topic, "13")==0 || strcmp(topic, "Repair")==0 || strcmp(topic, "repair")==0)
+		do_refundgskill(cn, 13);
+	else if (strcmp(topic, "14")==0 || strcmp(topic, "Finesse")==0 || strcmp(topic, "finesse")==0)
+		do_refundgskill(cn, 14);
+	else if (strcmp(topic, "15")==0 || strcmp(topic, "Lethargy")==0 || strcmp(topic, "lethargy")==0)
+		do_refundgskill(cn, 15);
+	else if (strcmp(topic, "16")==0 || strcmp(topic, "Shield")==0 || strcmp(topic, "shield")==0)
+		do_refundgskill(cn, 16);
+	else if (strcmp(topic, "17")==0 || strcmp(topic, "Protect")==0 || strcmp(topic, "protect")==0)
+		do_refundgskill(cn, 17);
+	else if (strcmp(topic, "18")==0 || strcmp(topic, "Enhance")==0 || strcmp(topic, "enhance")==0)
+		do_refundgskill(cn, 18);
+	else if (strcmp(topic, "19")==0 || strcmp(topic, "Slow")==0 || strcmp(topic, "slow")==0)
+		do_refundgskill(cn, 19);
+	else if (strcmp(topic, "20")==0 || strcmp(topic, "Curse")==0 || strcmp(topic, "curse")==0)
+		do_refundgskill(cn, 20);
+	else if (strcmp(topic, "21")==0 || strcmp(topic, "Bless")==0 || strcmp(topic, "bless")==0)
+		do_refundgskill(cn, 21);
+	else if (strcmp(topic, "22")==0 || strcmp(topic, "Rage")==0 || strcmp(topic, "rage")==0)
+		do_refundgskill(cn, 22);
+	else if (strcmp(topic, "23")==0 || strcmp(topic, "Resistance")==0 || strcmp(topic, "resistance")==0)
+		do_refundgskill(cn, 23);
+	else if (strcmp(topic, "24")==0 || strcmp(topic, "Blast")==0 || strcmp(topic, "blast")==0)
+		do_refundgskill(cn, 24);
+	else if (strcmp(topic, "25")==0 || strcmp(topic, "Dispel")==0 || strcmp(topic, "dispel")==0)
+		do_refundgskill(cn, 25);
+	else if (strcmp(topic, "26")==0 || strcmp(topic, "Heal")==0 || strcmp(topic, "heal")==0)
+		do_refundgskill(cn, 26);
+	else if (strcmp(topic, "27")==0 || strcmp(topic, "GhostCompanion")==0 || strcmp(topic, "ghostcompanion")==0)
+		do_refundgskill(cn, 27);
+	else if (strcmp(topic, "28")==0 || strcmp(topic, "Regenerate")==0 || strcmp(topic, "regenerate")==0)
+		do_refundgskill(cn, 28);
+	else if (strcmp(topic, "29")==0 || strcmp(topic, "Rest")==0 || strcmp(topic, "rest")==0)
+		do_refundgskill(cn, 29);
+	else if (strcmp(topic, "30")==0 || strcmp(topic, "Meditate")==0 || strcmp(topic, "meditate")==0)
+		do_refundgskill(cn, 30);
+	else if (strcmp(topic, "31")==0 || strcmp(topic, "Aria")==0 || strcmp(topic, "aria")==0)
+		do_refundgskill(cn, 31);
+	else if (strcmp(topic, "32")==0 || strcmp(topic, "Immunity")==0 || strcmp(topic, "immunity")==0)
+		do_refundgskill(cn, 32);
+	else if (strcmp(topic, "33")==0 || strcmp(topic, "SurroundHit")==0 || strcmp(topic, "surroundhit")==0)
+		do_refundgskill(cn, 33);
+	else if (strcmp(topic, "34")==0 || strcmp(topic, "Economize")==0 || strcmp(topic, "economize")==0)
+		do_refundgskill(cn, 34);
+	else if (strcmp(topic, "35")==0 || strcmp(topic, "Warcry")==0 || strcmp(topic, "warcry")==0)
+		do_refundgskill(cn, 35);
+	else if (strcmp(topic, "36")==0 || strcmp(topic, "DualWield")==0 || strcmp(topic, "dualwield")==0)
+		do_refundgskill(cn, 36);
+	else if (strcmp(topic, "37")==0 || strcmp(topic, "Blind")==0 || strcmp(topic, "blind")==0)
+		do_refundgskill(cn, 37);
+	else if (strcmp(topic, "38")==0 || strcmp(topic, "GearMastery")==0 || strcmp(topic, "gearmastery")==0)
+		do_refundgskill(cn, 38);
+	else if (strcmp(topic, "39")==0 || strcmp(topic, "Safeguard")==0 || strcmp(topic, "safeguard")==0)
+		do_refundgskill(cn, 39);
+	else if (strcmp(topic, "40")==0 || strcmp(topic, "Cleave")==0 || strcmp(topic, "cleave")==0)
+		do_refundgskill(cn, 40);
+	else if (strcmp(topic, "41")==0 || strcmp(topic, "Weaken")==0 || strcmp(topic, "weaken")==0)
+		do_refundgskill(cn, 41);
+	else if (strcmp(topic, "42")==0 || strcmp(topic, "Poison")==0 || strcmp(topic, "poison")==0)
+		do_refundgskill(cn, 42);
+	else if (strcmp(topic, "43")==0 || strcmp(topic, "Pulse")==0 || strcmp(topic, "pulse")==0)
+		do_refundgskill(cn, 43);
+	else if (strcmp(topic, "44")==0 || strcmp(topic, "Proximity")==0 || strcmp(topic, "proximity")==0)
+		do_refundgskill(cn, 44);
+	else if (strcmp(topic, "45")==0 || strcmp(topic, "CompanionMastery")==0 || strcmp(topic, "companionmastery")==0)
+		do_refundgskill(cn, 45);
+	else if (strcmp(topic, "46")==0 || strcmp(topic, "ShadowCopy")==0 || strcmp(topic, "shadowcopy")==0)
+		do_refundgskill(cn, 46);
+	else if (strcmp(topic, "47")==0 || strcmp(topic, "Haste")==0 || strcmp(topic, "haste")==0)
+		do_refundgskill(cn, 47);
+	else if (strcmp(topic, "48")==0 || strcmp(topic, "Taunt")==0 || strcmp(topic, "taunt")==0)
+		do_refundgskill(cn, 48);
+	else if (strcmp(topic, "49")==0 || strcmp(topic, "Leap")==0 || strcmp(topic, "leap")==0)
+		do_refundgskill(cn, 49);
+	else
+		do_char_log(cn, 0, "Unknown skill/attribute name \"%s\".\n", topic);
 }
 
 void do_changehouse(int cn, char *topic, int v)
@@ -6665,6 +6844,11 @@ void do_command(int cn, char *ptr)
 			break;
 		}
 		;
+		if (prefix(cmd, "refun"))
+		{
+			break;
+		}
+		;
 		if (prefix(cmd, "resetnp"))
 		{
 			break;
@@ -6706,6 +6890,12 @@ void do_command(int cn, char *ptr)
 		if (prefix(cmd, "recall") && f_giu)
 		{
 			god_goto(cn, cn, "512", "512");
+			return;
+		}
+		;
+		if (prefix(cmd, "refund"))
+		{
+			do_refundgskills(cn, arg[1]);
 			return;
 		}
 		;
@@ -10958,6 +11148,7 @@ void really_update_char(int cn)
 	int damage_top = 0, ava_crit = 0, ava_mult = 0;
 	int aoe = 0, tempCost = 10000, dmg_bns = 10000, dmg_rdc = 10000, reduc_bonus = 0;
 	int suppression = 0, bcount=0, attaunt=0, labcmd=0, gcdivinity = 0, empty = 0, unarmed = 1, emptyring = 0;
+	int resrv[3];
 	int attrib[5];
 	int attrib_ex[5];
 	int skill[50];
@@ -11020,7 +11211,12 @@ void really_update_char(int cn)
 	light = 0;
 	maxlight = 0;
 	
-	for (n=0;n< 3;n++) ch[cn].gigaregen[n] = 0;
+	for (n=0;n<3;n++)
+	{
+		ch[cn].gigaregen[n] = 0;
+		ch[cn].reserve[n] = 0;
+		resrv[n] = 0;
+	}
 	
 	base_spd = spd_move = spd_attack = spd_cast = 0;
 	spell_pow = spell_mod = spell_apt = spell_cool = 0;
@@ -11436,6 +11632,10 @@ void really_update_char(int cn)
 		
 		weapon += tempWeapon;
 		armor  += tempArmor;
+		
+		resrv[0] += reserve_hp[act];
+		resrv[1] += reserve_en[act];
+		resrv[2] += reserve_mp[act];
 	}
 	
 	// GC may inherit tarots from owner
@@ -11594,6 +11794,10 @@ void really_update_char(int cn)
 		//
 		dmg_bns     = dmg_bns * (100 + bu[m].dmg_bonus/2)/100;
 		dmg_rdc     = dmg_rdc * (100 - bu[m].dmg_reduction/2)/100;
+		//
+		// resrv[0]   += bu[m].reserve[0];
+		// resrv[1]   += bu[m].reserve[1];
+		// resrv[2]   += bu[m].reserve[2];
 		//
 		if (bu[m].temp==SK_HEAL)
 		{
@@ -12170,14 +12374,14 @@ void really_update_char(int cn)
 	
 	// Tactics
 	if (B_SK(cn, SK_TACTICS))
-	{
+	{ // resrv[2]
 		z = M_SK(cn, SK_TACTICS);
 		
 		// Tarot - Moon.R :: 1% increased effect of tactics per 50 uncapped mana
 		if (do_get_iflag(cn, SF_MOON_R))
-		{
 			z = z + z * ch[cn].mana[4] / 5000;
-		}
+		
+		// (ch[cn].mana[5]+1) = 1000 at 999/999
 		
 		z = z * (ch[cn].mana[5]+1) / 10000;
 		
@@ -12187,7 +12391,7 @@ void really_update_char(int cn)
 	
 	// Finesse
 	if (B_SK(cn, SK_FINESSE) && ch[cn].a_hp >= ch[cn].hp[5]*600)
-	{
+	{ // resrv[0]
 		if (IS_PLAYER(cn) && IS_BRAVER(cn))
 			z = M_SK(cn, SK_FINESSE)*3;
 		else
@@ -13002,18 +13206,29 @@ void really_update_char(int cn)
 	}
 	ch[cn].top_damage = damage_top;
 	
+	/*
+		ch[].reserve[] values
+	*/
+	
+	for (z=0;z<3;z++)
+	{
+		if (resrv[z] > 90) resrv[z] = 90;
+		if (resrv[z] <  0) resrv[z] =  0;
+		ch[cn].reserve[z] = resrv[z];
+	}
+	
 	// Force hp/end/mana to sane values
-	if (ch[cn].a_hp>ch[cn].hp[5] * 1000)
+	if (ch[cn].a_hp   > (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100)))
 	{
-		ch[cn].a_hp = ch[cn].hp[5] * 1000;
+		ch[cn].a_hp   = (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100));
 	}
-	if (ch[cn].a_end>ch[cn].end[5] * 1000)
+	if (ch[cn].a_end  > ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100)))
 	{
-		ch[cn].a_end = ch[cn].end[5] * 1000;
+		ch[cn].a_end  = ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100));
 	}
-	if (ch[cn].a_mana>ch[cn].mana[5] * 1000)
+	if (ch[cn].a_mana > (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100)))
 	{
-		ch[cn].a_mana = ch[cn].mana[5] * 1000;
+		ch[cn].a_mana = (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100));
 	}
 	
 	// Adjust local light score
@@ -13757,18 +13972,18 @@ void do_regenerate(int cn)
 		ch[cn].a_mana += (race_med/ 8) / (halfmana ? 2 : 1);
 	}
 	
-	// force to sane values
-	if (ch[cn].a_hp>ch[cn].hp[5] * 1000)
+	// Force hp/end/mana to sane values
+	if (ch[cn].a_hp   > (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100)))
 	{
-		ch[cn].a_hp   = ch[cn].hp[5]   * 1000;
+		ch[cn].a_hp   = (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100));
 	}
-	if (ch[cn].a_end>ch[cn].end[5] * 1000)
+	if (ch[cn].a_end  > ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100)))
 	{
-		ch[cn].a_end  = ch[cn].end[5]  * 1000;
+		ch[cn].a_end  = ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100));
 	}
-	if (ch[cn].a_mana>ch[cn].mana[5] * 1000)
+	if (ch[cn].a_mana > (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100)))
 	{
-		ch[cn].a_mana = ch[cn].mana[5] * 1000;
+		ch[cn].a_mana = (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100));
 	}
 	
 	if ((hp && ch[cn].a_hp<ch[cn].hp[5] * 900) || (mana && ch[cn].a_mana<ch[cn].mana[5] * 900))
@@ -14667,10 +14882,19 @@ void do_regenerate(int cn)
 		if (ch[cn].a_mana>1500) ch[cn].a_mana -= 200;
 	}
 	
-	// force to sane values
-	if (ch[cn].a_hp>ch[cn].hp[5] * 1000)		ch[cn].a_hp   = ch[cn].hp[5]   * 1000;
-	if (ch[cn].a_end>ch[cn].end[5] * 1000)		ch[cn].a_end  = ch[cn].end[5]  * 1000;
-	if (ch[cn].a_mana>ch[cn].mana[5] * 1000)	ch[cn].a_mana = ch[cn].mana[5] * 1000;
+	// Force hp/end/mana to sane values
+	if (ch[cn].a_hp   > (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100)))
+	{
+		ch[cn].a_hp   = (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100));
+	}
+	if (ch[cn].a_end  > ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100)))
+	{
+		ch[cn].a_end  = ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100));
+	}
+	if (ch[cn].a_mana > (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100)))
+	{
+		ch[cn].a_mana = (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100));
+	}
 	
 	if (ch[cn].a_end<0) 	ch[cn].a_end = 0;
 	if (ch[cn].a_mana<0) 	ch[cn].a_mana = 0;

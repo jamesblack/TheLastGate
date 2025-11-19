@@ -1727,8 +1727,8 @@
 #define TS_FLOOR_GRAY	 1052
 #define TS_FLOOR_BRICK	  558
 
-#define TS_SHRUB_CONS1	  328
-#define TS_SHRUB_CONS2	 1236
+#define TS_SHRUB_CONS1	 1155 // Light green
+#define TS_SHRUB_CONS2	 1236 // Dark green
 #define TS_SHRUB_ROCKS	 2778
 #define TS_SHRUB_GGRAS	 2788
 #define TS_SHRUB_GGRAM	 2790
