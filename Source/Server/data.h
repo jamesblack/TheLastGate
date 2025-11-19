@@ -657,6 +657,8 @@ struct character
 	
 	unsigned char ieffects[64];		// 64 bytes // stacking item effects
 	
+	unsigned char reserve[3];		// Reservation of HP/EN/MP (0 - 100)
+	
 	unsigned char olditem[14]; 		// free slots
 
 	// items worn
@@ -1250,7 +1252,11 @@ struct item
 	short enchantment;				//   1x 2b =  672b // Special effect via talismans
 	short corruption;				//   1x 2b =  674b // Special effect via corruption
 	
-	char freespace[53];				//  53x 1b =  727b // Free slots for future additions
+	unsigned char reserve_hp[2];	//   2x 1b =  676b // Reservation of HP on an item (inactive/active)
+	unsigned char reserve_en[2];	//   2x 1b =  678b // Reservation of EN on an item (inactive/active)
+	unsigned char reserve_mp[2];	//   2x 1b =  680b // Reservation of MP on an item (inactive/active)
+	
+	char freespace[47];				//  47x 1b =  727b // Free slots for future additions
 	
 	unsigned char driver;			//   1x 1b =  728b // Special routines for LOOKSPECIAL and USESPECIAL
 	unsigned int data[10];			//  10x 4b =  768b // Driver data
@@ -1320,7 +1326,9 @@ struct buff
 	
 	unsigned char light;			//   1x 1b =  154b // Glow value of the item; produces light
 	
-	char freespace[6];				//   6x 1b =  160b // Free slots for future additions
+	char reserve[3];				//   3x 1b =  157b // Resource reservation
+	
+	char freespace[3];				//   3x 1b =  160b // Free slots for future additions
 	
 	unsigned int data[10];			//  10x 4b =  200b // Driver data
 }

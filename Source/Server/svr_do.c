@@ -11148,6 +11148,7 @@ void really_update_char(int cn)
 	int damage_top = 0, ava_crit = 0, ava_mult = 0;
 	int aoe = 0, tempCost = 10000, dmg_bns = 10000, dmg_rdc = 10000, reduc_bonus = 0;
 	int suppression = 0, bcount=0, attaunt=0, labcmd=0, gcdivinity = 0, empty = 0, unarmed = 1, emptyring = 0;
+	int resrv[3];
 	int attrib[5];
 	int attrib_ex[5];
 	int skill[50];
@@ -11210,7 +11211,12 @@ void really_update_char(int cn)
 	light = 0;
 	maxlight = 0;
 	
-	for (n=0;n< 3;n++) ch[cn].gigaregen[n] = 0;
+	for (n=0;n<3;n++)
+	{
+		ch[cn].gigaregen[n] = 0;
+		ch[cn].reserve[n] = 0;
+		resrv[n] = 0;
+	}
 	
 	base_spd = spd_move = spd_attack = spd_cast = 0;
 	spell_pow = spell_mod = spell_apt = spell_cool = 0;
@@ -11626,6 +11632,10 @@ void really_update_char(int cn)
 		
 		weapon += tempWeapon;
 		armor  += tempArmor;
+		
+		resrv[0] += reserve_hp[act];
+		resrv[1] += reserve_en[act];
+		resrv[2] += reserve_mp[act];
 	}
 	
 	// GC may inherit tarots from owner
@@ -11784,6 +11794,10 @@ void really_update_char(int cn)
 		//
 		dmg_bns     = dmg_bns * (100 + bu[m].dmg_bonus/2)/100;
 		dmg_rdc     = dmg_rdc * (100 - bu[m].dmg_reduction/2)/100;
+		//
+		// resrv[0]   += bu[m].reserve[0];
+		// resrv[1]   += bu[m].reserve[1];
+		// resrv[2]   += bu[m].reserve[2];
 		//
 		if (bu[m].temp==SK_HEAL)
 		{
@@ -12360,14 +12374,14 @@ void really_update_char(int cn)
 	
 	// Tactics
 	if (B_SK(cn, SK_TACTICS))
-	{
+	{ // resrv[2]
 		z = M_SK(cn, SK_TACTICS);
 		
 		// Tarot - Moon.R :: 1% increased effect of tactics per 50 uncapped mana
 		if (do_get_iflag(cn, SF_MOON_R))
-		{
 			z = z + z * ch[cn].mana[4] / 5000;
-		}
+		
+		// (ch[cn].mana[5]+1) = 1000 at 999/999
 		
 		z = z * (ch[cn].mana[5]+1) / 10000;
 		
@@ -12377,7 +12391,7 @@ void really_update_char(int cn)
 	
 	// Finesse
 	if (B_SK(cn, SK_FINESSE) && ch[cn].a_hp >= ch[cn].hp[5]*600)
-	{
+	{ // resrv[0]
 		if (IS_PLAYER(cn) && IS_BRAVER(cn))
 			z = M_SK(cn, SK_FINESSE)*3;
 		else
@@ -13192,18 +13206,29 @@ void really_update_char(int cn)
 	}
 	ch[cn].top_damage = damage_top;
 	
+	/*
+		ch[].reserve[] values
+	*/
+	
+	for (z=0;z<3;z++)
+	{
+		if (resrv[z] > 90) resrv[z] = 90;
+		if (resrv[z] <  0) resrv[z] =  0;
+		ch[cn].reserve[z] = resrv[z];
+	}
+	
 	// Force hp/end/mana to sane values
-	if (ch[cn].a_hp>ch[cn].hp[5] * 1000)
+	if (ch[cn].a_hp   > (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100)))
 	{
-		ch[cn].a_hp = ch[cn].hp[5] * 1000;
+		ch[cn].a_hp   = (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100));
 	}
-	if (ch[cn].a_end>ch[cn].end[5] * 1000)
+	if (ch[cn].a_end  > ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100)))
 	{
-		ch[cn].a_end = ch[cn].end[5] * 1000;
+		ch[cn].a_end  = ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100));
 	}
-	if (ch[cn].a_mana>ch[cn].mana[5] * 1000)
+	if (ch[cn].a_mana > (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100)))
 	{
-		ch[cn].a_mana = ch[cn].mana[5] * 1000;
+		ch[cn].a_mana = (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100));
 	}
 	
 	// Adjust local light score
@@ -13947,18 +13972,18 @@ void do_regenerate(int cn)
 		ch[cn].a_mana += (race_med/ 8) / (halfmana ? 2 : 1);
 	}
 	
-	// force to sane values
-	if (ch[cn].a_hp>ch[cn].hp[5] * 1000)
+	// Force hp/end/mana to sane values
+	if (ch[cn].a_hp   > (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100)))
 	{
-		ch[cn].a_hp   = ch[cn].hp[5]   * 1000;
+		ch[cn].a_hp   = (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100));
 	}
-	if (ch[cn].a_end>ch[cn].end[5] * 1000)
+	if (ch[cn].a_end  > ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100)))
 	{
-		ch[cn].a_end  = ch[cn].end[5]  * 1000;
+		ch[cn].a_end  = ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100));
 	}
-	if (ch[cn].a_mana>ch[cn].mana[5] * 1000)
+	if (ch[cn].a_mana > (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100)))
 	{
-		ch[cn].a_mana = ch[cn].mana[5] * 1000;
+		ch[cn].a_mana = (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100));
 	}
 	
 	if ((hp && ch[cn].a_hp<ch[cn].hp[5] * 900) || (mana && ch[cn].a_mana<ch[cn].mana[5] * 900))
@@ -14857,10 +14882,19 @@ void do_regenerate(int cn)
 		if (ch[cn].a_mana>1500) ch[cn].a_mana -= 200;
 	}
 	
-	// force to sane values
-	if (ch[cn].a_hp>ch[cn].hp[5] * 1000)		ch[cn].a_hp   = ch[cn].hp[5]   * 1000;
-	if (ch[cn].a_end>ch[cn].end[5] * 1000)		ch[cn].a_end  = ch[cn].end[5]  * 1000;
-	if (ch[cn].a_mana>ch[cn].mana[5] * 1000)	ch[cn].a_mana = ch[cn].mana[5] * 1000;
+	// Force hp/end/mana to sane values
+	if (ch[cn].a_hp   > (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100)))
+	{
+		ch[cn].a_hp   = (  ch[cn].hp[5]*1000 - (  ch[cn].hp[5]*1000 * resrv[0]/100));
+	}
+	if (ch[cn].a_end  > ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100)))
+	{
+		ch[cn].a_end  = ( ch[cn].end[5]*1000 - ( ch[cn].end[5]*1000 * resrv[1]/100));
+	}
+	if (ch[cn].a_mana > (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100)))
+	{
+		ch[cn].a_mana = (ch[cn].mana[5]*1000 - (ch[cn].mana[5]*1000 * resrv[2]/100));
+	}
 	
 	if (ch[cn].a_end<0) 	ch[cn].a_end = 0;
 	if (ch[cn].a_mana<0) 	ch[cn].a_mana = 0;

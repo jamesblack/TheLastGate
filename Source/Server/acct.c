@@ -1291,6 +1291,13 @@ void view_object(LIST *head)
 	
 	printf("<tr><td>Dmg Reduction:</td><td><input type=text name=dmg_reduc_1 value=\"%d\" size=10 maxlength=10></td><td><input type=text name=dmg_reduc_2 value=\"%d\" size=10 maxlength=10></td></tr>\n",
 			it_temp[in].dmg_reduction[I_I], it_temp[in].dmg_reduction[I_A]);
+	
+	printf("<tr><td>HP Reservation %%:</td><td><input type=text name=reserve_hp_1 value=\"%d\" size=10 maxlength=10></td><td><input type=text name=reserve_hp_2 value=\"%d\" size=10 maxlength=10></td></tr>\n",
+			it_temp[in].reserve_hp[I_I], it_temp[in].reserve_hp[I_A]);
+	printf("<tr><td>EN Reservation %%:</td><td><input type=text name=reserve_en_1 value=\"%d\" size=10 maxlength=10></td><td><input type=text name=reserve_en_2 value=\"%d\" size=10 maxlength=10></td></tr>\n",
+			it_temp[in].reserve_en[I_I], it_temp[in].reserve_en[I_A]);
+	printf("<tr><td>MP Reservation %%:</td><td><input type=text name=reserve_mp_1 value=\"%d\" size=10 maxlength=10></td><td><input type=text name=reserve_mp_2 value=\"%d\" size=10 maxlength=10></td></tr>\n",
+			it_temp[in].reserve_mp[I_I], it_temp[in].reserve_mp[I_A]);
 
 	printf("<tr><td>Max Age:</td><td><input type=text name=max_age_1 value=\"%d\" size=10 maxlength=10></td><td><input type=text name=max_age_2 value=\"%d\" size=10 maxlength=10></td></tr>\n",
 			it_temp[in].max_age[I_I], it_temp[in].max_age[I_A]);
@@ -1592,6 +1599,13 @@ void view_item(LIST *head)
 			
 	printf("<tr><td>Dmg Reduction:</td><td><input type=text name=dmg_reduc_1 value=\"%d\" size=10 maxlength=10></td><td><input type=text name=dmg_reduc_2 value=\"%d\" size=10 maxlength=10></td></tr>\n",
 			it[in].dmg_reduction[I_I], it[in].dmg_reduction[I_A]);
+	
+	printf("<tr><td>HP Reservation %%:</td><td><input type=text name=reserve_hp_1 value=\"%d\" size=10 maxlength=10></td><td><input type=text name=reserve_hp_2 value=\"%d\" size=10 maxlength=10></td></tr>\n",
+			it[in].reserve_hp[I_I], it[in].reserve_hp[I_A]);
+	printf("<tr><td>EN Reservation %%:</td><td><input type=text name=reserve_en_1 value=\"%d\" size=10 maxlength=10></td><td><input type=text name=reserve_en_2 value=\"%d\" size=10 maxlength=10></td></tr>\n",
+			it[in].reserve_en[I_I], it[in].reserve_en[I_A]);
+	printf("<tr><td>MP Reservation %%:</td><td><input type=text name=reserve_mp_1 value=\"%d\" size=10 maxlength=10></td><td><input type=text name=reserve_mp_2 value=\"%d\" size=10 maxlength=10></td></tr>\n",
+			it[in].reserve_mp[I_I], it[in].reserve_mp[I_A]);
 
 	printf("<tr><td>Max Age:</td><td><input type=text name=max_age_1 value=\"%d\" size=10 maxlength=10></td><td><input type=text name=max_age_2 value=\"%d\" size=10 maxlength=10></td></tr>\n",
 			it[in].max_age[I_I], it[in].max_age[I_A]);
@@ -3461,7 +3475,25 @@ void update_object(LIST *head)
 		printf("dmg_reduc_2 not specified.\n");
 		return;
 	}
-
+	
+	if (tmp = find_val(head, "reserve_hp_1")) it_temp[in].reserve_hp[I_I] = atoi(tmp);
+	else { printf("reserve_hp_1 not specified.\n"); return; }
+	
+	if (tmp = find_val(head, "reserve_hp_2")) it_temp[in].reserve_hp[I_A] = atoi(tmp);
+	else { printf("reserve_hp_2 not specified.\n"); return; }
+	
+	if (tmp = find_val(head, "reserve_en_1")) it_temp[in].reserve_en[I_I] = atoi(tmp);
+	else { printf("reserve_en_1 not specified.\n"); return; }
+	
+	if (tmp = find_val(head, "reserve_en_2")) it_temp[in].reserve_en[I_A] = atoi(tmp);
+	else { printf("reserve_en_2 not specified.\n"); return; }
+	
+	if (tmp = find_val(head, "reserve_mp_1")) it_temp[in].reserve_mp[I_I] = atoi(tmp);
+	else { printf("reserve_mp_1 not specified.\n"); return; }
+	
+	if (tmp = find_val(head, "reserve_mp_2")) it_temp[in].reserve_mp[I_A] = atoi(tmp);
+	else { printf("reserve_mp_2 not specified.\n"); return; }
+	
 	tmp = find_val(head, "max_age_1");
 	if (tmp)
 	{
