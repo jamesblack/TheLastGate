@@ -1207,13 +1207,13 @@ void meta_stat(int flag, int n, int font, char* va, int vb, int vc, char* ve)
 {
 	int m = 8;
 	
-	if (flag)		m += 8*14;
+	if (flag)		m += 8*14; // move the text downward by 8 rows
 	
-					  xputtext(9,  m+n*14,font,"%-20.20s", va    );
-	if (vc>=0)		  xputtext(140,m+n*14,font,"%4d.%02d", vb, vc);
-	else if (vb>=0)	  xputtext(140,m+n*14,font,"%7d",      vb    );
-	else if (flag==2) xputtext(140,m+n*14,font,"%7d",      vb    );
-					  xputtext(189,m+n*14,font,"%-7.7s",   ve    );
+					  xputtext(9,  m+n*14,font,"%-20.20s", va    ); // Left side
+	if (vc>=0)		  xputtext(140,m+n*14,font,"%4d.%02d", vb, vc); // Numeric - Decimal
+	else if (vb>=0)	  xputtext(140,m+n*14,font,"%7d",      vb    ); // Numeric
+	else if (flag==2) xputtext(140,m+n*14,font,"%7d",      vb    ); // Numeric - show even if negative
+					  xputtext(189,m+n*14,font,"%-7.7s",   ve    ); // Affix
 }
 
 void show_meta_stats(int n)
@@ -1232,6 +1232,8 @@ void show_meta_stats(int n)
 	
 	if (pl.worn[WN_SPMOD]==NULL) return;
 	
+	// TODO: incorporate new method structure here.
+
 	if (n<7)					// Topmost standard stats
 	{
 		switch (n)
