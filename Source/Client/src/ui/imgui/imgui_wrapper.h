@@ -172,6 +172,16 @@ float imgui_get_frame_height(void);
 float imgui_get_frame_height_with_spacing(void);
 void imgui_get_content_region_avail(float* out_width, float* out_height);
 
+/* Scrolling */
+float imgui_get_scroll_x(void);
+float imgui_get_scroll_y(void);
+float imgui_get_scroll_max_x(void);
+float imgui_get_scroll_max_y(void);
+void imgui_set_scroll_x(float scroll_x);
+void imgui_set_scroll_y(float scroll_y);
+void imgui_set_scroll_here_x(float center_x_ratio);
+void imgui_set_scroll_here_y(float center_y_ratio);
+
 /* Columns (legacy) */
 void imgui_columns(int count, const char* id, int border);
 void imgui_set_column_width(int index, float width);
@@ -389,11 +399,12 @@ void imgui_pop_style_var(int count);
 #define IMGUI_STYLE_VAR_CELL_PADDING            17  /* ImVec2 */
 #define IMGUI_STYLE_VAR_SCROLLBAR_SIZE          18  /* float */
 #define IMGUI_STYLE_VAR_SCROLLBAR_ROUNDING      19  /* float */
-#define IMGUI_STYLE_VAR_GRAB_MIN_SIZE           20  /* float */
-#define IMGUI_STYLE_VAR_GRAB_ROUNDING           21  /* float */
-#define IMGUI_STYLE_VAR_TAB_ROUNDING            22  /* float */
-#define IMGUI_STYLE_VAR_BUTTON_TEXT_ALIGN       23  /* ImVec2 */
-#define IMGUI_STYLE_VAR_SELECTABLE_TEXT_ALIGN   24  /* ImVec2 */
+#define IMGUI_STYLE_VAR_SCROLLBAR_PADDING       20  /* ImVec2 */
+#define IMGUI_STYLE_VAR_GRAB_MIN_SIZE           21  /* float */
+#define IMGUI_STYLE_VAR_GRAB_ROUNDING           22  /* float */
+#define IMGUI_STYLE_VAR_TAB_ROUNDING            23  /* float */
+#define IMGUI_STYLE_VAR_BUTTON_TEXT_ALIGN       24  /* ImVec2 */
+#define IMGUI_STYLE_VAR_SELECTABLE_TEXT_ALIGN   25  /* ImVec2 */
 
 /* Style getters - get current style values */
 void imgui_get_style_item_spacing(float* out_x, float* out_y);

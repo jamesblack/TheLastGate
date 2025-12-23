@@ -472,6 +472,40 @@ void imgui_get_content_region_avail(float *out_width, float *out_height) {
     if (out_height) *out_height = avail.y;
 }
 
+/* Scrolling */
+
+float imgui_get_scroll_x(void) {
+    return ImGui::GetScrollX();
+}
+
+float imgui_get_scroll_y(void) {
+    return ImGui::GetScrollY();
+}
+
+float imgui_get_scroll_max_x(void) {
+    return ImGui::GetScrollMaxX();
+}
+
+float imgui_get_scroll_max_y(void) {
+    return ImGui::GetScrollMaxY();
+}
+
+void imgui_set_scroll_x(float scroll_x) {
+    ImGui::SetScrollX(scroll_x);
+}
+
+void imgui_set_scroll_y(float scroll_y) {
+    ImGui::SetScrollY(scroll_y);
+}
+
+void imgui_set_scroll_here_x(float center_x_ratio) {
+    ImGui::SetScrollHereX(center_x_ratio);
+}
+
+void imgui_set_scroll_here_y(float center_y_ratio) {
+    ImGui::SetScrollHereY(center_y_ratio);
+}
+
 /* Columns */
 
 void imgui_columns(int count, const char *id, int border) {
