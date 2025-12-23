@@ -3,7 +3,7 @@
 #include "common.h"
 
 /* Used for binding hotbar slots */
-#define INVENTORY_SKILL_OFFSET 100
+#define INVENTORY_HOTBAR_SKILL_OFFSET 100
 
 /* Managing scroll for inventory */
 enum {

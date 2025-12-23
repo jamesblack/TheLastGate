@@ -1,5 +1,6 @@
 #include "item_display.h"
 
+#include "inter.h"
 #include "render.h"
 #include "../../common.h"  /* For copyspritex and PL_* flags */
 #include "sprite_data.h"
@@ -7,6 +8,7 @@
 #include "../ui/imgui/imgui_wrapper.h"
 #include "config/config.h"
 #include "shaders/effect_shader.h"
+#include "ui/ui.h"
 
 void render_shop_item_display(const ItemDisplayInfo *item, int x, int y, int effect) {
     if (!item || !item->sprite) return;
@@ -168,4 +170,24 @@ void render_lockable_item_display_imgui(void *draw_list, const ItemDisplayInfo *
 
     if (item->stack > 0 && item->stack <= 10)
         draw_sprite_imgui(draw_list, SPRITE_OVERLAY_STACK_BASE + item->stack, x, y, effect);
+}
+
+void render_item_keybind_imgui(void *draw_list, int action_inventory_slot, float x, float y, float cell_width, float cell_height) {
+    // Draw shortcut key IDs
+    for (int i = 0; i < 20; i++) {
+        if (pdata.xbutton[i].skill_nr == action_inventory_slot) {
+            char buf[32];
+            char keybind_buf[32];
+            snprintf(buf, sizeof(buf), "spell_%d", i + 1);
+            BindingDescriptor *binding = binding_find_by_id(buf);
+            if (binding == NULL) return;
+            keybinding_to_short_string(binding->keybinding, keybind_buf, sizeof(keybind_buf));
+            float text_width, text_height;
+            imgui_push_font(font_sizes.normal);
+            imgui_calc_text_size_simple(&text_width, &text_height, keybind_buf);
+            imgui_draw_list_add_text_outline(draw_list, x + (cell_width - text_width), y + (cell_height - text_height), 0xFFFFFFFF, 0xFF000000, keybind_buf);
+            imgui_pop_font();
+            return;
+        }
+    }
 }

@@ -9,12 +9,6 @@
 #include "main.h"
 #include "game/game_ui.h"
 #include "imgui/imgui_wrapper.h"
-/*
-// Draw shortcut key IDs
-for (m=0; m<20; m++) if (pdata.xbutton[m].skill_nr==100+n+(signed)game_ui_state.inventory_scroll)
-copyspritex(4011+m,261+(n%10)*34,6+(n/10)*34,0);
-}
-*/
 
 typedef struct {
     int start_x;
@@ -133,11 +127,11 @@ static void on_inventory_right_click(const int slot) {
         // Lock item where it is ;  TODO: fix /sort server-side before uncommenting
         //cmd3(CL_CMD_INV,4,nr+game_ui_state.inventory_scroll,selected_char);
         //pl.item_l[nr+game_ui_state.inventory_scroll] = 1-pl.item_l[nr+game_ui_state.inventory_scroll];
-        if (last_skill == INVENTORY_SKILL_OFFSET + slot) {
+        if (last_skill == INVENTORY_HOTBAR_SKILL_OFFSET + slot) {
             last_skill = -1;
             xlog(6, "Inventory slot %d no longer selected for shortcut.", slot);
         } else {
-            last_skill = INVENTORY_SKILL_OFFSET + slot;
+            last_skill = INVENTORY_HOTBAR_SKILL_OFFSET + slot;
             if (first_right_click) {
                 xlog(6, "Inventory slot %d selected for shortcut.", slot);
             } else {
@@ -194,8 +188,8 @@ void inventory_render() {
                     render_lockable_item_display_imgui(draw_list, &pl.item_info[inventory_slot], win_x + slot_x,
                                                        win_y + slot_y, highlighted ? 16 : 0);
 
-                    // TODO: Draw the Shortcut Bind
                 }
+                render_item_keybind_imgui(draw_list, INVENTORY_HOTBAR_SKILL_OFFSET + inventory_slot, win_x + slot_x, win_y + slot_y, INVENTORY_BUTTON_SIZE[0], INVENTORY_BUTTON_SIZE[1]);
                 imgui_pop_id();
             }
             imgui_end_child();
