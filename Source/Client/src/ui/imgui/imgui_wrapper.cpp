@@ -1022,6 +1022,15 @@ void imgui_draw_list_add_text(void *draw_list, float x, float y, unsigned int co
     dl->AddText(ImVec2(x, y), col, text);
 }
 
+void imgui_draw_list_add_text_outline(void *draw_list, float x, float y, unsigned int col, unsigned int outline_col, const char *text) {
+    ImDrawList *dl = static_cast<ImDrawList *>(draw_list);
+    dl->AddText(ImVec2(x - 1, y - 1), outline_col, text);
+    dl->AddText(ImVec2(x - 1, y + 1), outline_col, text);
+    dl->AddText(ImVec2(x + 1, y - 1), outline_col, text);
+    dl->AddText(ImVec2(x + 1, y + 1), outline_col, text);
+    dl->AddText(ImVec2(x, y), col, text);
+}
+
 struct CCallbackPayload {
     imgui_draw_callback_fn callback;
     void *user_data;

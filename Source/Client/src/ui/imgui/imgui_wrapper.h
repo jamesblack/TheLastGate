@@ -509,6 +509,7 @@ void imgui_draw_list_add_rect(void* draw_list, float min_x, float min_y, float m
 void imgui_draw_list_add_rect_filled(void* draw_list, float min_x, float min_y, float max_x, float max_y, unsigned int col, float rounding, int flags);
 void imgui_draw_list_add_image(void* draw_list, void* texture_id, float min_x, float min_y, float max_x, float max_y, float uv0_x, float uv0_y, float uv1_x, float uv1_y, unsigned int tint_col);
 void imgui_draw_list_add_text(void* draw_list, float x, float y, unsigned int col, const char* text);
+void imgui_draw_list_add_text_outline(void* draw_list, float x, float y, unsigned int col, unsigned int outline_col, const char* text);
 
 /* Draw list callback - for custom rendering within ImGui */
 typedef void (*imgui_draw_callback_fn)(void* user_data);
