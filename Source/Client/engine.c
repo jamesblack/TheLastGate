@@ -2936,7 +2936,6 @@ void eng_display(int init)	// optimize me!!!!!
 	sdl_batch_begin();
 
 	mouse(mx,my,0);
-	SDL_SetCursor(cursors[cursor_type]);
 
 	// *******
 	// * map *
@@ -4791,6 +4790,7 @@ void engine(void)
 			}
 
 			imgui_render();
+			SDL_SetCursor(cursors[cursor_type]);
 
 			if (init) {
 				eng_display_cursor_items();
