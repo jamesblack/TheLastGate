@@ -59,6 +59,9 @@ void render_shop_item_display(const ItemDisplayInfo *item, int x, int y, int eff
 
 void render_lockable_item_display(const ItemDisplayInfo *item, int x, int y, int effect);
 
+void render_lockable_item_display_imgui(void *draw_list, const ItemDisplayInfo *item,
+                                        float x, float y, int effect);
+
 void render_worn_item_display(const ItemDisplayInfo *item, int x, int y, int effect);
 
 void render_item_display(const ItemDisplayInfo *item, int x, int y, int effect);
