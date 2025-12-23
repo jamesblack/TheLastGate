@@ -347,6 +347,14 @@ bool imgui_slider_float(const char *label, float *v, float v_min, float v_max) {
     return ImGui::SliderFloat(label, v, v_min, v_max);
 }
 
+bool imgui_vslider_int(const char *label, float width, float height, int *v, int v_min, int v_max) {
+    return ImGui::VSliderInt(label, ImVec2(width, height), v, v_min, v_max);
+}
+
+bool imgui_vslider_float(const char *label, float width, float height, float *v, float v_min, float v_max) {
+    return ImGui::VSliderFloat(label, ImVec2(width, height), v, v_min, v_max);
+}
+
 /* Widgets: Color */
 
 bool imgui_color_edit3(const char *label, float col[3]) {
