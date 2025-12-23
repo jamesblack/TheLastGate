@@ -361,6 +361,7 @@ bool imgui_is_item_hovered(void);
 bool imgui_is_item_active(void);
 bool imgui_is_item_clicked(int mouse_button);
 bool imgui_is_mouse_clicked(int mouse_button);
+bool imgui_is_window_hovered(void);
 void imgui_push_item_width(float item_width);
 void imgui_pop_item_width(void);
 void imgui_set_item_default_focus(void);
@@ -488,6 +489,10 @@ void imgui_show_demo_window(bool* p_open);
 bool imgui_want_capture_mouse(void);
 bool imgui_want_capture_keyboard(void);
 
+/* Mouse input */
+float imgui_get_mouse_wheel(void);
+float imgui_get_mouse_wheel_h(void);
+
 /* Keyboard input - for keybinding capture */
 bool imgui_is_key_pressed(int sdl_keycode);
 int imgui_get_key_mods(void);
@@ -498,11 +503,16 @@ void* imgui_get_background_draw_list(void);
 void* imgui_get_foreground_draw_list(void);
 
 /* Draw list commands - use the draw list returned from above functions */
+void imgui_draw_list_reset_render_state(void *draw_list);
 void imgui_draw_list_add_line(void* draw_list, float x1, float y1, float x2, float y2, unsigned int col, float thickness);
 void imgui_draw_list_add_rect(void* draw_list, float min_x, float min_y, float max_x, float max_y, unsigned int col, float rounding, int flags, float thickness);
 void imgui_draw_list_add_rect_filled(void* draw_list, float min_x, float min_y, float max_x, float max_y, unsigned int col, float rounding, int flags);
 void imgui_draw_list_add_image(void* draw_list, void* texture_id, float min_x, float min_y, float max_x, float max_y, float uv0_x, float uv0_y, float uv1_x, float uv1_y, unsigned int tint_col);
 void imgui_draw_list_add_text(void* draw_list, float x, float y, unsigned int col, const char* text);
+
+/* Draw list callback - for custom rendering within ImGui */
+typedef void (*imgui_draw_callback_fn)(void* user_data);
+void imgui_draw_list_add_callback(void* draw_list, imgui_draw_callback_fn callback, void* user_data);
 
 /* 9-slice/9-patch image drawing - for scalable UI elements like buttons */
 /* border_* are the pixel sizes of the borders in the source texture */

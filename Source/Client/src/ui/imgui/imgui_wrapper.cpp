@@ -753,6 +753,10 @@ bool imgui_is_mouse_clicked(int mouse_button) {
     return ImGui::IsMouseClicked(mouse_button);
 }
 
+bool imgui_is_window_hovered(void) {
+    return ImGui::IsWindowHovered();
+}
+
 void imgui_push_item_width(float item_width) {
     ImGui::PushItemWidth(item_width);
 }
@@ -859,6 +863,16 @@ bool imgui_want_capture_mouse(void) {
 
 bool imgui_want_capture_keyboard(void) {
     return ImGui::GetIO().WantCaptureKeyboard;
+}
+
+/* Mouse input */
+
+float imgui_get_mouse_wheel(void) {
+    return ImGui::GetIO().MouseWheel;
+}
+
+float imgui_get_mouse_wheel_h(void) {
+    return ImGui::GetIO().MouseWheelH;
 }
 
 /* Keyboard input - for keybinding capture */
@@ -973,6 +987,10 @@ void *imgui_get_foreground_draw_list(void) {
 }
 
 /* Draw list commands */
+void imgui_draw_list_reset_render_state(void *draw_list) {
+    ImDrawList *dl = static_cast<ImDrawList *>(draw_list);
+    dl->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+}
 
 void imgui_draw_list_add_line(void *draw_list, float x1, float y1, float x2, float y2, unsigned int col,
                               float thickness) {
@@ -1002,6 +1020,28 @@ void imgui_draw_list_add_image(void *draw_list, void *texture_id, float min_x, f
 void imgui_draw_list_add_text(void *draw_list, float x, float y, unsigned int col, const char *text) {
     ImDrawList *dl = static_cast<ImDrawList *>(draw_list);
     dl->AddText(ImVec2(x, y), col, text);
+}
+
+struct CCallbackPayload {
+    imgui_draw_callback_fn callback;
+    void *user_data;
+};
+
+static void imgui_c_trampoline(const ImDrawList*, const ImDrawCmd* cmd) {
+    CCallbackPayload *payload =
+        (CCallbackPayload *)cmd->UserCallbackData;
+
+    payload->callback(payload->user_data);
+
+    delete payload;
+}
+
+void imgui_draw_list_add_callback(void *draw_list, imgui_draw_callback_fn callback, void *user_data) {
+    ImDrawList *dl = static_cast<ImDrawList *>(draw_list);
+    /* Cast the C callback to ImGui's callback type */
+
+    CCallbackPayload *payload = new CCallbackPayload{callback, user_data};
+    dl->AddCallback(imgui_c_trampoline, payload);
 }
 
 void imgui_draw_list_add_image_9_slice(void *draw_list, void *texture_id,
