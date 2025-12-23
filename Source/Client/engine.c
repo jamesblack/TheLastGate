@@ -4785,6 +4785,7 @@ void engine(void)
 			if (game_ui_state.show_options) {
 				options_window_render();
 			}
+			inventory_render();
 			if (g_config.runtime.show_performance) {
 				render_perf_window();
 			}
