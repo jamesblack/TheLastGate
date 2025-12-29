@@ -125,7 +125,6 @@ static AttributeCostResult cost_to_raise_attributes_by_5_uber(const int attribut
 }
 
 char get_raise_icon(int skill_id, int skill_tab_position) {
-    return '+'; // Disabled until I know if this is even going to be doable
     // Maxed
     if (skill_needed(skill_id, pl.skill[skill_id][0] + stat_raised[skill_tab_position + 8]) == HIGH_VAL) return ' ';
 
@@ -137,7 +136,7 @@ char get_raise_icon(int skill_id, int skill_tab_position) {
     } else if (is_spell(skilltab[skill_tab_position].nr) && T_ARHR_SK(9)) {
         result = cost_to_raise_attributes_by_5_uber((int[4]){AT_INT, AT_INT, AT_WIL, AT_BRV});
     } else {
-        // result = cost_to_raise_attributes_by_5(skilltab[skill_tab_position].attrib);
+        result = cost_to_raise_attributes_by_5(skilltab[skill_tab_position].attrib);
     }
 
     if (result.cost < cost_to_raise_skill) {

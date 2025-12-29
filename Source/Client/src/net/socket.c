@@ -162,8 +162,12 @@ int sv_terminology(unsigned char *buf) {
 	if (buf[0]==SV_TERM_SKILLS) {
 		n = buf[2];
 		switch (buf[1]) {
-			case ST_SKILLS_SORT: skilltab[n].sortkey = *(unsigned char*)(buf+3);
-				skilltab[n].show = *(unsigned char*)(buf+4); return  5;
+			case ST_SKILLS_SORT: skilltab[n].sortkey = *(unsigned char *) (buf + 3);
+				skilltab[n].attrib[0] = *(unsigned char *) (buf + 4);
+				skilltab[n].attrib[1] = *(unsigned char *) (buf + 5);
+				skilltab[n].attrib[2] = *(unsigned char *) (buf + 6);
+				skilltab[n].show = *(unsigned char *) (buf + 7);
+				return 8;
 			case ST_SKILLS_NAME1: memcpy(skilltab[n].name,     buf+3, 10); return 13;
 			case ST_SKILLS_NAME2: memcpy(skilltab[n].name+ 10, buf+3, 10); return 13;
 			case ST_SKILLS_NAME3: memcpy(skilltab[n].name+ 20, buf+3, 10); return 13;
@@ -1115,8 +1119,9 @@ int sv_cmd(unsigned char *buf)
 
 		case SV_TERM_STREE:
 		case SV_TERM_CTREE:
-			sv_terminology(buf);
-			break;
+		case SV_TERM_SKILLS:
+		case SV_TERM_META:
+			return sv_terminology(buf);
 
 		case	SV_MOTD0:		sv_motd(buf,0); break;
 		case	SV_MOTD1:		sv_motd(buf,1); break;
@@ -1268,7 +1273,7 @@ int tick_do(void)
 
         while (idx<csize) {
 		ret=sv_cmd(buf+idx);
-		if (ret==-1) { xlog(1,"Warning: syntax error in server data"); DEBUG("Warning: syntax error in server data"); exit(1); }
+		if (ret==-1) { xlog(1,"Warning: syntax error in server data"); log_critical("Warning: syntax error in server data"); exit(1); }
 		idx+=ret;
 	}
 
