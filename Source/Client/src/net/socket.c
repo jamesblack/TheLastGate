@@ -162,7 +162,8 @@ int sv_terminology(unsigned char *buf) {
 	if (buf[0]==SV_TERM_SKILLS) {
 		n = buf[2];
 		switch (buf[1]) {
-			case ST_SKILLS_SORT: memcpy(skilltab[n].sortkey,  buf+3,  1); skilltab[n].show = *(unsigned char*)(buf+4); return  5;
+			case ST_SKILLS_SORT: skilltab[n].sortkey = *(unsigned char*)(buf+3);
+				skilltab[n].show = *(unsigned char*)(buf+4); return  5;
 			case ST_SKILLS_NAME1: memcpy(skilltab[n].name,     buf+3, 10); return 13;
 			case ST_SKILLS_NAME2: memcpy(skilltab[n].name+ 10, buf+3, 10); return 13;
 			case ST_SKILLS_NAME3: memcpy(skilltab[n].name+ 20, buf+3, 10); return 13;
@@ -218,10 +219,11 @@ int sv_terminology(unsigned char *buf) {
 			case ST_META_DESC19: memcpy(meta_stats[n].desc+180, buf+3, 10); return 13;
 			case ST_META_DESC20: memcpy(meta_stats[n].desc+190, buf+3, 10); return 13;
 			case ST_META_VALUES:
-			               skilltab[n].value   =     *(short int*)(buf+3);
-			               skilltab[n].decimal = *(unsigned char*)(buf+5);
-			                        memcpy(meta_stats[n].affix, buf+6,  8);
-			               skilltab[n].font   = *(unsigned char*)(buf+14); return 15;
+				meta_stats[n].value = *(short int *) (buf + 3);
+				meta_stats[n].decimal = *(unsigned char *) (buf + 5);
+				memcpy(meta_stats[n].affix, buf + 6, 8);
+				meta_stats[n].font = *(unsigned char *) (buf + 14);
+				return 15;
 			default: break;
 		}
 	}
@@ -898,7 +900,7 @@ void sv_look8(unsigned char *buf)	// Blacksmith
 
 extern int noshop;
 
-void sv_closeshop(unsigned char *buf)
+void sv_closeshop()
 {
 	DEBUG("SV CLOSESHOP");
 	game_ui_state.open_shop=0; noshop=QSIZE*3;
@@ -934,7 +936,7 @@ void sv_showmotd(unsigned char *buf)
 	}
 }
 
-void sv_waypoints(unsigned char *buf)
+void sv_waypoints()
 {
 	DEBUG("SV WAYPOINTS");
 
@@ -1140,7 +1142,7 @@ int sv_cmd(unsigned char *buf)
 		case	SV_LOOK7:				sv_look7(buf); return 8;
 		case	SV_LOOK8:				sv_look8(buf); return 8;
 
-		case	SV_CLOSESHOP:			sv_closeshop(buf); return 1;
+		case	SV_CLOSESHOP:			sv_closeshop(); return 1;
 
 		case	SV_SETTARGET:			sv_settarget(buf); return 13;
 
@@ -1153,7 +1155,7 @@ int sv_cmd(unsigned char *buf)
 		case  	SV_UNIQUE:             	sv_unique(buf); return 9;
 		case 	SV_IGNORE:		return sv_ignore(buf);
 
-		case	SV_WAYPOINTS:			sv_waypoints(buf); return 1;
+		case	SV_WAYPOINTS:			sv_waypoints(); return 1;
 		case	SV_SHOWMOTD:			sv_showmotd(buf); return 2;
 
 		case	SV_CLEARBOX:			sv_clearbox(buf); return 9;
@@ -1165,7 +1167,7 @@ int sv_cmd(unsigned char *buf)
 }
 
 #pragma argused
-void so_perf_report(int ticksize,int skip,int idle)
+void so_perf_report()
 {
 	unsigned char buf[16];
 
