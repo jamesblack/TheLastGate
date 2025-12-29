@@ -9,6 +9,7 @@ extern int stat_points_used;
 extern struct cplayer pl;
 extern char *at_name[5];
 extern struct skilltab *skilltab;
+extern struct skilltab _skilltab[55];
 extern int skill_needed(int n,int v);
 extern int attrib_needed(int n,int v);
 extern int stat_raised[108];

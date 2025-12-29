@@ -7,6 +7,7 @@
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_net.h>
 
+#include "engine.h"
 #include "game/game_input.h"
 #include "game/game_ui.h"
 #include "graphics/render.h"
@@ -126,7 +127,7 @@ unsigned int xcrypt(unsigned int val)
 	return res;
 }
 
-void sv_terminology(unsigned char *buf) {
+int sv_terminology(unsigned char *buf) {
 	int tn = -1, n = 0;
 
 	DEBUG("SV TERMINOLOGY");
@@ -137,22 +138,52 @@ void sv_terminology(unsigned char *buf) {
 	if (tn >= 0) {
 		n = buf[2];
 
-		if (buf[1] == ST_TREE_ICON) { sk_tree[tn][n].icon = *(unsigned short *) (buf + 3) }
-		if (buf[1] == ST_TREE_NAME1) { memcpy(sk_tree[tn][n].name, buf + 3, 10); }
-		if (buf[1] == ST_TREE_NAME2) { memcpy(sk_tree[tn][n].name + 10, buf + 3, 10); }
-		if (buf[1] == ST_TREE_NAME3) { memcpy(sk_tree[tn][n].name + 20, buf + 3, 10); }
-		if (buf[1] == ST_TREE_DESC1A) { memcpy(sk_tree[tn][n].dsc1, buf + 3, 10); }
-		if (buf[1] == ST_TREE_DESC1B) { memcpy(sk_tree[tn][n].dsc1 + 10, buf + 3, 10); }
-		if (buf[1] == ST_TREE_DESC1C) { memcpy(sk_tree[tn][n].dsc1 + 20, buf + 3, 10); }
-		if (buf[1] == ST_TREE_DESC1D) { memcpy(sk_tree[tn][n].dsc1 + 30, buf + 3, 10); }
-		if (buf[1] == ST_TREE_DESC1E) { memcpy(sk_tree[tn][n].dsc1 + 40, buf + 3, 10); }
-		if (buf[1] == ST_TREE_DESC2A) { memcpy(sk_tree[tn][n].dsc2, buf + 3, 10); }
-		if (buf[1] == ST_TREE_DESC2B) { memcpy(sk_tree[tn][n].dsc2 + 10, buf + 3, 10); }
-		if (buf[1] == ST_TREE_DESC2C) { memcpy(sk_tree[tn][n].dsc2 + 20, buf + 3, 10); }
-		if (buf[1] == ST_TREE_DESC2D) { memcpy(sk_tree[tn][n].dsc2 + 30, buf + 3, 10); }
-		if (buf[1] == ST_TREE_DESC2E) { memcpy(sk_tree[tn][n].dsc2 + 40, buf + 3, 10); }
-		return;
+		if (buf[1]==ST_TREE_ICON)   { sk_tree[tn][n].icon = *(unsigned short*)(buf+3); return  5; }
+		if (buf[1]==ST_TREE_NAME1)  { memcpy(sk_tree[tn][n].name,    buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_NAME2)  { memcpy(sk_tree[tn][n].name+10, buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_NAME3)  { memcpy(sk_tree[tn][n].name+20, buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_DESC1A) { memcpy(sk_tree[tn][n].dsc1,    buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_DESC1B) { memcpy(sk_tree[tn][n].dsc1+10, buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_DESC1C) { memcpy(sk_tree[tn][n].dsc1+20, buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_DESC1D) { memcpy(sk_tree[tn][n].dsc1+30, buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_DESC1E) { memcpy(sk_tree[tn][n].dsc1+40, buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_DESC2A) { memcpy(sk_tree[tn][n].dsc2,    buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_DESC2B) { memcpy(sk_tree[tn][n].dsc2+10, buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_DESC2C) { memcpy(sk_tree[tn][n].dsc2+20, buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_DESC2D) { memcpy(sk_tree[tn][n].dsc2+30, buf+3, 10);       return 13; }
+		if (buf[1]==ST_TREE_DESC2E) { memcpy(sk_tree[tn][n].dsc2+40, buf+3, 10);       return 13; }
 	}
+
+	if (buf[0]==SV_TERM_SKILLS) {
+		n = buf[2];
+
+		if (buf[1]==ST_SKILLS_SORT)   { memcpy(_skilltab[n].sortkey,  buf+3,  1); return  4; }
+		if (buf[1]==ST_SKILLS_NAME1)  { memcpy(_skilltab[n].name,     buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_NAME2)  { memcpy(_skilltab[n].name+ 10, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_NAME3)  { memcpy(_skilltab[n].name+ 20, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC01) { memcpy(_skilltab[n].desc,     buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC02) { memcpy(_skilltab[n].desc+ 10, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC03) { memcpy(_skilltab[n].desc+ 20, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC04) { memcpy(_skilltab[n].desc+ 30, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC05) { memcpy(_skilltab[n].desc+ 40, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC06) { memcpy(_skilltab[n].desc+ 50, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC07) { memcpy(_skilltab[n].desc+ 60, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC08) { memcpy(_skilltab[n].desc+ 70, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC09) { memcpy(_skilltab[n].desc+ 80, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC10) { memcpy(_skilltab[n].desc+ 90, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC11) { memcpy(_skilltab[n].desc+100, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC12) { memcpy(_skilltab[n].desc+110, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC13) { memcpy(_skilltab[n].desc+120, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC14) { memcpy(_skilltab[n].desc+130, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC15) { memcpy(_skilltab[n].desc+140, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC16) { memcpy(_skilltab[n].desc+150, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC17) { memcpy(_skilltab[n].desc+160, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC18) { memcpy(_skilltab[n].desc+170, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC19) { memcpy(_skilltab[n].desc+180, buf+3, 10); return 13; }
+		if (buf[1]==ST_SKILLS_DESC20) { memcpy(_skilltab[n].desc+190, buf+3, 10); return 13; }
+	}
+
+	return 16; // Should not be reached
 }
 
 void sv_newplayer(unsigned char *buf)
