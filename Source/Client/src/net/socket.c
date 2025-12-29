@@ -126,6 +126,35 @@ unsigned int xcrypt(unsigned int val)
 	return res;
 }
 
+void sv_terminology(unsigned char *buf) {
+	int tn = -1, n = 0;
+
+	DEBUG("SV TERMINOLOGY");
+
+	if (buf[0] == SV_TERM_STREE) tn = 0;
+	if (buf[0] == SV_TERM_CTREE) tn = 1;
+
+	if (tn >= 0) {
+		n = buf[2];
+
+		if (buf[1] == ST_TREE_ICON) { sk_tree[tn][n].icon = *(unsigned short *) (buf + 3) }
+		if (buf[1] == ST_TREE_NAME1) { memcpy(sk_tree[tn][n].name, buf + 3, 10); }
+		if (buf[1] == ST_TREE_NAME2) { memcpy(sk_tree[tn][n].name + 10, buf + 3, 10); }
+		if (buf[1] == ST_TREE_NAME3) { memcpy(sk_tree[tn][n].name + 20, buf + 3, 10); }
+		if (buf[1] == ST_TREE_DESC1A) { memcpy(sk_tree[tn][n].dsc1, buf + 3, 10); }
+		if (buf[1] == ST_TREE_DESC1B) { memcpy(sk_tree[tn][n].dsc1 + 10, buf + 3, 10); }
+		if (buf[1] == ST_TREE_DESC1C) { memcpy(sk_tree[tn][n].dsc1 + 20, buf + 3, 10); }
+		if (buf[1] == ST_TREE_DESC1D) { memcpy(sk_tree[tn][n].dsc1 + 30, buf + 3, 10); }
+		if (buf[1] == ST_TREE_DESC1E) { memcpy(sk_tree[tn][n].dsc1 + 40, buf + 3, 10); }
+		if (buf[1] == ST_TREE_DESC2A) { memcpy(sk_tree[tn][n].dsc2, buf + 3, 10); }
+		if (buf[1] == ST_TREE_DESC2B) { memcpy(sk_tree[tn][n].dsc2 + 10, buf + 3, 10); }
+		if (buf[1] == ST_TREE_DESC2C) { memcpy(sk_tree[tn][n].dsc2 + 20, buf + 3, 10); }
+		if (buf[1] == ST_TREE_DESC2D) { memcpy(sk_tree[tn][n].dsc2 + 30, buf + 3, 10); }
+		if (buf[1] == ST_TREE_DESC2E) { memcpy(sk_tree[tn][n].dsc2 + 40, buf + 3, 10); }
+		return;
+	}
+}
+
 void sv_newplayer(unsigned char *buf)
 {
 	DEBUG("SV NEWPLAYER");
@@ -1007,6 +1036,11 @@ int sv_cmd(unsigned char *buf)
 		case	SV_LOG7:		sv_log(buf,7); break;
 		case	SV_LOG8:		sv_log(buf,8); break;
 		case	SV_LOG9:		sv_log(buf,9); break;
+
+		case SV_TERM_STREE:
+		case SV_TERM_CTREE:
+			sv_terminology(buf);
+			break;
 
 		case	SV_MOTD0:		sv_motd(buf,0); break;
 		case	SV_MOTD1:		sv_motd(buf,1); break;

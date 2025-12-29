@@ -257,9 +257,9 @@ struct wpslist
 
 struct sk_tree
 {
+	unsigned short icon;
 	char name[30];
 	char dsc1[42];
-	int icon;
 	char dsc2[42];
 };
 
@@ -270,7 +270,7 @@ struct sk_icon
 };
 
 extern struct wpslist wpslist[MAXWPS];
-extern struct sk_tree sk_tree[10][12];
+extern struct sk_tree sk_tree[2][12];
 extern struct sk_icon sk_icon[12];
 
 void say(char *input);
