@@ -265,9 +265,20 @@ struct sk_icon
 	int y;
 };
 
+struct MetaStat {
+	char font;
+	char name[30];
+	char desc[200];
+	short value;
+	char decimal;
+	char affix[8];
+};
+
+
 extern struct wpslist wpslist[MAXWPS];
 extern struct sk_tree sk_tree[2][12];
 extern struct sk_icon sk_icon[12];
+extern struct MetaStat meta_stats[90];
 
 void say(char *input);
 void cmd(int cmd,int x,int y);
