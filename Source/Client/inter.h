@@ -268,6 +268,8 @@ struct sk_icon
 };
 
 struct MetaStat {
+	char show;
+	char flag;
 	char font;
 	char name[30];
 	char desc[200];
@@ -280,7 +282,7 @@ struct MetaStat {
 extern struct wpslist wpslist[MAXWPS];
 extern struct sk_tree sk_tree[2][12];
 extern struct sk_icon sk_icon[12];
-extern struct MetaStat meta_stats[90];
+extern struct MetaStat *meta_stats;
 
 void say(char *input);
 void cmd(int cmd,int x,int y);

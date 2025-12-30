@@ -361,7 +361,7 @@ char *at_name[5]={
 #define AT_STR		4
 
 struct skilltab *skilltab;
-struct MetaStat meta_stats[90];
+struct MetaStat *meta_stats;
 
 struct sk_tree sk_tree[2][12] = {
 	{
@@ -803,6 +803,37 @@ int sk_score(int n)
 	return ( (pl.skill[n][4] << 8) | pl.skill[n][5] );
 }
 
+void set_temp_skilltab(void)
+{
+	int n;
+	for (n=0; n<MAXSKILL; n++)
+	{
+		skilltab[n].nr = n;
+		skilltab[n].sortkey = n;
+		skilltab[n].show = 0;
+		sprintf(skilltab[n].name,"skill%02d", n);
+		sprintf(skilltab[n].desc,"desc%02d", n);
+		skilltab[n].attrib[0] = 0;
+		skilltab[n].attrib[1] = 1;
+		skilltab[n].attrib[2] = 2;
+	}
+}
+
+void set_temp_metaStats(void)
+{
+	int n;
+	for (n=0; n<MAXMETA; n++)
+	{
+		meta_stats[n].show = 1;
+		meta_stats[n].flag = 0;
+		meta_stats[n].font = 1;
+		sprintf(meta_stats[n].name,"stat%02d", n);
+		sprintf(meta_stats[n].desc,"desc%02d", n);
+		meta_stats[n].value = -1;
+		sprintf(meta_stats[n].affix,"afx%02d", n);
+	}
+}
+
 int pl_speed=0, pl_atksp=0, pl_spmod=0, pl_skmod=0, pl_spapt=0, pl_movsp=0;
 int pl_critc=0, pl_critm=0, pl_topdm=0, pl_topd2=0, pl_reflc=0, pl_aoebn=0;
 int pl_hitsc=0, pl_parry=0, pl_coold=0, pl_casts=0, pl_dmgbn=0;
@@ -1242,178 +1273,28 @@ void show_meta_stats(int n)
 	// 8 = Violet
 	// 9 = White
 	
-	if (pl.worn[WN_SPMOD]==NULL) return;
-	
-	if (n<7)					// Topmost standard stats
-	{
-		switch (n)
-		{
-			case  0: meta_stat(0,n,1,"Cooldown Duration", pl_cdrate/100, pl_cdrate%100, "x"); break;
-			case  1: meta_stat(0,n,4,"Spell Aptitude",    pl_spapt,      -1,            "" ); break;
-			case  2: if (pl_flagc&(1<<10)) meta_stat(0,n,5,"Skill Modifier", pl_skmod /100, pl_skmod %100, "x");
-					 else meta_stat(0,n,4,"Spell Modifier", pl_spmod /100, pl_spmod %100, "x"); break;
-			case  3: meta_stat(0,n,6,"Base Action Speed", pl_speed/100,  pl_speed%100,  "" ); break;
-			case  4: meta_stat(0,n,6,"Movement Speed",    pl_movsp/100,  pl_movsp%100,  "" ); break;
-			case  5: meta_stat(0,n,7,"Hit Score",         pl_hitsc,      -1,            "" ); break;
-			case  6: meta_stat(0,n,7,"Parry Score",       pl_parry,      -1,            "" ); break;
-			default: break;
-		}
+	int m, pos = n;
+
+	if (!meta_stats[n].show) return;
+
+	if (n < 7) {
+		m = 0;
+	} else if (game_ui_state.hud_mode == HUD_MODE_LIST_OFFENSES) {
+		m = 1 + (n + game_ui_state.skill_scroll > 17 ? 1: 0);
+		n = n + game_ui_state.skill_scroll;
+		if (n >= 48) return;
+		pos -= 7;
+	} else {
+		m = 1 + (n + game_ui_state.skill_scroll > 17 ? 1 : 0);
+		n = n + 41 + game_ui_state.skill_scroll;
+		if (n >= 89) return;
+		pos -= 7;
 	}
-	else if (game_ui_state.hud_mode == HUD_MODE_LIST_OFFENSES)		// Offense Stats
-	{
-		n-=7;
-		switch (n+game_ui_state.skill_scroll)
-		{
-			case  0: meta_stat(1,n,9,"  Passive Stats:",     -1,           -1,           ""       ); break;
-			case  1: if (pl_dmgbn!=10000)
-					 meta_stat(1,n,1,"Damage Multiplier",    pl_dmgbn/100, pl_dmgbn%100, "%"      ); break;
-			case  2: meta_stat(1,n,7,"Est. Melee DPS",       pl_dps/100,   pl_dps%100,   ""       ); break;
-			case  3: meta_stat(1,n,5,"Est. Melee Hit Dmg",   pl_hitdm,     -1,           ""       ); break;
-			case  4: meta_stat(1,n,5,"Critical Multiplier",  pl_critm,     -1,           "%"      ); break;
-			case  5: meta_stat(1,n,5,"Critical Chance",      pl_critc/100, pl_critc%100, "%"      ); break;
-			case  6: meta_stat(1,n,5,"Melee Ceiling Damage", pl_dhigh,     -1,           ""       ); break;
-			case  7: meta_stat(1,n,5,"Melee  Floor  Damage", pl_dlow,      -1,           ""       ); break;
-			case  8: meta_stat(1,n,6,"Attack Speed",         pl_atksp/100, pl_atksp%100, ""       ); break;
-			case  9: meta_stat(1,n,6,"  Cast Speed",         pl_casts/100, pl_casts%100, ""       ); break;
-			case 10: if (pl_reflc>0)
-					 meta_stat(1,n,1,"Thorns Score",         pl_reflc,     -1,           ""       ); break;
-			case 11: if (pl.skill[34][0])
-					 meta_stat(1,n,4,"Mana Cost Multiplier", sk_conce/100, sk_conce%100, "%"      ); break;
-			case 12: if (pl_aoebn)
-					 meta_stat(1,n,1,"Total AoE Bonus",      pl_aoebn,     -1,           "Tiles"  ); break;
-			//
-			case 16: meta_stat(1,n,9,"  Active Stats:",      -1,           -1,           ""       ); break;
-			case 17: if (pl.skill[40][0])
-					 meta_stat(2,n,5,"Cleave Hit Damage",    sk_cleav,     -1,           ""       ); break;
-			case 18: if (pl.skill[40][0] && !(pl_flags&(1<<8)))
-					 meta_stat(2,n,5,"Cleave Bleed Degen",   sk_bleed/100, sk_bleed%100, "/s"     ); break;
-			case 19: if (pl.skill[40][0])
-					 meta_stat(2,n,5,"Cleave Cooldown",      coo_clea/100, coo_clea%100, "Seconds"); break;
-			case 20: if (pl.skill[49][0])
-					 meta_stat(2,n,1,"Leap Hit Damage",      sk_leapv,     -1,           ""       ); break;
-			case 21: if (pl.skill[49][0] && sk_leapr)
-					 meta_stat(2,n,1,"Leap # of Repeats",    sk_leapr,   -1, (sk_leapr>1?"Repeats":"Repeat")); break;
-			case 22: if (pl.skill[49][0])
-					 meta_stat(2,n,1,"Leap Cooldown",        coo_leap/100, coo_leap%100, "Seconds"); break;
-			case 23: if (pl.skill[22][0])
-					 meta_stat(2,n,5,"Rage TD Bonus",        sk_rage,      -1,           "Top Dmg"); break;
-			case 24: if (pl.skill[22][0])
-					 meta_stat(2,n,5,"Rage DoT Bonus",       sk_rage2/100, sk_rage2%100, "%"      ); break;
-			case 25: if (pl.skill[24][0]) 
-					 meta_stat(2,n,4,"Blast Hit Damage",     sk_blast,     -1,           ""       ); break;
-			case 26: if (pl.skill[24][0])
-					 meta_stat(2,n,4,"Blast Cooldown",       coo_blas/100, coo_blas%100, "Seconds"); break;
-			case 27: if (pl.skill[15][0]) 
-					 meta_stat(2,n,1,"Lethargy Effect",      sk_letha,     -1,           "I/R Pen"); break;
-			case 28: if (pl.skill[42][0])
-					 meta_stat(2,n,4,(pl_flagb&(1<<14))?"Venom Degen":"Poison Degen",sk_poiso/100,sk_poiso%100,"/s"); break;
-			case 29: if (pl.skill[42][0])
-					 meta_stat(2,n,4,(pl_flagb&(1<<14))?"Venom Cooldown":"Poison Cooldown",coo_pois/100,coo_pois%100,"Seconds"); break;
-			case 30: if (pl.skill[43][0]) {
-					 if (pl_flagb&(1<<6)) { meta_stat(2,n,1,"Pulse Hit Heal",sk_pulse,-1,""); }
-					 else                 { meta_stat(2,n,1,"Pulse Hit Damage",sk_pulse,-1,""); } } break;
-			case 31: if (pl.skill[43][0])
-					 meta_stat(2,n,1,"Pulse Count",          sk_pucnt,     -1,           ""       ); break;
-			case 32: if (pl.skill[43][0])
-					 meta_stat(2,n,1,"Pulse Cooldown",       coo_puls/100,coo_puls%100,  "Seconds"); break;
-			case 33: if (pl.skill[ 7][0])
-					 meta_stat(2,n,6,"Zephyr Hit Damage",    sk_razor,     -1,           ""       ); break;
-			case 34: if (pl_flagc&(1<<13))
-					 meta_stat(2,n,1,"Immolate Degen",       sk_immol/100,sk_immol%100,  "/s"     ); break;
-			case 36: if (pl.skill[27][0])
-					 meta_stat(2,n,1,"Ghost Comp Potency", 	 sk_ghost,     -1,           ""       ); break;
-			case 37: if (pl.skill[27][0])
-					 meta_stat(2,n,1,"Ghost Comp Cooldown",  coo_ghos/100, coo_ghos%100, "Seconds"); break;
-			case 38: if (pl.skill[46][0])
-					 meta_stat(2,n,4,"Shadow Copy Potency",  sk_shado,     -1,           ""       ); break;
-			case 39: if (pl.skill[46][0])
-					 meta_stat(2,n,4,"Shadow Copy Duration", sk_shadd,     -1,           "Seconds"); break;
-			case 40: if (pl.skill[46][0])
-					 meta_stat(2,n,4,"Shadow Copy Cooldown", coo_shad/100, coo_shad%100, "Seconds"); break;
-			//
-			default: break;
-		}
-	}
-	else						// Defense Stats
-	{
-		n-=7;
-		switch (n+game_ui_state.skill_scroll)
-		{
-			case  0: meta_stat(1,n,9,"  Passive Stats:",     -1,           -1,           ""       ); break;
-			case  1: if (pl_dmgrd!=10000)
-					 meta_stat(1,n,1,"Damage Reduction",     pl_dmgrd/100, pl_dmgrd%100, "%"      ); break;
-			case  2: if (pl_dmgrd!=10000||(pl_flagc&(1<<9|1<<11|1<<12|1<<14))||(pl_flags&(1<<9)))
-					 meta_stat(1,n,7,"Effective Hitpoints",  pl_ehp,       -1,           ""       ); break;
-			case  3: meta_stat(1,n,5,"Health Regen Rate",    sk_regen/100, sk_regen%100, "/s"     ); break;
-			case  4: meta_stat(1,n,6,"Endurance Regen Rate", sk_restv/100, sk_restv%100, "/s"     ); break;
-			case  5: meta_stat(1,n,4,"Mana Regen Rate",      sk_medit/100, sk_medit%100, "/s"     ); break;
-			case  6: meta_stat(1,n,1,"Effective Immunity",   sk_immun,     -1,           ""       ); break;
-			case  7: meta_stat(1,n,1,"Effective Resistance", sk_resis,     -1,           ""       ); break;
-			case  8: meta_stat(1,n,6,"Attack Speed",         pl_atksp/100, pl_atksp%100, ""       ); break;
-			case  9: meta_stat(1,n,6,"  Cast Speed",         pl_casts/100, pl_casts%100, ""       ); break;
-			case 10: if (pl_reflc>0)
-					 meta_stat(1,n,1,"Thorns Score",         pl_reflc,     -1,           ""       ); break;
-			case 11: if (pl.skill[34][0])
-					 meta_stat(1,n,4,"Mana Cost Multiplier", sk_conce/100, sk_conce%100, "%"      ); break;
-			case 12: if (pl_aoebn)
-					 meta_stat(1,n,4,"Total AoE Bonus",      pl_aoebn,     -1,           "Tiles"  ); break;
-			case 13: meta_stat(1,n,4,"Buffing Apt Bonus",    at_score(AT_WIL)/4, -1,     ""       ); break;
-			case 14: meta_stat(2,n,1,"Underwater Degen",     sk_water/100, sk_water%100, "/s"     ); break;
-			//
-			case 16: meta_stat(1,n,9,"  Active Stats:",      -1,           -1,           ""       ); break;
-			case 17: if (pl.skill[21][0])
-					 meta_stat(2,n,1,"Bless Effect",         sk_bless,     -1,           "Attribs"); break;
-			case 18: if (pl.skill[18][0])
-					 meta_stat(2,n,1,"Enhance Effect",       sk_enhan,     -1,           "WV"     ); break;
-			case 19: if (pl.skill[17][0])
-					 meta_stat(2,n,1,"Protect Effect",       sk_prote,     -1,           "AV"     ); break;
-			case 20: if (pl.skill[11][0])
-					 meta_stat(2,n,4,(pl_flagb&(1<<10))?"M.Shell Effect":"M.Shield Effect", sk_mshie, -1, (pl_flagb&(1<<10))?"Res&Imm":"AV"); break;
-			case 21: if (pl.skill[11][0])
-					 meta_stat(2,n,4,(pl_flagb&(1<<10))?"M.Shell Duration":"M.Shield Duration", sk_mdura, -1, "Seconds"); break;
-			case 22: if (pl.skill[47][0])
-					 meta_stat(2,n,6,"Haste Effect",         sk_haste,     -1,           "Speed"  ); break;
-			case 23: if (pl.skill[22][0])
-					 meta_stat(2,n,5,"Calm TD Taken",        sk_calm,      -1,           "Top Dmg"); break;
-			case 24: if (pl.skill[22][0])
-					 meta_stat(2,n,5,"Calm DoT Taken",       sk_calm2/100, sk_calm2%100, "%"      ); break;
-			case 25: if (pl.skill[26][0])
-					 meta_stat(2,n,1,(pl_flags&(1<<14))?"Regen Effect":"Heal Effect",sk_healr,-1,(pl_flags&(1<<14))?"/s":""); break;
-			case 26: if (pl.skill[37][0])  {
-					 if (pl_flagb&(5<<11)) { meta_stat(2,n,5,"Douse Effect", sk_blind/100, sk_blind%100, ""); }
-					 else                  { meta_stat(2,n,5,"Blind Effect", sk_blind,     -1,           ""); } } break;
-			case 27: if (pl.skill[37][0])
-					 meta_stat(2,n,5,(pl_flagb&(1<<11))?"Douse Cooldown":"Blind Cooldown", coo_blin/100, coo_blin%100, "Seconds"); break;
-			case 28: if (pl.skill[35][0])  {
-					 if (pl_flagb&(1<<12)) { meta_stat(2,n,5,"Rally Effect",  sk_rally, -1, "Hit/Par"); }
-					 else                  { meta_stat(2,n,5,"Warcry Effect", sk_warcr, -1, "Attribs"); } } break;
-			case 29: if (pl.skill[35][0])
-					 meta_stat(2,n,1,(pl_flagb&(1<<12))?"Rally Cooldown":"Warcry Cooldown", coo_warc/100, coo_warc%100, "Seconds"); break;
-			case 30: if (pl.skill[41][0])
-					 meta_stat(2,n,5,(pl_flags&(1<<10))?"Crush Effect":"Weaken Effect", sk_weake, -1, (pl_flags&(1<<10))?"AV":"WV"); break;
-			case 31: if (pl.skill[41][0])
-					 meta_stat(2,n,5,(pl_flags&(1<<10))?"Crush Cooldown":"Weaken Cooldown", coo_weak/100, coo_weak%100, "Seconds"); break;
-			case 32: if (pl.skill[20][0])
-					 meta_stat(2,n,1,"Curse Effect",         sk_curse,     -1,           "Attribs"); break;
-			case 33: if (pl.skill[20][0])
-					 meta_stat(2,n,1,"Curse Cooldown",       coo_curs/100, coo_curs%100, "Seconds"); break;
-			case 34: if (pl.skill[19][0])
-					 meta_stat(2,n,4,"Slow Effect",          sk_slowv,     -1,           "Speed"  ); break;
-			case 35: if (pl.skill[19][0])
-					 meta_stat(2,n,4,"Slow Cooldown",        coo_slow/100, coo_slow%100, "Seconds"); break;
-			case 36: if (pl.skill[27][0])
-					 meta_stat(2,n,1,"Ghost Comp Potency", 	 sk_ghost,     -1,           ""       ); break;
-			case 37: if (pl.skill[27][0])
-					 meta_stat(2,n,1,"Ghost Comp Cooldown",  coo_ghos/100, coo_ghos%100, "Seconds"); break;
-			case 38: if (pl.skill[46][0])
-					 meta_stat(2,n,4,"Shadow Copy Potency",  sk_shado,     -1,           ""       ); break;
-			case 39: if (pl.skill[46][0])
-					 meta_stat(2,n,4,"Shadow Copy Duration", sk_shadd,     -1,           "Seconds"); break;
-			case 40: if (pl.skill[46][0])
-					 meta_stat(2,n,4,"Shadow Copy Cooldown", coo_shad/100, coo_shad%100, "Seconds"); break;
-			//
-			default: break;
-		}
+
+	if (meta_stats[n].flag) {
+		meta_stat(m, pos, meta_stats[n].font, meta_stats[n].name, meta_stats[n].value / 100, meta_stats[n].value % 100, meta_stats[n].affix);
+	} else {
+		meta_stat(m, pos, meta_stats[n].font, meta_stats[n].name, meta_stats[n].value, -1, meta_stats[n].affix);
 	}
 }
 
@@ -1539,8 +1420,6 @@ void eng_display_win(int plr_sprite,int init)
 		}
 		if (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS_AND_META)
 			copyspritex(do_darkmode?18098:18097, 134, 3,  0);
-		
-		init_meta_stats();
 		
 		// Display Skill Tree button if applicable - a similar check is required in inter.c
 		if (st_skill_pts_all(pl.tree_points)>0)
@@ -3919,6 +3798,10 @@ void engine(void)
 	Uint32 delta_time = 0;
 
 	skilltab=malloc(sizeof(struct skilltab)*MAXSKILL);
+	meta_stats=malloc(sizeof(struct MetaStat)*MAXMETA);
+
+	set_temp_skilltab();
+	set_temp_metaStats();
 
 	init_done=1;
 	t=SDL_GetTicks();
