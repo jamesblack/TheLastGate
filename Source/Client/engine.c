@@ -830,7 +830,7 @@ void set_temp_metaStats(void)
 		sprintf(meta_stats[n].name,"stat%02d", n);
 		sprintf(meta_stats[n].desc,"desc%02d", n);
 		meta_stats[n].value = -1;
-		sprintf(meta_stats[n].affix,"afx%02d", n);
+		sprintf(meta_stats[n].affix,"", n);
 	}
 }
 
@@ -1280,16 +1280,18 @@ void show_meta_stats(int n)
 	if (n < 7) {
 		m = 0;
 	} else if (game_ui_state.hud_mode == HUD_MODE_LIST_OFFENSES) {
-		m = 1 + (n + game_ui_state.skill_scroll > 17 ? 1: 0);
+		m = 1 + (n > 17 ? 1: 0);
 		n = n + game_ui_state.skill_scroll;
 		if (n >= 48) return;
 		pos -= 7;
 	} else {
-		m = 1 + (n + game_ui_state.skill_scroll > 17 ? 1 : 0);
+		m = 1 + (n > 17 ? 1 : 0);
 		n = n + 41 + game_ui_state.skill_scroll;
 		if (n >= 89) return;
 		pos -= 7;
 	}
+
+	if (!meta_stats[n].show) return;
 
 	if (meta_stats[n].flag) {
 		meta_stat(m, pos, meta_stats[n].font, meta_stats[n].name, meta_stats[n].value / 100, meta_stats[n].value % 100, meta_stats[n].affix);

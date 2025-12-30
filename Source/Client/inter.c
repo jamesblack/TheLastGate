@@ -825,6 +825,8 @@ int mouse_statbox(int x,int y,int state)
 
 void meta_stat_descs(int n)
 {
+	if (!meta_stats[n].show) return;
+	xlog(5, meta_stats[n].name);
 	xlog(1, meta_stats[n].desc);
 }
 
@@ -930,6 +932,7 @@ int mouse_statbox2(int x,int y,int state)
 			if (pl.skill[m][0] || m==50 || m==51 || (m==52 && KNOW_IDENTIFY) || ((m==53 || m==54) && IS_LYCANTH))
 			{
 				strcpy(tmp, skilltab[n+game_ui_state.skill_scroll].name);
+				xlog(5, skilltab[n+game_ui_state.skill_scroll].name);
 				xlog(1,skilltab[n+game_ui_state.skill_scroll].desc);
 
 				if (last_skill == n+game_ui_state.skill_scroll)
@@ -955,11 +958,11 @@ int mouse_statbox2(int x,int y,int state)
 		}
 		else if (game_ui_state.hud_mode == HUD_MODE_LIST_OFFENSES)
 		{
-			meta_stat_descs(n+7);
+			meta_stat_descs(n + game_ui_state.skill_scroll +7);
 		}
 		else if (game_ui_state.hud_mode == HUD_MODE_LIST_DEFENSES)
 		{
-			meta_stat_descs(n+7);
+			meta_stat_descs(n + game_ui_state.skill_scroll +7);
 		}
 	} 
 	else if (state==MS_LB_UP && (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS || game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS_AND_META))
