@@ -934,6 +934,11 @@ int mouse_statbox2(int x,int y,int state)
 				strcpy(tmp, skilltab[n+game_ui_state.skill_scroll].name);
 				xlog(5, skilltab[n+game_ui_state.skill_scroll].name);
 				xlog(1,skilltab[n+game_ui_state.skill_scroll].desc);
+				xlog(5, "Affected by: %s, %s, %s",
+				     at_name[skilltab[n + game_ui_state.skill_scroll].attrib[0]],
+				     at_name[skilltab[n + game_ui_state.skill_scroll].attrib[1]],
+				     at_name[skilltab[n + game_ui_state.skill_scroll].attrib[2]]
+				);
 
 				if (last_skill == n+game_ui_state.skill_scroll)
 				{
