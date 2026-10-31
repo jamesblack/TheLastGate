@@ -38,6 +38,8 @@ typedef struct {
 typedef struct {
     int current_class;
     int current_gender;
+    int current_gamemode; /* 0 Normal, 1 Hard Mode, 2 Roguelike */
+    int current_season;   /* 0 Legacy, 1 Current */
     char password[15];
     SwitchCharacterConfirmState switch_character_confirm_state;
     SimplePopoverState simple_popover_state;
