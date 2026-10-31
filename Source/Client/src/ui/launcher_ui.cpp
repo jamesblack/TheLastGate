@@ -154,6 +154,28 @@ static const char *seasons[] = {
     "Current"
 };
 
+/* Descriptions shown as hover tooltips; entries without one are left null */
+static const char *class_descriptions[IM_ARRAYSIZE(classes)] = {
+    "An adept at melee combat, these fighters can become heavy hitters or unbreakable tanks. "
+    "They learn only a few utility spells.",
+    "Jack of all trades, master of none. These fighters can do a bit of everything, "
+    "and can become capable in any situation.",
+    "Spellcaster extraordinare, these fighters can summon capable companions "
+    "and hit foes with a powerful long-range blast."
+};
+
+static const char *game_mode_descriptions[IM_ARRAYSIZE(game_modes)] = {
+    "The normal The Last Gate experience.",
+    "Stricter gameplay experience. Good luck!",
+    "Progress through a series of trials with unique, randomized properties."
+};
+
+static const char *season_descriptions[IM_ARRAYSIZE(seasons)] = {
+    "No seasonal effects will be applied and the game will behave as normal.",
+    "Your character will play in the current 'season'. You may only group with other players "
+    "or interact with items found in the same 'season'."
+};
+
 static const char *alphas[] = {
     "No Alpha",
     "Partial Alpha",
@@ -430,8 +452,24 @@ static void render_connection_popover(const LauncherLayout *layout) {
     pop_popover_styles();
 }
 
+static void render_description_tooltip(const LauncherLayout *layout, const char *description) {
+    if (description == nullptr) return;
+    if (!ImGui::IsItemHovered(ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayNormal |
+                              ImGuiHoveredFlags_AllowWhenDisabled)) {
+        return;
+    }
+
+    ImGui::PushStyleColor(ImGuiCol_Text, layout->text_gold_color);
+    ImGui::BeginTooltip();
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 25.0f);
+    ImGui::TextUnformatted(description);
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
+    ImGui::PopStyleColor(1);
+}
+
 static bool render_dropdown(const LauncherLayout *layout, const char *id, const char **options, const int option_count,
-                            int *current_option) {
+                            int *current_option, const char **descriptions = nullptr) {
     bool changed = false;
     auto pop_dropdown_style = ImGuiStyleBuilder()
             .Var(ImGuiStyleVar_WindowPadding, layout->popover_frame_padding)
@@ -441,6 +479,9 @@ static bool render_dropdown(const LauncherLayout *layout, const char *id, const 
     const auto pop_dropdown_input_style = create_input_style(layout);
     bool opened = ImGui::BeginCombo(id, options[*current_option], ImGuiComboFlags_NoArrowButton);
     pop_dropdown_input_style();
+    if (!opened && descriptions != nullptr) {
+        render_description_tooltip(layout, descriptions[*current_option]);
+    }
 
     auto pop_dropdown_popover_styles = ImGuiStyleBuilder()
             .Var(ImGuiStyleVar_PopupBorderSize, layout->popover_border_size)
@@ -457,6 +498,9 @@ static bool render_dropdown(const LauncherLayout *layout, const char *id, const 
             if (ImGui::Selectable(options[i], selected)) {
                 changed = true;
                 *current_option = i;
+            }
+            if (descriptions != nullptr) {
+                render_description_tooltip(layout, descriptions[i]);
             }
 
             if (selected) {
@@ -601,7 +645,7 @@ static void render_character_select(const LauncherLayout *layout) {
         ImGui::TableNextColumn();
         ImGui::TextUnformatted("Class");
         ImGui::TableNextColumn();
-        render_dropdown(layout, "##class", classes, 3, &launcher_state.current_class);
+        render_dropdown(layout, "##class", classes, 3, &launcher_state.current_class, class_descriptions);
 
         /* Gender */
         ImGui::TableNextRow(0, layout->character_select_field_min_height);
@@ -615,14 +659,15 @@ static void render_character_select(const LauncherLayout *layout) {
         ImGui::TableNextColumn();
         ImGui::TextUnformatted("Game Mode");
         ImGui::TableNextColumn();
-        render_dropdown(layout, "##game_mode", game_modes, 2, &launcher_state.current_gamemode);
+        render_dropdown(layout, "##game_mode", game_modes, 2, &launcher_state.current_gamemode,
+                        game_mode_descriptions);
 
         /* Season */
         ImGui::TableNextRow(0, layout->character_select_field_min_height);
         ImGui::TableNextColumn();
         ImGui::TextUnformatted("Season");
         ImGui::TableNextColumn();
-        render_dropdown(layout, "##season", seasons, 2, &launcher_state.current_season);
+        render_dropdown(layout, "##season", seasons, 2, &launcher_state.current_season, season_descriptions);
 
         ImGui::EndDisabled();
 
