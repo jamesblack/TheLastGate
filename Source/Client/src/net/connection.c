@@ -376,10 +376,11 @@ static int handle_login_packet(unsigned char *buf) {
 		pdata.xbutton[19].skill_nr = 51;
 		strcpy(pdata.xbutton[19].name, "Recall");
 
-		if (race_param == 4 || race_param == 5) { /* Templar */
+		const int template_id = race_template(race_param);
+		if (template_id == 4 || template_id == 5) { /* Templar */
 			pdata.xbutton[7].skill_nr = 40;
 			strcpy(pdata.xbutton[7].name, "Cleave");
-		} else if (race_param == 8 || race_param == 9) { /* Harakim */
+		} else if (template_id == 8 || template_id == 9) { /* Harakim */
 			pdata.xbutton[7].skill_nr = 24;
 			strcpy(pdata.xbutton[7].name, "Blast");
 			pdata.xbutton[11].skill_nr = 27;
