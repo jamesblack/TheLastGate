@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.1](https://github.com/jamesblack/TheLastGate/compare/v4.0.0...v4.0.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* Pin Linux CI runner to Ubuntu 24.04 ([6edde2f](https://github.com/jamesblack/TheLastGate/commit/6edde2fc3cec941a5728e189d48903152eeef206))
+
 ## [4.0.0](https://github.com/jamesblack/TheLastGate/compare/v3.13.0...v4.0.0) (2026-10-31)
 
 
