@@ -1,5 +1,5 @@
 //
-#define NETWORKING_VERSION 0x000E04
+#define NETWORKING_VERSION 0x000F00
 //
 
 #pragma once
@@ -8,6 +8,23 @@
 EXTERN_C_BEGIN
 
 #define MAXSPRITE 2000+(128*1024)
+
+/* Packed race: template + gamemode*10000 + season*100000 */
+static inline int race_template(unsigned long race) {
+    return (int) (race % 10000);
+}
+
+static inline int race_gamemode(unsigned long race) {
+    return (int) (race / 10000 % 10);
+}
+
+static inline int race_season(unsigned long race) {
+    return (int) (race / 100000);
+}
+
+static inline unsigned long race_pack(int template_id, int gamemode, int season) {
+    return (unsigned long) template_id + gamemode * 10000UL + season * 100000UL;
+}
 
 //#define MAPX			TILEX
 //#define MAPY			TILEY
