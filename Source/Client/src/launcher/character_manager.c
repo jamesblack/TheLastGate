@@ -80,10 +80,10 @@ void create_new_character() {
     pdata.cname[0] = 0;
 }
 
-void okey_to_class_gender(int *out_class, int *out_gender) {
+void okey_to_character_options(int *out_class, int *out_gender, int *out_gamemode, int *out_season) {
     int class = 0;
     int gender = 0;
-    switch (okey.race) {
+    switch (race_template(okey.race)) {
         case 4: // templar M
             class = 0;
             gender = 0;
@@ -197,9 +197,11 @@ void okey_to_class_gender(int *out_class, int *out_gender) {
 
     if (out_class != NULL) *out_class = class;
     if (out_gender != NULL) *out_gender = gender;
+    if (out_gamemode != NULL) *out_gamemode = race_gamemode(okey.race);
+    if (out_season != NULL) *out_season = race_season(okey.race);
 }
 
-int class_gender_to_okey(const int race, int gender) {
+int class_gender_to_template(const int race, int gender) {
     static const int race_map[12][2] = {
         {4, 5}, /* 0: Templar M/F */
         {6, 7}, /* 1: Mercenary M/F */

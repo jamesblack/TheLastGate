@@ -15,7 +15,8 @@
 LauncherState launcher_state = {0};
 
 void launcher_init() {
-    okey_to_class_gender(&launcher_state.current_class, &launcher_state.current_gender);
+    okey_to_character_options(&launcher_state.current_class, &launcher_state.current_gender,
+                              &launcher_state.current_gamemode, &launcher_state.current_season);
     init_previous_characters();
 }
 
@@ -42,7 +43,7 @@ void launcher_tick() {
 }
 
 void launcher_connect(void) {
-    const int race = class_gender_to_okey(launcher_state.current_class, launcher_state.current_gender);
+    const int race = class_gender_to_template(launcher_state.current_class, launcher_state.current_gender);
     const int sex = launcher_state.current_gender + 1; /* Convert 0/1 to 1/2 */
 
     strncpy(passwd, launcher_state.password, sizeof(passwd) - 1);

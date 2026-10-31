@@ -17,9 +17,9 @@ void load_character_from_file(const char *file_path);
 void save_character_to_file(const char *file_path);
 void create_new_character();
 
-void okey_to_class_gender(int *out_class, int *out_gender);
+void okey_to_character_options(int *out_class, int *out_gender, int *out_gamemode, int *out_season);
 
-int class_gender_to_okey(int race, int gender);
+int class_gender_to_template(int race, int gender);
 
 /* Previous Characters List Management */
 void init_previous_characters(void);

@@ -324,10 +324,13 @@ static void render_confirmation_popover(const LauncherLayout *layout) {
             launcher_state.switch_character_confirm_state.show_second_confirmation = false;
             if (launcher_state.switch_character_confirm_state.new_character) {
                 create_new_character();
-                okey_to_class_gender(&launcher_state.current_class, &launcher_state.current_gender);
+                okey_to_character_options(&launcher_state.current_class, &launcher_state.current_gender,
+                                          &launcher_state.current_gamemode, &launcher_state.current_season);
+                launcher_state.current_season = 1; /* New characters default to the current season */
             } else {
                 load_character_from_file(launcher_state.switch_character_confirm_state.file_path);
-                okey_to_class_gender(&launcher_state.current_class, &launcher_state.current_gender);
+                okey_to_character_options(&launcher_state.current_class, &launcher_state.current_gender,
+                                          &launcher_state.current_gamemode, &launcher_state.current_season);
             }
             launcher_state.switch_character_confirm_state.file_path[0] = '\0';
             launcher_state.switch_character_confirm_state.new_character = false;
@@ -483,7 +486,8 @@ static void render_previous_characters(const LauncherLayout *layout) {
                 ImGui::PushID(entry.file_path);
                 if (ImGui::Button(entry.name, layout->previous_character_button_size)) {
                     load_character_from_file(entry.file_path);
-                    okey_to_class_gender(&launcher_state.current_class, &launcher_state.current_gender);
+                    okey_to_character_options(&launcher_state.current_class, &launcher_state.current_gender,
+                                              &launcher_state.current_gamemode, &launcher_state.current_season);
                 }
                 ImGui::PopID();
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayNormal)) {
