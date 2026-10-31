@@ -138,8 +138,8 @@ static const char *classes[] = {
 };
 
 static const char *genders[] = {
-    "Male",
-    "Female"
+    "Masculine",
+    "Feminine"
 };
 
 /* Roguelike is listed so existing characters display it, but is not yet selectable */
@@ -647,10 +647,10 @@ static void render_character_select(const LauncherLayout *layout) {
         ImGui::TableNextColumn();
         render_dropdown(layout, "##class", classes, 3, &launcher_state.current_class, class_descriptions);
 
-        /* Gender */
+        /* Body */
         ImGui::TableNextRow(0, layout->character_select_field_min_height);
         ImGui::TableNextColumn();
-        ImGui::TextUnformatted("Gender");
+        ImGui::TextUnformatted("Body");
         ImGui::TableNextColumn();
         render_dropdown(layout, "##gender", genders, 2, &launcher_state.current_gender);
 
