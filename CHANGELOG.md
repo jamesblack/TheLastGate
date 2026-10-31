@@ -1,5 +1,29 @@
 # Changelog
 
+## [4.0.0](https://github.com/jamesblack/TheLastGate/compare/v3.13.0...v4.0.0) (2026-10-31)
+
+
+### Features
+
+* Decode game mode and season from character race ([f4a8aee](https://github.com/jamesblack/TheLastGate/commit/f4a8aeec98c2af505193949b3a900ba2c5de7fe3))
+* Game mode and season selection in launcher ([ce1393c](https://github.com/jamesblack/TheLastGate/commit/ce1393cd655c28de9f35692cdbd34cfab12e37e7))
+* Hover descriptions for class, game mode and season ([fe7a649](https://github.com/jamesblack/TheLastGate/commit/fe7a649b7c53af067c0a178da16bf7d26b84d99c))
+* Launcher state for game mode and season ([9442a84](https://github.com/jamesblack/TheLastGate/commit/9442a8469e02472c5d80538b5ae7d9c665c2e43d))
+* Protocol 0x000F00 and packed race helpers ([7e59638](https://github.com/jamesblack/TheLastGate/commit/7e5963858e5c1c883cb8005b081c8a4a19670f1e))
+* Rename gender labels to body type ([d395718](https://github.com/jamesblack/TheLastGate/commit/d395718091afddd1716d9121d8ab3d57227a8d4e))
+* Send game mode and season with new character race ([1f0e08d](https://github.com/jamesblack/TheLastGate/commit/1f0e08d2f9b4a283e1af48d878abf2e7eab5ac3d))
+
+
+### Bug Fixes
+
+* Choose vcpkg triplets by host platform ([1d8a245](https://github.com/jamesblack/TheLastGate/commit/1d8a245b74ce5e5b155c230c0003606bf9f5f721))
+* Starter skill buttons for game mode and season characters ([099389f](https://github.com/jamesblack/TheLastGate/commit/099389f804ce7943ce34fc9473d4f65fc49d7706))
+
+
+### Miscellaneous Chores
+
+* bump version ([e79a5e3](https://github.com/jamesblack/TheLastGate/commit/e79a5e3872effedb6f857b320198925a237c41d5))
+
 ## [3.13.0](https://github.com/jamesblack/TheLastGate/compare/v3.12.0...v3.13.0) (2026-04-16)
 
 
