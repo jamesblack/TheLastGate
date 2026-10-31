@@ -13,12 +13,13 @@ if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     endif ()
 endif ()
 
-# Set default triplet based on platform and compiler
-# MinGW needs x64-mingw-dynamic, MSVC needs x64-windows, Linux needs x64-linux
+# Set default triplet based on platform
+# The compiler is not known until project() runs, so MINGW/MSVC can't be tested here.
+# The client only builds with GCC/Clang (-mwindows etc.), so Windows always means MinGW.
 if (NOT DEFINED VCPKG_TARGET_TRIPLET)
-    if (MINGW)
+    if (CMAKE_HOST_WIN32)
         set(VCPKG_TARGET_TRIPLET "x64-mingw-dynamic" CACHE STRING "vcpkg target triplet")
-        message(STATUS "Detected MinGW compiler, using vcpkg triplet: x64-mingw-dynamic")
+        message(STATUS "Windows host, using vcpkg triplet: x64-mingw-dynamic")
     elseif (UNIX AND NOT APPLE)
         set(VCPKG_TARGET_TRIPLET "x64-linux" CACHE STRING "vcpkg target triplet")
         message(STATUS "Detected Linux, using vcpkg triplet: x64-linux")
@@ -26,6 +27,11 @@ if (NOT DEFINED VCPKG_TARGET_TRIPLET)
         set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "vcpkg target triplet")
         message(STATUS "Using vcpkg triplet: x64-windows")
     endif ()
+endif ()
+
+# Build vcpkg's host tools with MinGW too, so Visual Studio isn't required
+if (CMAKE_HOST_WIN32 AND NOT DEFINED VCPKG_HOST_TRIPLET)
+    set(VCPKG_HOST_TRIPLET "x64-mingw-dynamic" CACHE STRING "vcpkg host triplet")
 endif ()
 
 project(TheLastGate LANGUAGES C CXX)
