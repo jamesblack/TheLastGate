@@ -142,6 +142,18 @@ static const char *genders[] = {
     "Female"
 };
 
+/* Roguelike is listed so existing characters display it, but is not yet selectable */
+static const char *game_modes[] = {
+    "Normal",
+    "Hard Mode",
+    "Roguelike"
+};
+
+static const char *seasons[] = {
+    "Legacy",
+    "Current"
+};
+
 static const char *alphas[] = {
     "No Alpha",
     "Partial Alpha",
@@ -597,6 +609,20 @@ static void render_character_select(const LauncherLayout *layout) {
         ImGui::TextUnformatted("Gender");
         ImGui::TableNextColumn();
         render_dropdown(layout, "##gender", genders, 2, &launcher_state.current_gender);
+
+        /* Game Mode */
+        ImGui::TableNextRow(0, layout->character_select_field_min_height);
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted("Game Mode");
+        ImGui::TableNextColumn();
+        render_dropdown(layout, "##game_mode", game_modes, 2, &launcher_state.current_gamemode);
+
+        /* Season */
+        ImGui::TableNextRow(0, layout->character_select_field_min_height);
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted("Season");
+        ImGui::TableNextColumn();
+        render_dropdown(layout, "##season", seasons, 2, &launcher_state.current_season);
 
         ImGui::EndDisabled();
 
