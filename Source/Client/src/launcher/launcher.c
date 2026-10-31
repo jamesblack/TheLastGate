@@ -43,7 +43,8 @@ void launcher_tick() {
 }
 
 void launcher_connect(void) {
-    const int race = class_gender_to_template(launcher_state.current_class, launcher_state.current_gender);
+    const int template_id = class_gender_to_template(launcher_state.current_class, launcher_state.current_gender);
+    const int race = (int) race_pack(template_id, launcher_state.current_gamemode, launcher_state.current_season);
     const int sex = launcher_state.current_gender + 1; /* Convert 0/1 to 1/2 */
 
     strncpy(passwd, launcher_state.password, sizeof(passwd) - 1);
