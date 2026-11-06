@@ -13,6 +13,7 @@
 #include "log/log.h"
 #include "mods/stubborn_actions.h"
 #include "mods/give_more.h"
+#include "mods/item_tooltip.h"
 #include "mods/use_queue.h"
 #include "security/security.h"
 #include "util/math_util.h"
@@ -476,6 +477,7 @@ void sv_setchar_item(unsigned char *buf) {
     pl.item_l[n] = *(unsigned char *) (buf + 10); // item lock
 
     pl.item_info[n] = (ItemDisplayInfo){pl.item[n], pl.item_p[n], pl.item_s[n], pl.item_l[n]};
+    item_tooltip_slot_changed(ITEM_TOOLTIP_INVENTORY, n, pl.item[n]);
 
     //	xlog("SV SETCHAR ITEM (%d,%d,%d)",*(unsigned long*)(buf+1),*(short int*)(buf+5),*(short int*)(buf+7));
 }
@@ -491,6 +493,7 @@ void sv_setchar_worn(unsigned char *buf) {
     pl.worn_s[n] = *(unsigned char *) (buf + 9);
 
     pl.worn_info[n] = (ItemDisplayInfo){pl.worn[n], pl.worn_p[n], pl.worn_s[n], 0};
+    item_tooltip_slot_changed(ITEM_TOOLTIP_WORN, n, pl.worn[n]);
 }
 
 void sv_setchar_spell(unsigned char *buf) {
@@ -519,6 +522,8 @@ void sv_setchar_obj(unsigned char *buf) {
     pl.citem = *(short int *) (buf + 1);
     pl.citem_p = *(short int *) (buf + 3);
     pl.citem_s = *(unsigned char *) (buf + 5); // stack size
+
+    item_tooltip_cursor_changed(pl.citem);
 
     if (pl.citem == 0) {
         cursor_emptied();
@@ -669,6 +674,9 @@ void sv_setorigin(unsigned char *buf) {
 void sv_tick(unsigned char *buf) {
     DEBUG2("SV TICK");
     ctick = *(unsigned char *) (buf + 1);
+
+    /* Only sent when a login starts the tick stream. */
+    item_tooltip_reset();
 }
 
 void sv_log(unsigned char *buf, int font) {
@@ -683,7 +691,7 @@ void sv_log(unsigned char *buf, int font) {
     for (n = cnt; n < cnt + 15; n++)
         if (text[n] == 10) {
             text[n] = 0;
-            tlog(text, font);
+            if (!item_tooltip_capture_line(text, font)) tlog(text, font);
             cnt = 0;
             return;
         }
@@ -1366,6 +1374,8 @@ int tick_do(void) {
         }
         idx += ret;
     }
+
+    item_tooltip_end_of_tick();
 
     ticksize -= len;
     tickstart -= len;

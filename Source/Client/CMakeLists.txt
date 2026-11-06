@@ -77,6 +77,8 @@ add_executable(TheLastGate
         src/log/log.c
         src/mods/base_cost_warning.c
         src/mods/give_more.c
+        src/mods/item_details.c
+        src/mods/item_tooltip.c
         src/mods/stubborn_actions.c
         src/mods/use_queue.c
         src/net/connection.c

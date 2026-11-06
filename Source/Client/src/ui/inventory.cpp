@@ -9,6 +9,7 @@
 #include "main.h"
 #include "game/game_ui.h"
 #include "imgui/imgui_wrapper.h"
+#include "mods/item_tooltip.h"
 
 typedef struct {
     int start_x;
@@ -165,9 +166,9 @@ static void on_inventory_right_click(const int slot) {
             }
         }
     } else if (keys == 1) {
-        cmd3(CL_CMD_INV_LOOK, slot, 0, selected_char);
+        item_tooltip_manual_look(ITEM_TOOLTIP_INVENTORY, slot);
     } else if (keys == 0) {
-        cmd3(CL_CMD_INV_LOOK, slot, 0, selected_char);
+        item_tooltip_manual_look(ITEM_TOOLTIP_INVENTORY, slot);
     }
 }
 
@@ -200,6 +201,9 @@ void inventory_render() {
 
                 if (imgui_is_item_hovered()) {
                     on_inventory_hovered(inventory_slot);
+                    if (pl.item_info[inventory_slot].sprite != 0 && pl.citem == 0) {
+                        item_tooltip_hover(ITEM_TOOLTIP_INVENTORY, inventory_slot);
+                    }
                     if (imgui_is_mouse_released(0)) {
                         on_inventory_left_click(inventory_slot);
                     } else if (imgui_is_mouse_released(1)) {

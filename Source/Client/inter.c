@@ -10,6 +10,7 @@
 #include "game/game_ui.h"
 #include "mods/stubborn_actions.h"
 #include "mods/give_more.h"
+#include "mods/item_tooltip.h"
 #include "mods/use_queue.h"
 #include "ui/option_window.hpp"
 #include "util/math_util.h"
@@ -668,14 +669,14 @@ int mouse_inventory(int x,int y,int mode)
 			else if (keys==1) 
 			{
 				if 			(mode==MS_LB_UP) cmd3(CL_CMD_INV,1, n ,selected_char);
-				else if 	(mode==MS_RB_UP) cmd3(CL_CMD_INV,7, n ,selected_char);
+				else if 	(mode==MS_RB_UP) item_tooltip_manual_look(ITEM_TOOLTIP_WORN, n);
 				if (pl.worn[ n ]) {	if (pl.citem) cursor_type=CT_SWAP; else cursor_type=CT_TAKE; } 
 				else { 					if (pl.citem) cursor_type=CT_DROP; else cursor_type=CT_NONE; }
 			} 
 			else if (keys==0) 
 			{
 				if 			(mode==MS_LB_UP) cmd3(CL_CMD_INV,5, n ,selected_char);
-				else if 	(mode==MS_RB_UP) cmd3(CL_CMD_INV,7, n ,selected_char);
+				else if 	(mode==MS_RB_UP) item_tooltip_manual_look(ITEM_TOOLTIP_WORN, n);
 				if (pl.worn[ n ]) cursor_type=CT_USE; else cursor_type=CT_NONE;
 			} 
 			else { cursor_type=CT_NONE; }
