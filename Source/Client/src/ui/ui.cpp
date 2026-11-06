@@ -11,6 +11,7 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
 #include "inventory.hpp"
+#include "item_tooltip_ui.hpp"
 #include "launcher_ui.hpp"
 #include "option_window.hpp"
 #include "perf_window.hpp"
@@ -114,6 +115,7 @@ void ui_render(const UIState ui_state) {
         }
 
         inventory_render();
+        item_tooltip_ui_render();
         quick_stats_render(&game_ui_state.quick_stat_state);
         if (g_config.runtime.show_performance) {
             perf_window_render(&game_ui_state.perf_window_state);
