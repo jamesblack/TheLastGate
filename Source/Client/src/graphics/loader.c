@@ -131,7 +131,7 @@ SDL_Surface * load_ui_from_file(int nr) {
 }
 
 static int init_png_lib() {
-    char file[80];
+    char file[256];
 
     snprintf(file, sizeof(file), "%spnglib.idx", g_config.runtime.base_path);
     const int handle = open(file, O_RDONLY | O_BINARY);
