@@ -120,6 +120,17 @@ target_compile_options(TheLastGate PRIVATE
         -Wno-int-conversion              # Disable int/pointer conversion warnings (often related)
 )
 
+option(TLG_BUILD_TESTS "Build client unit tests" ON)
+if (TLG_BUILD_TESTS)
+    enable_testing()
+    add_executable(item_details_test
+            tests/item_details_test.c
+            src/mods/item_details.c
+    )
+    target_include_directories(item_details_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME item_details COMMAND item_details_test)
+endif ()
+
 include(cmake/dependencies/sdl2.cmake)
 
 include(cmake/dependencies/pnglib.cmake)

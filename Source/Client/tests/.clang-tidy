@@ -1,0 +1,6 @@
+InheritParentConfig: true
+
+# Expected values are written inline, and each CHECK() adds a branch.
+Checks: >
+  -readability-magic-numbers,
+  -readability-function-cognitive-complexity
