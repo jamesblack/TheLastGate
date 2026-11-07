@@ -220,6 +220,11 @@ The client and server communicate via a binary protocol over TCP sockets:
 - Use `#version 330 core` for GLSL shader version
 - After shader changes, run CMake configure/generate before building
 
+**Formatting:**
+- Client style lives in `Source/Client/.clang-format`
+- Run `Source/Client/tools/format.sh` to format lines changed since `master` (`--check` to only report)
+- Only changed lines are formatted; tab-indented legacy files are skipped
+
 **DirectDraw to SDL2 Migration:**
 - The client is transitioning from Windows DirectDraw to cross-platform SDL2
 - `DD_ENABLED` macro controls which rendering path is active

@@ -1,0 +1,55 @@
+---
+# Client code style. Started from CLion's export and adjusted to match the
+# hand-written code under src/ (K&R braces, `char *ptr`, `(int) value`).
+#
+# Apply it to changed lines only (tools/format.sh), not whole legacy files.
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 8
+BracedInitializerIndentWidth: 4
+IndentCaseLabels: true
+NamespaceIndentation: None
+AccessModifierOffset: -4
+
+# Braces stay on the line they open, including after functions and else.
+BreakBeforeBraces: Attach
+
+# Line length and wrapping
+ColumnLimit: 120
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+BreakStringLiterals: false
+Cpp11BracedListStyle: true
+
+# Spacing
+PointerAlignment: Right
+SpaceAfterCStyleCast: true
+SpacesInLineCommentPrefix:
+  Minimum: 0
+  Maximum: -1
+
+# Short statements that are written on one line stay that way.
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+
+# Leave hand-aligned trailing comments where they are.
+AlignTrailingComments:
+  Kind: Leave
+
+# Includes are grouped by hand: own header, system headers, project headers.
+IncludeBlocks: Preserve
+SortIncludes: Never
+
+AlignEscapedNewlines: Left
+
+MaxEmptyLinesToKeep: 2
+InsertNewlineAtEOF: false
+...
