@@ -118,6 +118,7 @@ add_executable(TheLastGate
         src/ui/option_window.cpp
         src/ui/perf_window.cpp
         src/ui/quick_stats.cpp
+        src/ui/worldmap_window.cpp
         src/ui/ui.cpp
         src/ui/ui_utils/imgui_helpers.cpp
         src/ui/ui_utils/imgui_style_builder.cpp

@@ -658,6 +658,16 @@ bool is_player(unsigned int character_id) {
     return character_id == map[(screen_renderdist / 2) + (screen_renderdist / 2) * screen_renderdist].ch_id;
 }
 
+void engine_player_tile(int *tile_x, int *tile_y) {
+    if (!map) {
+        *tile_x = 0;
+        *tile_y = 0;
+        return;
+    }
+    *tile_x = map[(screen_renderdist / 2) + (screen_renderdist / 2) * screen_renderdist].x;
+    *tile_y = map[(screen_renderdist / 2) + (screen_renderdist / 2) * screen_renderdist].y;
+}
+
 void eng_init_map(void) {
     int n;
 

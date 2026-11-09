@@ -143,6 +143,10 @@ static void handle_hotkey(const BindingDescriptor *binding) {
         if (g_config.ui.skill_planner) toggle_skill_planner();
         return;
     }
+    if (strcmp(id, TOGGLE_WORLDMAP_HOTKEY) == 0) {
+        toggle_worldmap();
+        return;
+    }
 
     /* General Hotkeys */
     if (strcmp(id, FIGHTBACK_HOTKEY) == 0) {

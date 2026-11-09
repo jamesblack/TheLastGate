@@ -16,6 +16,7 @@
 #include "launcher_ui.hpp"
 #include "option_window.hpp"
 #include "perf_window.hpp"
+#include "worldmap_window.hpp"
 #include "config/config.h"
 #include "game/game_ui.h"
 #include "graphics/sdl.h"
@@ -120,6 +121,9 @@ void ui_render(const UIState ui_state) {
         quick_stats_render(&game_ui_state.quick_stat_state);
         if (game_ui_state.show_enhanced_skills && g_config.ui.skill_planner) {
             enhanced_skill_window_render();
+        }
+        if (game_ui_state.show_worldmap) {
+            worldmap_window_render();
         }
         if (g_config.runtime.show_performance) {
             perf_window_render(&game_ui_state.perf_window_state);

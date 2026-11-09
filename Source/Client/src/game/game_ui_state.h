@@ -36,6 +36,8 @@ typedef struct {
     bool show_planner_advanced;
     bool show_motd;
     bool show_new_player;
+    bool show_worldmap;
+    bool worldmap_centre_on_player;
 
     unsigned int open_shop;
     unsigned int open_skill_tree;

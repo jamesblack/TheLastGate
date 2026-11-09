@@ -82,6 +82,17 @@ void toggle_skill_planner(void)
 	}
 }
 
+void toggle_worldmap(void)
+{
+	if (game_ui_state.show_worldmap)
+	{
+		game_ui_state.show_worldmap = false;
+		return;
+	}
+	game_ui_state.show_worldmap = true;
+	game_ui_state.worldmap_centre_on_player = true;
+}
+
 int xmove=0,xxtimer=0;
 
 int mouse_x=0,mouse_y=0;
@@ -205,6 +216,8 @@ int trans_button(int x,int y)
 	// New Magnify buttons for mini-map
 	if ( x>135 && y>581 && x<152 && y<598 ) return 42;
 	if ( x>135 && y>599 && x<152 && y<616 ) return 43;
+
+	if ( x>=6 && x<134 && y>=582 && y<710 ) return 49;
 
     int hovered_gui_mode = 0;
 	// New GUI mode buttons
@@ -398,6 +411,10 @@ void button_command(int nr)
 			toggle_skill_planner();
 			break;
 
+		case 49:
+			toggle_worldmap();
+			break;
+
 		default: break;
 	}
     if (game_ui_state.meta_scroll > MAX_META_SCROLL) game_ui_state.meta_scroll = MAX_META_SCROLL;
@@ -559,6 +576,9 @@ void button_help(int nr)
 			break;
 		case BUTTON_SKILL_PLANNER:
 			xlog(1,"Open the skill planner.");
+			break;
+		case 49:
+			xlog(1,"Open the world map.");
 			break;
 
 		default: break;

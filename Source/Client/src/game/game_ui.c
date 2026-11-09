@@ -30,6 +30,8 @@ GameUiState game_ui_state = {
     .show_options = false,
     .show_motd = false,
     .show_new_player = false,
+    .show_worldmap = false,
+    .worldmap_centre_on_player = false,
 
     .open_shop = 0,
     .open_skill_tree = 0,

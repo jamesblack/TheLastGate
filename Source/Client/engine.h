@@ -25,6 +25,7 @@ void update_skill_tab_from_raw(void);
 void xlog(char font, char *format, ...);
 int at_score(int n);
 int sk_score(int n);
+void engine_player_tile(int *tile_x, int *tile_y);
 int points2rank(int v);
 
 #ifndef GUI_SHOP_X
