@@ -1,5 +1,30 @@
 # Changelog
 
+## [4.1.0](https://github.com/jamesblack/TheLastGate/compare/v4.0.1...v4.1.0) (2026-11-09)
+
+
+### Features
+
+* Advanced skill window ([6d494ce](https://github.com/jamesblack/TheLastGate/commit/6d494ce5cf7533fcd73c10e4d39b873d112131d9))
+* Capture item look text for inventory and equipment slots ([e303517](https://github.com/jamesblack/TheLastGate/commit/e303517ed0eefb9925afc531883cb4b213b20d6f))
+* Item look text parser with unit tests ([eb132fc](https://github.com/jamesblack/TheLastGate/commit/eb132fcef78eba6592409996dac94954362d832c))
+* Item tooltips with held item comparison ([1f0f872](https://github.com/jamesblack/TheLastGate/commit/1f0f872e00259df32526aadeb4e9762b4334afe5))
+* Persist minimap per server ([7d88a41](https://github.com/jamesblack/TheLastGate/commit/7d88a41458dbdc006d836c3c27cb0d8f6e6c4028))
+
+
+### Bug Fixes
+
+* Filter hotbar skill popup by skill number ([e058fbc](https://github.com/jamesblack/TheLastGate/commit/e058fbc26483282d7c7219b7ae69b5585883cab7))
+* gaining experience no longer resets temp skills on linux ([c37ec06](https://github.com/jamesblack/TheLastGate/commit/c37ec0693b509e7920d531920e18942f39ccd321))
+* Match Astonia.ttf filename case ([532a60b](https://github.com/jamesblack/TheLastGate/commit/532a60b2620f985fe6dce32879f3de86bb38b64d))
+* Restore audio on Linux ([d6878d1](https://github.com/jamesblack/TheLastGate/commit/d6878d1b45eee19f6a159da44248c992bfc39318))
+* Widen pnglib index path buffer ([915c4fa](https://github.com/jamesblack/TheLastGate/commit/915c4fa05ead92c40933e00e4bbeb2578787c6c5))
+
+
+### Miscellaneous Chores
+
+* bump version ([e2c896d](https://github.com/jamesblack/TheLastGate/commit/e2c896db86e21a3cec74fe967cc98ae4ac02aadf))
+
 ## [4.0.1](https://github.com/jamesblack/TheLastGate/compare/v4.0.0...v4.0.1) (2026-10-31)
 
 
