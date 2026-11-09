@@ -90,9 +90,6 @@ static const float PATH_THICKNESS = 2.0F;
 static const float DASH_LENGTH = 6.0F;
 static const float DASH_GAP = 4.0F;
 static const float SWATCH_SIZE = 12.0F;
-static const int CATEGORY_LIST_MAP_COLUMN = 0;
-static const int CATEGORY_LIST_LABELS_COLUMN = 1;
-static const int CATEGORY_LIST_NAME_COLUMN = 2;
 static const float PICKER_SWATCH_SIZE = 20.0F;
 static const float EDIT_LABEL_WIDTH = 180.0F;
 static const double STATUS_SECONDS = 3.0;
@@ -797,8 +794,6 @@ static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set
         const bool selected = annotation->id == panel->selected_annotation_id;
         ImGui::PushID(annotation->id);
 
-        ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex(CATEGORY_LIST_NAME_COLUMN);
         const float row_start_x = ImGui::GetCursorPosX();
         if (ImGui::Selectable("##row", selected, ImGuiSelectableFlags_AllowOverlap)) {
             select_annotation(panel, annotation->id);
@@ -822,17 +817,32 @@ static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set
     }
 }
 
-static void centre_checkbox_in_column(void) {
-    const float spare = ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight();
-    if (spare > 0.0F) ImGui::SetCursorPosX(ImGui::GetCursorPosX() + spare / 2.0F);
+static float checkbox_column_width(void) {
+    return fmaxf(ImGui::CalcTextSize("Labels").x, ImGui::GetFrameHeight());
+}
+
+static float category_list_column_x(float row_start_x, int column) {
+    return row_start_x + (float) column * (checkbox_column_width() + ImGui::GetStyle().ItemSpacing.x);
+}
+
+static void render_category_list_header(void) {
+    const char *const headers[] = {"Map", "Labels", "Category"};
+    const float row_start_x = ImGui::GetCursorPosX();
+    for (int column = 0; column < 3; column++) {
+        float header_x = category_list_column_x(row_start_x, column);
+        if (column < 2) header_x += (checkbox_column_width() - ImGui::CalcTextSize(headers[column]).x) / 2.0F;
+        if (column > 0) ImGui::SameLine(header_x);
+        else ImGui::SetCursorPosX(header_x);
+        ImGui::TextDisabled("%s", headers[column]);
+    }
 }
 
 static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, AnnotationCategory *category) {
     ImGui::PushID(category->id);
-    ImGui::TableNextRow();
+    const float row_start_x = ImGui::GetCursorPosX();
+    const float checkbox_offset = (checkbox_column_width() - ImGui::GetFrameHeight()) / 2.0F;
 
-    ImGui::TableSetColumnIndex(CATEGORY_LIST_MAP_COLUMN);
-    centre_checkbox_in_column();
+    ImGui::SetCursorPosX(category_list_column_x(row_start_x, 0) + checkbox_offset);
     bool visible = category->visible != 0;
     if (ImGui::Checkbox("##visible", &visible)) {
         category->visible = visible ? 1 : 0;
@@ -841,8 +851,7 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
     }
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show on map");
 
-    ImGui::TableSetColumnIndex(CATEGORY_LIST_LABELS_COLUMN);
-    centre_checkbox_in_column();
+    ImGui::SameLine(category_list_column_x(row_start_x, 1) + checkbox_offset);
     bool show_labels = category->show_labels != 0;
     if (ImGui::Checkbox("##labels", &show_labels)) {
         category->show_labels = show_labels ? 1 : 0;
@@ -851,7 +860,7 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
     }
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show pin labels");
 
-    ImGui::TableSetColumnIndex(CATEGORY_LIST_NAME_COLUMN);
+    ImGui::SameLine(category_list_column_x(row_start_x, 2));
     const ImVec4 swatch = ImGui::ColorConvertU32ToFloat4(category_colour(category));
     ImGui::ColorButton("##swatch", swatch, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoPicker,
                        ImVec2(SWATCH_SIZE, SWATCH_SIZE));
@@ -881,22 +890,12 @@ static void render_category_list(WorldmapPanelState *panel, AnnotationSet *set, 
 
     const ImGuiStyle &style = ImGui::GetStyle();
     const float footer_height = ImGui::GetFrameHeightWithSpacing() * 2.0F + style.ItemSpacing.y;
-    const ImGuiTableFlags table_flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit;
-    if (ImGui::BeginTable("category_rows", 3, table_flags, ImVec2(0.0F, -footer_height))) {
-        const float checkbox_column_width = fmaxf(ImGui::CalcTextSize("Labels").x, ImGui::GetFrameHeight());
-        ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn("Map", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_IndentDisable,
-                                checkbox_column_width);
-        ImGui::TableSetupColumn("Labels", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_IndentDisable,
-                                checkbox_column_width);
-        // Tree indentation is applied only to the name column so expanded rows stay under their category
-        ImGui::TableSetupColumn("Category", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_IndentEnable);
-        ImGui::TableHeadersRow();
-        for (int category_index = 0; category_index < set->category_count; category_index++) {
-            render_category_row(panel, set, &set->categories[category_index]);
-        }
-        ImGui::EndTable();
+    render_category_list_header();
+    ImGui::BeginChild("category_rows", ImVec2(0.0F, -footer_height));
+    for (int category_index = 0; category_index < set->category_count; category_index++) {
+        render_category_row(panel, set, &set->categories[category_index]);
     }
+    ImGui::EndChild();
 
     ImGui::Separator();
     if (ImGui::Button("+ New")) open_new_category(panel);
