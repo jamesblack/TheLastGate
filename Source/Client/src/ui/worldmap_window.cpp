@@ -1161,9 +1161,12 @@ static void render_popups(WorldmapPanelState *panel, AnnotationSet *set) {
     render_delete_category_popup(panel, set);
 }
 
-static void discard_unfinished_work(WorldmapPanelState *panel) {
+static void drop_interrupted_work(WorldmapPanelState *panel) {
     cancel_edit(panel);
-    panel->pending_segment_count = 0;
+    // Pending Line segments outlive the panel closing; returning to the Line tool lets Enter still finish the path.
+    if (panel->label_purpose == LABEL_PURPOSE_PATH && panel->pending_segment_count > 0) {
+        panel->active_tool = WORLDMAP_TOOL_LINE;
+    }
     panel->label_purpose = LABEL_PURPOSE_NONE;
     if (panel->popup_request == LABEL_POPUP_ID) panel->popup_request = NULL;
     panel->left_press_active = false;
@@ -1178,7 +1181,7 @@ void worldmap_window_render(void) {
 
     // A gap in rendered frames means the window was hidden (e.g. by its hotkey) since the last render.
     const int frame = ImGui::GetFrameCount();
-    if (last_rendered_frame >= 0 && frame > last_rendered_frame + 1) discard_unfinished_work(panel);
+    if (last_rendered_frame >= 0 && frame > last_rendered_frame + 1) drop_interrupted_work(panel);
     last_rendered_frame = frame;
 
     panel->hovered_tile_valid = false;
@@ -1199,7 +1202,7 @@ void worldmap_window_render(void) {
     ImGui::End();
 
     if (!open) {
-        discard_unfinished_work(panel);
+        drop_interrupted_work(panel);
         game_ui_state.show_worldmap = false;
     }
 }

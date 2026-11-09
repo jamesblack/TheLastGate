@@ -93,6 +93,12 @@ void toggle_worldmap(void)
 	game_ui_state.worldmap_centre_on_player = true;
 }
 
+void open_worldmap_at_player(void)
+{
+	game_ui_state.show_worldmap = true;
+	game_ui_state.worldmap_centre_on_player = true;
+}
+
 int xmove=0,xxtimer=0;
 
 int mouse_x=0,mouse_y=0;
@@ -412,7 +418,7 @@ void button_command(int nr)
 			break;
 
 		case 49:
-			toggle_worldmap();
+			open_worldmap_at_player();
 			break;
 
 		default: break;
