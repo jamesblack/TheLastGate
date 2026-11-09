@@ -16,3 +16,4 @@ Source/Server/Web
 
 # Superpowers specs and plans stay on the machine that wrote them
 docs/superpowers/
+.claude/
