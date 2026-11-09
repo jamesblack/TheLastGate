@@ -34,6 +34,7 @@ struct WorldmapPanelState {
     int expanded_category_ids[ANNOTATION_MAX_CATEGORIES];
     int expanded_count;
     WorldmapTool active_tool;
+    bool follow_player;
     bool hovered_tile_valid;
     int hovered_tile_x;
     int hovered_tile_y;
@@ -204,6 +205,7 @@ static void ensure_current_category(WorldmapPanelState *panel, AnnotationSet *se
 }
 
 static void centre_on_annotation(WorldmapPanelState *panel, const Annotation *annotation) {
+    panel->follow_player = false;
     if (annotation->kind == ANNOTATION_PATH) {
         if (annotation->segment_count <= 0) return;
         panel->view.centre_tile_x = annotation->segments[0].start_x + 0.5;
@@ -519,11 +521,15 @@ static void draw_player_marker(const WorldmapPanelState *panel, const MapArea *a
                              ImVec2(floorf(centre.x) + 2.0F, floorf(centre.y) + 2.0F), HIGHLIGHT_COLOUR);
 }
 
-static void centre_on_player(WorldmapPanelState *panel) {
+static void move_view_to_player(WorldmapPanelState *panel) {
     int player_tile_x, player_tile_y;
     engine_player_tile(&player_tile_x, &player_tile_y);
     panel->view.centre_tile_x = player_tile_x + 0.5;
     panel->view.centre_tile_y = player_tile_y + 0.5;
+}
+
+static void centre_on_player(WorldmapPanelState *panel) {
+    move_view_to_player(panel);
     panel->view.pixels_per_tile = CENTRE_ON_PLAYER_PIXELS_PER_TILE;
 }
 
@@ -706,6 +712,7 @@ static void handle_map_input(WorldmapPanelState *panel, AnnotationSet *set, cons
         const bool pan_drag =
                 panel->active_tool == WORLDMAP_TOOL_PAN && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0F);
         if (right_drag || pan_drag) {
+            panel->follow_player = false;
             worldmap_view_pan(&panel->view, area->size.x, area->size.y, io.MouseDelta.x, io.MouseDelta.y);
         }
     }
@@ -757,6 +764,7 @@ static void render_map_area(WorldmapPanelState *panel, AnnotationSet *set, float
             centre_on_player(panel);
             game_ui_state.worldmap_centre_on_player = false;
         }
+        if (panel->follow_player) move_view_to_player(panel);
         worldmap_view_clamp(&panel->view, area.size.x, area.size.y);
 
         ImGui::InvisibleButton("canvas", area.size,
@@ -953,6 +961,9 @@ static void render_bottom_bar(WorldmapPanelState *panel, AnnotationSet *set) {
         if (active) ImGui::PopStyleColor();
         ImGui::EndDisabled();
     }
+
+    ImGui::SameLine();
+    ImGui::Checkbox("Follow player", &panel->follow_player);
 
     render_edit_controls(panel, set);
 
