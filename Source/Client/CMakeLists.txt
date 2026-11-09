@@ -66,6 +66,7 @@ add_executable(TheLastGate
         src/game/minimap_store.c
         src/planner/attribute_pool.c
         src/planner/tarot_math.c
+        src/game/annotations.c
         src/game/game_ui.c
         src/game/stat_display.c
         src/planner/skill_focus.c
@@ -193,6 +194,13 @@ if (TLG_BUILD_TESTS)
     )
     target_include_directories(planner_choices_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME planner_choices COMMAND planner_choices_test)
+
+    add_executable(annotations_test
+            tests/annotations_test.c
+            src/game/annotations.c
+    )
+    target_include_directories(annotations_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME annotations COMMAND annotations_test)
 
     find_package(ZLIB REQUIRED)
     add_executable(minimap_store_test
