@@ -181,6 +181,32 @@ static void test_header_only(void) {
     CHECK(details.condition == -1 && details.level == -1 && details.sell_silver == -1);
 }
 
+static void test_reply_start(void) {
+    CHECK(item_details_is_reply_start("Steel Sword:", CHAT_FONT_LIME));
+    CHECK(item_details_is_reply_start("A contract. It reads:", CHAT_FONT_YELLOW));
+    CHECK(!item_details_is_reply_start("A finely crafted sword:", CHAT_FONT_YELLOW));
+    CHECK(!item_details_is_reply_start("Steel Sword", CHAT_FONT_LIME));
+    CHECK(!item_details_is_reply_start(":", CHAT_FONT_LIME));
+}
+
+static void test_contract(void) {
+    TooltipBlock block = {0};
+    ItemDetails details;
+
+    add(&block, CHAT_FONT_YELLOW, "A contract. It reads:");
+    add(&block, CHAT_FONT_YELLOW, " ");
+    add(&block, CHAT_FONT_GREEN, "Clear the area of all enemies.");
+    add(&block, CHAT_FONT_YELLOW, " ");
+    add(&block, CHAT_FONT_GREEN, "  + Enemies have more gold");
+    add(&block, CHAT_FONT_GREEN, "A contract for a mercenary.");
+
+    item_details_parse(&block, &details);
+
+    CHECK(strcmp(details.name, "Contract") == 0);
+    CHECK(details.stat_count == 0);
+    CHECK(details.effect_count == 3 && details.effect_lines[0] == 2 && details.effect_lines[2] == 5);
+}
+
 int main(void) {
     test_weapon();
     test_soulstone();
@@ -188,6 +214,8 @@ int main(void) {
     test_effects_and_unrecognised();
     test_compare_section_dropped();
     test_header_only();
+    test_reply_start();
+    test_contract();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

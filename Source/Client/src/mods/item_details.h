@@ -19,7 +19,7 @@ typedef struct {
     char text[TT_LINE_LEN];
 } TooltipLine;
 
-/* The full reply to one look request; line 0 is always the "<name>:" header. */
+/* The full reply to one look request; line 0 is the line item_details_is_reply_start() accepted. */
 typedef struct {
     int count;
     TooltipLine lines[TT_MAX_LINES];
@@ -112,6 +112,12 @@ typedef struct {
     int other_count;
     unsigned char other_lines[ITEM_DETAILS_MAX_REFS];
 } ItemDetails;
+
+/*
+ * Whether a chat line opens a look reply: the "<name>:" header in lime, or a
+ * contract's "A contract. It reads:", which the server sends instead of a name.
+ */
+int item_details_is_reply_start(const char *text, int font);
 
 /* Fill `details` from a captured look reply. */
 void item_details_parse(const TooltipBlock *block, ItemDetails *details);

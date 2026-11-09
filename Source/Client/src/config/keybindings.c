@@ -5,6 +5,8 @@
 
 #include "config.h"
 
+/* One entry per row keeps the table readable; clang-format would pack them instead. */
+/* clang-format off */
 static BindingDescriptor binding_registry[] = {
     /* Spell 1-5: Ctrl+1-5 (buttons 16-20) */
     {"Spell 1", "spell_1", BINDING_CATEGORY_SPELL, {SDLK_1, KEYBIND_MOD_CTRL}, {SDLK_1, KEYBIND_MOD_CTRL}},
@@ -83,6 +85,10 @@ static BindingDescriptor binding_registry[] = {
         "Reset Window Size", RESET_WINDOW_SIZE_HOTKEY, BINDING_CATEGORY_WINDOW, {SDLK_F10, KEYBIND_MOD_SHIFT},
         {SDLK_F10, KEYBIND_MOD_SHIFT}
     },
+    {
+        "Skill Planner", TOGGLE_PLANNER_HOTKEY, BINDING_CATEGORY_WINDOW, {SDLK_p, KEYBIND_MOD_CTRL},
+        {SDLK_p, KEYBIND_MOD_CTRL}
+    },
 
     /* General Hotkeys */
     {
@@ -139,6 +145,7 @@ static BindingDescriptor binding_registry[] = {
         {SDLK_UNKNOWN, KEYBIND_MOD_NONE}
     }
 };
+/* clang-format on */
 
 /* Initialize Global config and ensure defaults are set */
 void keybindings_init(void) {

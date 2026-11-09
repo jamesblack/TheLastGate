@@ -1,2 +1,5 @@
-﻿[*.{vert,frag}]
+﻿[*]
+end_of_line = lf
+
+[*.{vert,frag}]
 charset = utf-8

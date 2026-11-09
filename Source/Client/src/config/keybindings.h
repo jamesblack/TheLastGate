@@ -23,6 +23,7 @@ EXTERN_C_BEGIN
 #define TOGGLE_OPTIONS_HOTKEY "toggle_options_hotkey"
 #define TOGGLE_GAMMA_HOTKEY "toggle_gamma_hotkey"
 #define RESET_WINDOW_SIZE_HOTKEY "reset_window_size_hotkey"
+#define TOGGLE_PLANNER_HOTKEY "toggle_planner_hotkey"
 
 // GENERAL HOTKEYS
 #define FIGHTBACK_HOTKEY "fightback_hotkey"

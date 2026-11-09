@@ -159,6 +159,7 @@ void load_extended_options(void)
 	g_config.audio.sound_volume = 10;
 	g_config.gameplay.give_more = 0;
 	g_config.gameplay.use_queue = 0;
+	g_config.ui.skill_planner = 0;
 
 	handle = open("TLGExtended.dat", O_RDONLY|O_BINARY);
 	if (handle != -1) {
@@ -251,6 +252,10 @@ void load_extended_options(void)
 			if (read(handle, &g_config.ui.expanded_quick_stats, sizeof(g_config.ui.expanded_quick_stats)) != sizeof(g_config.ui.expanded_quick_stats)) return;
 		}
 
+		if (version >= 7) {
+			if (read(handle, &g_config.ui.skill_planner, sizeof(g_config.ui.skill_planner)) != sizeof(g_config.ui.skill_planner)) return;
+		}
+
 		close(handle);
 		return;
 	}
@@ -320,6 +325,7 @@ void save_extended_options(void)
 		}
 
 		write(handle, &g_config.ui.expanded_quick_stats, sizeof(g_config.ui.expanded_quick_stats));
+		write(handle, &g_config.ui.skill_planner, sizeof(g_config.ui.skill_planner));
 
 		close(handle);
 	}

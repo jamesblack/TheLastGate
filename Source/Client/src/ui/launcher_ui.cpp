@@ -6,6 +6,7 @@
 #include "options.h"
 #include "tinyfiledialogs.h"
 #include "ui.h"
+#include "widgets.hpp"
 #include "config/config.h"
 #include "graphics/sdl.h"
 #include "launcher/character_manager.h"
@@ -31,9 +32,7 @@ typedef struct {
     ImU32 input_background_color;
     ImU32 input_background_hovered_color;
     ImU32 input_background_active_color;
-    ImU32 dropdown_selected_color;
     ImU32 dropdown_hovered_color;
-    ImU32 dropdown_active_color;
     ImU32 previous_characters_background_color;
     ImU32 checkmark_color;
 
@@ -83,9 +82,7 @@ static constexpr LauncherLayout LAUNCHER_LAYOUT = {
     .input_background_color = 0xFFAFD8E9,
     .input_background_hovered_color = 0xFF71B6D8,
     .input_background_active_color = 0xFF509FCF,
-    .dropdown_selected_color = 0xFF7F434C,
     .dropdown_hovered_color = 0xFF6F4046,
-    .dropdown_active_color = 0x7F412529,
     .previous_characters_background_color = 0xFF210004,
     .checkmark_color = 0xFF6F4046,
 
@@ -452,68 +449,6 @@ static void render_connection_popover(const LauncherLayout *layout) {
     pop_popover_styles();
 }
 
-static void render_description_tooltip(const LauncherLayout *layout, const char *description) {
-    if (description == nullptr) return;
-    if (!ImGui::IsItemHovered(ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayNormal |
-                              ImGuiHoveredFlags_AllowWhenDisabled)) {
-        return;
-    }
-
-    ImGui::PushStyleColor(ImGuiCol_Text, layout->text_gold_color);
-    ImGui::BeginTooltip();
-    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 25.0f);
-    ImGui::TextUnformatted(description);
-    ImGui::PopTextWrapPos();
-    ImGui::EndTooltip();
-    ImGui::PopStyleColor(1);
-}
-
-static bool render_dropdown(const LauncherLayout *layout, const char *id, const char **options, const int option_count,
-                            int *current_option, const char **descriptions = nullptr) {
-    bool changed = false;
-    auto pop_dropdown_style = ImGuiStyleBuilder()
-            .Var(ImGuiStyleVar_WindowPadding, layout->popover_frame_padding)
-            .Color(ImGuiCol_PopupBg, layout->popover_background_color)
-            .Build();
-
-    const auto pop_dropdown_input_style = create_input_style(layout);
-    bool opened = ImGui::BeginCombo(id, options[*current_option], ImGuiComboFlags_NoArrowButton);
-    pop_dropdown_input_style();
-    if (!opened && descriptions != nullptr) {
-        render_description_tooltip(layout, descriptions[*current_option]);
-    }
-
-    auto pop_dropdown_popover_styles = ImGuiStyleBuilder()
-            .Var(ImGuiStyleVar_PopupBorderSize, layout->popover_border_size)
-            .Color(ImGuiCol_Header, layout->dropdown_selected_color)
-            .Color(ImGuiCol_HeaderHovered, layout->dropdown_hovered_color)
-            .Color(ImGuiCol_HeaderActive, layout->dropdown_active_color)
-            .Color(ImGuiCol_Border, layout->border_color)
-            .Build();
-
-    if (opened) {
-        for (int i = 0; i < option_count; i++) {
-            const bool selected = (*current_option == i);
-
-            if (ImGui::Selectable(options[i], selected)) {
-                changed = true;
-                *current_option = i;
-            }
-            if (descriptions != nullptr) {
-                render_description_tooltip(layout, descriptions[i]);
-            }
-
-            if (selected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
-    pop_dropdown_popover_styles();
-    pop_dropdown_style();
-    return changed;
-}
-
 static void render_previous_characters(const LauncherLayout *layout) {
     auto pop_previous_character_style = ImGuiStyleBuilder()
             .Var(ImGuiStyleVar_WindowPadding, layout->popover_window_padding)
@@ -645,29 +580,28 @@ static void render_character_select(const LauncherLayout *layout) {
         ImGui::TableNextColumn();
         ImGui::TextUnformatted("Class");
         ImGui::TableNextColumn();
-        render_dropdown(layout, "##class", classes, 3, &launcher_state.current_class, class_descriptions);
+        ui_dropdown("##class", classes, 3, &launcher_state.current_class, class_descriptions);
 
         /* Body */
         ImGui::TableNextRow(0, layout->character_select_field_min_height);
         ImGui::TableNextColumn();
         ImGui::TextUnformatted("Body");
         ImGui::TableNextColumn();
-        render_dropdown(layout, "##gender", genders, 2, &launcher_state.current_gender);
+        ui_dropdown("##gender", genders, 2, &launcher_state.current_gender, nullptr);
 
         /* Game Mode */
         ImGui::TableNextRow(0, layout->character_select_field_min_height);
         ImGui::TableNextColumn();
         ImGui::TextUnformatted("Game Mode");
         ImGui::TableNextColumn();
-        render_dropdown(layout, "##game_mode", game_modes, 2, &launcher_state.current_gamemode,
-                        game_mode_descriptions);
+        ui_dropdown("##game_mode", game_modes, 2, &launcher_state.current_gamemode, game_mode_descriptions);
 
         /* Season */
         ImGui::TableNextRow(0, layout->character_select_field_min_height);
         ImGui::TableNextColumn();
         ImGui::TextUnformatted("Season");
         ImGui::TableNextColumn();
-        render_dropdown(layout, "##season", seasons, 2, &launcher_state.current_season, season_descriptions);
+        ui_dropdown("##season", seasons, 2, &launcher_state.current_season, season_descriptions);
 
         ImGui::EndDisabled();
 
@@ -701,7 +635,7 @@ static void render_options(const LauncherLayout *layout) {
         ImGui::TableNextColumn();
         ImGui::TextUnformatted("Alpha");
         ImGui::TableNextColumn();
-        render_dropdown(layout, "##alphas", alphas, 3, &do_alpha);
+        ui_dropdown("##alphas", alphas, 3, &do_alpha, nullptr);
 
         ImGui::TableNextRow(0, layout->character_select_field_min_height);
         ImGui::TableNextColumn();
@@ -709,7 +643,7 @@ static void render_options(const LauncherLayout *layout) {
         ImGui::TableNextColumn();
         const bool prev_windowed = g_config.video.windowed;
         int window_mode = g_config.video.windowed ? 1 : 0;
-        if (render_dropdown(layout, "##window_modes", window_modes, 2, &window_mode)) {
+        if (ui_dropdown("##window_modes", window_modes, 2, &window_mode, nullptr)) {
             g_config.video.windowed = (window_mode == 1);
         }
         if (prev_windowed != g_config.video.windowed) {

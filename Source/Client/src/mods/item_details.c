@@ -10,6 +10,8 @@
 #define TENTHS_PER_PERCENT 10.0F
 #define SILVER_PER_GOLD 100
 #define COMPARE_SECTION_LINES 2 /* lines that follow "You compare it with ..." */
+#define CONTRACT_OPENING "A contract. It reads:"
+#define CONTRACT_NAME "Contract"
 #define MAX_STAT_VALUES 3 /* passive, active, required */
 
 typedef struct {
@@ -248,9 +250,18 @@ static void reset_details(ItemDetails *details) {
     details->sell_silver = -1;
 }
 
-/* Header "<name>:" */
+int item_details_is_reply_start(const char *text, const int font) {
+    const size_t text_length = strlen(text);
+
+    if (strcmp(text, CONTRACT_OPENING) == 0) return 1;
+    return font == CHAT_FONT_LIME && text_length >= 2 && text[text_length - 1] == ':';
+}
+
+/* Header "<name>:", or a contract's opening line, which names no item. */
 static void parse_header(const TooltipBlock *block, ItemDetails *details) {
-    strncpy(details->name, block->lines[0].text, TT_LINE_LEN - 1);
+    const char *header = strcmp(block->lines[0].text, CONTRACT_OPENING) == 0 ? CONTRACT_NAME : block->lines[0].text;
+
+    strncpy(details->name, header, TT_LINE_LEN - 1);
     const size_t name_length = strlen(details->name);
     if (name_length > 0 && details->name[name_length - 1] == ':') details->name[name_length - 1] = 0;
 

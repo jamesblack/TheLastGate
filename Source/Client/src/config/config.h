@@ -26,6 +26,7 @@ typedef struct {
     bool cost_helper;
     bool enter_to_talk;
     bool expanded_quick_stats;
+    bool skill_planner; /* the Planner button, its hotkey and window */
 } UiConfig;
 
 
