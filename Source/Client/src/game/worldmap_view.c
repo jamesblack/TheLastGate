@@ -5,6 +5,8 @@
 // On screen, horizontal is map y and vertical is map x. Annotated tile (tx, ty) sits at tile coordinate
 // (tx + 0.5, ty + 0.5).
 
+#define WORLDMAP_MIN_PIXELS_FLOOR 1e-3
+
 static double clamp_double(double value, double lowest, double highest) {
     if (value < lowest) {
         return lowest;
@@ -18,7 +20,8 @@ static double clamp_double(double value, double lowest, double highest) {
 double worldmap_view_min_pixels_per_tile(double panel_width, double panel_height) {
     double fit_across = panel_width / WORLDMAP_TILES_ACROSS;
     double fit_down = panel_height / WORLDMAP_TILES_DOWN;
-    return fit_across < fit_down ? fit_across : fit_down;
+    double fit = fit_across < fit_down ? fit_across : fit_down;
+    return fit > WORLDMAP_MIN_PIXELS_FLOOR ? fit : WORLDMAP_MIN_PIXELS_FLOOR;
 }
 
 void worldmap_view_clamp(WorldmapView *view, double panel_width, double panel_height) {
@@ -52,7 +55,9 @@ void worldmap_view_zoom_at(WorldmapView *view, double panel_width, double panel_
                            double zoom_factor) {
     double anchor_tile_x, anchor_tile_y;
     worldmap_view_panel_to_tile(view, panel_width, panel_height, panel_x, panel_y, &anchor_tile_x, &anchor_tile_y);
-    view->pixels_per_tile *= zoom_factor;
+    view->pixels_per_tile =
+            clamp_double(view->pixels_per_tile * zoom_factor,
+                         worldmap_view_min_pixels_per_tile(panel_width, panel_height), WORLDMAP_MAX_PIXELS_PER_TILE);
     view->centre_tile_y = anchor_tile_y - (panel_x - panel_width / 2.0) / view->pixels_per_tile;
     view->centre_tile_x = anchor_tile_x - (panel_y - panel_height / 2.0) / view->pixels_per_tile;
     worldmap_view_clamp(view, panel_width, panel_height);

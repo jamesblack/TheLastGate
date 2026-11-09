@@ -107,6 +107,33 @@ static void test_zoom_keeps_cursor_tile(void) {
     CHECK_NEAR(after_y, before_y);
 }
 
+static void test_zoom_at_limits_does_not_drift(void) {
+    WorldmapView view = standard_view();
+    view.pixels_per_tile = WORLDMAP_MAX_PIXELS_PER_TILE;
+    worldmap_view_zoom_at(&view, PANEL_WIDTH, PANEL_HEIGHT, 100.0, 50.0, 2.0);
+    CHECK_NEAR(view.pixels_per_tile, WORLDMAP_MAX_PIXELS_PER_TILE);
+    CHECK_NEAR(view.centre_tile_x, 512.0);
+    CHECK_NEAR(view.centre_tile_y, 1024.0);
+
+    view.pixels_per_tile = worldmap_view_min_pixels_per_tile(PANEL_WIDTH, PANEL_HEIGHT);
+    worldmap_view_zoom_at(&view, PANEL_WIDTH, PANEL_HEIGHT, 100.0, 50.0, 0.5);
+    CHECK_NEAR(view.pixels_per_tile, worldmap_view_min_pixels_per_tile(PANEL_WIDTH, PANEL_HEIGHT));
+    CHECK_NEAR(view.centre_tile_x, 512.0);
+    CHECK_NEAR(view.centre_tile_y, 1024.0);
+}
+
+static void test_zero_sized_panel_stays_finite(void) {
+    WorldmapView view = standard_view();
+    double tile_x, tile_y;
+    view.pixels_per_tile = 0.0;
+    worldmap_view_clamp(&view, 0.0, 0.0);
+    CHECK(view.pixels_per_tile > 0.0);
+    CHECK(isfinite(view.pixels_per_tile));
+    worldmap_view_panel_to_tile(&view, 0.0, 0.0, 10.0, 10.0, &tile_x, &tile_y);
+    CHECK(isfinite(tile_x));
+    CHECK(isfinite(tile_y));
+}
+
 static void test_pan_moves_centre(void) {
     WorldmapView view = standard_view();
     worldmap_view_pan(&view, PANEL_WIDTH, PANEL_HEIGHT, 40.0, 20.0);
@@ -232,6 +259,8 @@ int main(void) {
     test_min_zoom_fits_world();
     test_clamp_limits_zoom_and_centre();
     test_zoom_keeps_cursor_tile();
+    test_zoom_at_limits_does_not_drift();
+    test_zero_sized_panel_stays_finite();
     test_pan_moves_centre();
     test_hit_prefers_pin_over_path();
     test_hit_prefers_text_over_path();
