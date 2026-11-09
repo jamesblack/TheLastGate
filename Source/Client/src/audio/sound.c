@@ -7,6 +7,7 @@
 
 #include "main.h"
 #include "config/config.h"
+#include "log/log.h"
 
 // This should be a big enough cache for now.
 #define MAX_CACHED_SOUNDS 64
@@ -31,7 +32,11 @@ static void channel_finished(int channel) {
 }
 
 int sound_init() {
-    if (Mix_OpenAudio(44100, AUDIO_F32SYS, 2, 2048) < 0) return -1;
+    if (Mix_OpenAudio(44100, AUDIO_F32SYS, 2, 2048) < 0) {
+        log_error("Failed to open audio device: %s", Mix_GetError());
+        return -1;
+    }
+    log_info("Audio driver: %s", SDL_GetCurrentAudioDriver());
     Mix_AllocateChannels(10);
     Mix_ChannelFinished(channel_finished);
 

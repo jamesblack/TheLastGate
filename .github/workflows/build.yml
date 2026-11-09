@@ -47,6 +47,8 @@ jobs:
             ninja-build \
             pkg-config \
             libx11-dev \
+            libpulse-dev \
+            libpipewire-0.3-dev \
             libltdl-dev \
             libxrandr-dev \
             libxinerama-dev \
