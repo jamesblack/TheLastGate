@@ -886,6 +886,10 @@ bool imgui_want_capture_keyboard(void) {
     return ImGui::GetIO().WantCaptureKeyboard;
 }
 
+bool imgui_want_text_input(void) {
+    return ImGui::GetIO().WantTextInput;
+}
+
 /* Mouse input */
 
 float imgui_get_mouse_wheel(void) {

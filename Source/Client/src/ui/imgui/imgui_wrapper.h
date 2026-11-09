@@ -641,6 +641,8 @@ bool imgui_want_capture_mouse(void);
 
 bool imgui_want_capture_keyboard(void);
 
+bool imgui_want_text_input(void);
+
 /* Mouse input */
 float imgui_get_mouse_wheel(void);
 

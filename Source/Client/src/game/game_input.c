@@ -238,6 +238,7 @@ void game_handle_input(const SDL_Event *e) {
     switch (e->type) {
         case SDL_KEYDOWN:
             if (waiting_for_keybind) break;
+            if (imgui_want_text_input()) break;
 
             BindingDescriptor *binding = binding_find(e->key.keysym.sym, SDL_GetModState());
 
@@ -506,6 +507,7 @@ void game_handle_input(const SDL_Event *e) {
             break; // End of SDL_KEYDOWN
 
         case SDL_TEXTINPUT:
+            if (imgui_want_text_input()) break;
             if (g_config.ui.enter_to_talk && !chat_mode_active) {
                 break;
             }
