@@ -310,6 +310,8 @@ static void general_settings_tab() {
                      "Press Enter to activate chat mode before typing. Press Enter again to send, or ESC to cancel.");
     togglable_option("##11", &g_config.ui.expanded_quick_stats,
                      "Show Hit/Parry Score with Weapon/Armor value.");
+    togglable_option("##12", &g_config.ui.skill_planner,
+                     "Enable the skill planner: the Planner button below the skill list and its hotkey.");
 
 
     imgui_spacing();

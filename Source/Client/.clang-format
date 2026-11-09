@@ -19,6 +19,9 @@ AccessModifierOffset: -4
 # Braces stay on the line they open, including after functions and else.
 BreakBeforeBraces: Attach
 
+# Files are LF in the repository and in working copies (see .gitattributes).
+LineEnding: LF
+
 # Line length and wrapping
 ColumnLimit: 120
 AlignAfterOpenBracket: Align

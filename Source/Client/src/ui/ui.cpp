@@ -6,6 +6,7 @@
 
 #include <imgui_freetype.h>
 
+#include "enhanced_skill_window.hpp"
 #include "hotbar.hpp"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
@@ -117,6 +118,9 @@ void ui_render(const UIState ui_state) {
         inventory_render();
         item_tooltip_ui_render();
         quick_stats_render(&game_ui_state.quick_stat_state);
+        if (game_ui_state.show_enhanced_skills && g_config.ui.skill_planner) {
+            enhanced_skill_window_render();
+        }
         if (g_config.runtime.show_performance) {
             perf_window_render(&game_ui_state.perf_window_state);
         }

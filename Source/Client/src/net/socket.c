@@ -8,11 +8,13 @@
 
 #include "engine.h"
 #include "game/game_ui.h"
+#include "game/stat_raise.h"
 #include "graphics/render.h"
 #include "input/input.h"
 #include "log/log.h"
 #include "mods/stubborn_actions.h"
 #include "mods/give_more.h"
+#include "mods/buff_watch.h"
 #include "mods/item_tooltip.h"
 #include "mods/use_queue.h"
 #include "security/security.h"
@@ -391,6 +393,7 @@ void sv_setchar_skill(unsigned char *buf) {
 
     update_skill_tab_from_raw();
     qsort(skilltab, 55, sizeof(struct skilltab), skill_cmp);
+    stat_raise_skill_list_sorted();
 }
 
 void sv_setchar_ahp(unsigned char *buf) {
@@ -501,9 +504,15 @@ void sv_setchar_spell(unsigned char *buf) {
     DEBUG("SV SETCHAR SPELL");
 
     n = *(unsigned long *) (buf + 1);
-    if (n < 0 || n > (MAXBUFFS - 1)) xlog(0, "Invalid setchar spell");
+    if (n < 0 || n > (MAXBUFFS - 1)) {
+        xlog(0, "Invalid setchar spell");
+        return;
+    }
+    const int old_sprite = pl.spell[n];
+    const int old_active = pl.active[n];
     pl.spell[n] = *(short int *) (buf + 5);
     pl.active[n] = *(short int *) (buf + 7);
+    buff_watch_spell_packet(n, old_sprite, old_active, pl.spell[n], pl.active[n]);
 }
 
 void sv_setchar_location1(unsigned char *buf) {
@@ -677,6 +686,7 @@ void sv_tick(unsigned char *buf) {
 
     /* Only sent when a login starts the tick stream. */
     item_tooltip_reset();
+    buff_watch_reset();
 }
 
 void sv_log(unsigned char *buf, int font) {
@@ -691,7 +701,7 @@ void sv_log(unsigned char *buf, int font) {
     for (n = cnt; n < cnt + 15; n++)
         if (text[n] == 10) {
             text[n] = 0;
-            if (!item_tooltip_capture_line(text, font)) tlog(text, font);
+            if (!buff_watch_capture_line(text, font) && !item_tooltip_capture_line(text, font)) tlog(text, font);
             cnt = 0;
             return;
         }
@@ -1376,6 +1386,7 @@ int tick_do(void) {
     }
 
     item_tooltip_end_of_tick();
+    buff_watch_end_of_tick();
 
     ticksize -= len;
     tickstart -= len;

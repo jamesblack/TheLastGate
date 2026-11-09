@@ -156,6 +156,7 @@ extern struct cmap *map;
 void mouse(int x,int y,int state);
 
 void cmd1s(int cmd,int val);
+void toggle_skill_planner(void);
 void add_look(unsigned short nr,char *name,unsigned short id);
 int attrib_needed(int n,int v);
 int hp_needed(int v);

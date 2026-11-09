@@ -141,6 +141,10 @@ static void handle_hotkey(const BindingDescriptor *binding) {
         }
         return;
     }
+    if (strcmp(id, TOGGLE_PLANNER_HOTKEY) == 0) {
+        if (g_config.ui.skill_planner) toggle_skill_planner();
+        return;
+    }
 
     /* General Hotkeys */
     if (strcmp(id, FIGHTBACK_HOTKEY) == 0) {
@@ -265,6 +269,10 @@ void game_handle_input(const SDL_Event *e) {
                     }
                     if (game_ui_state.show_waypoints ) {
                         game_ui_state.show_waypoints = false;
+                        closed_window = true;
+                    }
+                    if (game_ui_state.show_enhanced_skills) {
+                        game_ui_state.show_enhanced_skills = false;
                         closed_window = true;
                     }
                     if (game_ui_state.open_skill_tree != 0) {

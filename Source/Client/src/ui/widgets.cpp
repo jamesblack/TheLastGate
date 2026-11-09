@@ -1,5 +1,7 @@
 #include "widgets.hpp"
 
+#include <imgui.h>
+
 #include "imgui/imgui_wrapper.h"
 #include "ui_common.hpp"
 #include "graphics/sdl.h"
@@ -9,8 +11,13 @@
 #include "engine.h"
 #include "game/game_input.h"
 #include "config/config.h"
+#include "ui_utils/imgui_style_builder.hpp"
 
 bool ui_button(const char *label, float width, float height) {
+    return ui_button_enabled(label, width, height, true);
+}
+
+bool ui_button_enabled(const char *label, float width, float height, bool enabled) {
     if (width < 52) width = 52;
     if (height < 19) height = 19;
     sdl_load_sprite(BUTTON_SPRITE_ID);
@@ -30,7 +37,12 @@ bool ui_button(const char *label, float width, float height) {
     /* Determine button state and tint color */
     unsigned int tint;
     unsigned int text_color;
-    if (imgui_is_item_active()) {
+    if (!enabled) {
+        /* Disabled - dimmed sprite and grey text, never reports a click */
+        tint = BUTTON_DISABLED_TINT;
+        text_color = HINT_GREY_FONT_COLOR_32;
+        clicked = false;
+    } else if (imgui_is_item_active()) {
         /* Clicked/pressed state - darker */
         tint = BUTTON_ACTIVE_TINT;
         text_color = BUTTON_TEXT_ACTIVE_COLOR;
@@ -199,4 +211,127 @@ void ui_tooltip(const char *tooltip_text) {
     imgui_end_tooltip();
     imgui_pop_style_color(1);
     imgui_pop_style_var(1);
+}
+
+/* The colours of one dropdown look; ImU32 colours are 0xAABBGGRR. */
+typedef struct {
+    ImU32 box_text;
+    ImU32 border;
+    ImU32 box_background;
+    ImU32 box_background_hovered;
+    ImU32 box_background_active;
+    ImU32 list_background;
+    ImU32 selected;
+    ImU32 hovered;
+    ImU32 active;
+    float border_size;
+} DropdownPalette;
+
+/* Parchment box with black text and a purple-red list. */
+static constexpr DropdownPalette LAUNCHER_DROPDOWN_PALETTE = {
+    .box_text = 0xFF000000,
+    .border = 0xFF446A75,
+    .box_background = 0xFFAFD8E9,
+    .box_background_hovered = 0xFF71B6D8,
+    .box_background_active = 0xFF509FCF,
+    .list_background = 0xFF210004,
+    .selected = 0xFF7F434C,
+    .hovered = 0xFF6F4046,
+    .active = 0x7F412529,
+    .border_size = 2,
+};
+
+/* Gold text on dark red with a thin gold-brown edge, like the HUD's Update button. */
+static constexpr DropdownPalette GAME_DROPDOWN_PALETTE = {
+    .box_text = 0xFF6ADBF3,
+    .border = 0xFF086276,
+    .box_background = 0xFF02022D,
+    .box_background_hovered = 0xFF020247,
+    .box_background_active = 0xFF03035C,
+    .list_background = 0xFF02021E,
+    .selected = 0xFF0A146E,
+    .hovered = 0xFF080F5A,
+    .active = 0xFF03035C,
+    .border_size = 1,
+};
+
+/* Options and descriptions are gold in every look. */
+static constexpr ImU32 DROPDOWN_GOLD_TEXT_COLOR = 0xFF6ADBF3;
+static const ImVec2 DROPDOWN_LIST_PADDING = ImVec2(4, 4);
+/* Spacing the dropdown sets for itself, so a window's own spacing doesn't squash it. */
+static const ImVec2 DROPDOWN_FRAME_PADDING = ImVec2(4, 3);
+static const ImVec2 DROPDOWN_ITEM_SPACING = ImVec2(8, 4);
+
+static void dropdown_description_render(const char *description) {
+    if (description == nullptr) return;
+    if (!ImGui::IsItemHovered(ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayNormal |
+                              ImGuiHoveredFlags_AllowWhenDisabled)) {
+        return;
+    }
+
+    ImGui::PushStyleColor(ImGuiCol_Text, DROPDOWN_GOLD_TEXT_COLOR);
+    ImGui::BeginTooltip();
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 25.0f);
+    ImGui::TextUnformatted(description);
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
+    ImGui::PopStyleColor(1);
+}
+
+static bool dropdown_render(const DropdownPalette *palette, const char *id, const char *const *options,
+                            const int option_count, int *current_option, const char *const *descriptions) {
+    bool changed = false;
+    auto pop_list_style = ImGuiStyleBuilder()
+                                  .Var(ImGuiStyleVar_WindowPadding, DROPDOWN_LIST_PADDING)
+                                  .Var(ImGuiStyleVar_FramePadding, DROPDOWN_FRAME_PADDING)
+                                  .Var(ImGuiStyleVar_ItemSpacing, DROPDOWN_ITEM_SPACING)
+                                  .Color(ImGuiCol_PopupBg, palette->list_background)
+                                  .Color(ImGuiCol_Text, DROPDOWN_GOLD_TEXT_COLOR)
+                                  .Build();
+
+    auto pop_box_style = ImGuiStyleBuilder()
+                                 .Var(ImGuiStyleVar_FrameBorderSize, palette->border_size)
+                                 .Color(ImGuiCol_Border, palette->border)
+                                 .Color(ImGuiCol_FrameBg, palette->box_background)
+                                 .Color(ImGuiCol_FrameBgHovered, palette->box_background_hovered)
+                                 .Color(ImGuiCol_FrameBgActive, palette->box_background_active)
+                                 .Color(ImGuiCol_Text, palette->box_text)
+                                 .Build();
+    const bool opened = ImGui::BeginCombo(id, options[*current_option], ImGuiComboFlags_NoArrowButton);
+    pop_box_style();
+    if (!opened && descriptions != nullptr) dropdown_description_render(descriptions[*current_option]);
+
+    auto pop_option_style = ImGuiStyleBuilder()
+                                    .Var(ImGuiStyleVar_PopupBorderSize, palette->border_size)
+                                    .Color(ImGuiCol_Header, palette->selected)
+                                    .Color(ImGuiCol_HeaderHovered, palette->hovered)
+                                    .Color(ImGuiCol_HeaderActive, palette->active)
+                                    .Color(ImGuiCol_Border, palette->border)
+                                    .Build();
+    if (opened) {
+        for (int option_index = 0; option_index < option_count; option_index++) {
+            const bool selected = *current_option == option_index;
+
+            if (ImGui::Selectable(options[option_index], selected)) {
+                changed = true;
+                *current_option = option_index;
+            }
+            if (descriptions != nullptr) dropdown_description_render(descriptions[option_index]);
+            if (selected) ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    pop_option_style();
+    pop_list_style();
+    return changed;
+}
+
+bool ui_dropdown(const char *id, const char *const *options, const int option_count, int *current_option,
+                 const char *const *descriptions) {
+    return dropdown_render(&LAUNCHER_DROPDOWN_PALETTE, id, options, option_count, current_option, descriptions);
+}
+
+bool ui_game_dropdown(const char *id, const char *const *options, const int option_count, int *current_option,
+                      const char *const *descriptions) {
+    return dropdown_render(&GAME_DROPDOWN_PALETTE, id, options, option_count, current_option, descriptions);
 }

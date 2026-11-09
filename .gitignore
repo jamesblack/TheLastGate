@@ -10,3 +10,9 @@ Source/Server/server
 datBK/*
 Source/NewClient
 Source/Server/Web
+
+# Brainstorm mockups and plan workspaces
+.superpowers/
+
+# Superpowers specs and plans stay on the machine that wrote them
+docs/superpowers/

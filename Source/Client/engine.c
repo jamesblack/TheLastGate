@@ -12,6 +12,7 @@
 #include "config/config.h"
 #include "game/game_ui.h"
 #include "game/stat_display.h"
+#include "game/stat_raise.h"
 #include "graphics/render.h"
 #include "graphics/scaling.h"
 #include "graphics/sdl.h"
@@ -722,6 +723,17 @@ static char motdfont[MLL];
 #define GUI_UPOINTS_X	189
 #define GUI_UPOINTS_Y	260
 
+#define GUI_PLANNER_X 9
+/* The Planner button's frame, drawn to match the Update button beside it. */
+#define GUI_PLANNER_BOX_X 5
+#define GUI_PLANNER_BOX_Y 256
+#define GUI_PLANNER_BOX_W 55
+#define GUI_PLANNER_BOX_H 15
+#define GUI_BUTTON_FILL 0x2800
+#define GUI_BUTTON_EDGE 0x7301
+#define GUI_BUTTON_FILL_DARK 0x1020
+#define GUI_BUTTON_EDGE_DARK 0x62E7
+
 //					   HEAD,NECK,BODY,ARMS,BELT,CHRM,FEET,LHND,RHND,CLOK,LRNG,RRNG,CHRM2
 extern int gui_equ_x[];
 extern int gui_equ_y[];
@@ -1400,6 +1412,14 @@ void eng_display_win(int plr_sprite, int init) {
             copyspritex(do_darkmode ? 18099 : 99, 134, 3, 0);
             xputtext(GUI_UPDATE_X, GUI_UPDATE_Y, 1, "Update");
             xputtext(GUI_UPOINTS_X, GUI_UPOINTS_Y, 1, "%7d", pl.points - stat_points_used);
+        }
+        if (g_config.ui.skill_planner && (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS ||
+                                          game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS_AND_META)) {
+            showbar(GUI_PLANNER_BOX_X + 1, GUI_PLANNER_BOX_Y + 1, GUI_PLANNER_BOX_W - 1, GUI_PLANNER_BOX_H - 1,
+                    (unsigned short) (do_darkmode ? GUI_BUTTON_FILL_DARK : GUI_BUTTON_FILL));
+            showbox(GUI_PLANNER_BOX_X, GUI_PLANNER_BOX_Y, GUI_PLANNER_BOX_W, GUI_PLANNER_BOX_H,
+                    (unsigned short) (do_darkmode ? GUI_BUTTON_EDGE_DARK : GUI_BUTTON_EDGE));
+            xputtext(GUI_PLANNER_X, GUI_UPDATE_Y, 1, "Planner");
         }
         if (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS_AND_META)
             copyspritex(do_darkmode ? 18098 : 18097, 134, 3, 0);
@@ -3472,6 +3492,7 @@ void engine(void) {
         if (autosort < 5) autosort++;
         if (autosort == 5) {
             qsort(skilltab, 55, sizeof(struct skilltab), skill_cmp);
+            stat_raise_skill_list_sorted();
             autosort++;
         }
 

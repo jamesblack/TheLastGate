@@ -56,9 +56,16 @@ add_executable(TheLastGate
         src/audio/sound.c
         src/config/config.c
         src/config/keybindings.c
+        src/game/buff_focus.c
+        src/game/buff_model.c
+        src/game/combat_model.c
         src/game/game_input.c
+        src/game/planner_choices.c
         src/game/game_ui.c
         src/game/stat_display.c
+        src/game/skill_focus.c
+        src/game/skill_preview.c
+        src/game/stat_raise.c
         src/graphics/atlas.c
         src/graphics/item_display.c
         src/graphics/loader.c
@@ -76,6 +83,8 @@ add_executable(TheLastGate
         src/launcher/launcher_input.c
         src/log/log.c
         src/mods/base_cost_warning.c
+        src/mods/buff_list.c
+        src/mods/buff_watch.c
         src/mods/give_more.c
         src/mods/item_details.c
         src/mods/item_tooltip.c
@@ -87,6 +96,7 @@ add_executable(TheLastGate
         src/security/single_instance.c
         src/security/unique_id.c
         src/ui/hotbar.cpp
+        src/ui/enhanced_skill_window.cpp
         src/ui/inventory.cpp
         src/ui/item_tooltip_ui.cpp
         src/ui/launcher_ui.cpp
@@ -132,6 +142,73 @@ if (TLG_BUILD_TESTS)
     )
     target_include_directories(item_details_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME item_details COMMAND item_details_test)
+
+    add_executable(buff_list_test
+            tests/buff_list_test.c
+            src/mods/buff_list.c
+    )
+    target_include_directories(buff_list_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME buff_list COMMAND buff_list_test)
+
+    add_executable(buff_watch_test
+            tests/buff_watch_test.c
+            src/mods/buff_watch.c
+            src/mods/buff_list.c
+    )
+    target_include_directories(buff_watch_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/ ${CMAKE_CURRENT_SOURCE_DIR}/)
+    target_precompile_headers(buff_watch_test PRIVATE src/ui/ui_ffi.h)
+    add_test(NAME buff_watch COMMAND buff_watch_test)
+
+    add_executable(buff_model_test
+            tests/buff_model_test.c
+            src/game/buff_model.c
+    )
+    target_include_directories(buff_model_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME buff_model COMMAND buff_model_test)
+
+    add_executable(combat_model_test
+            tests/combat_model_test.c
+            src/game/combat_model.c
+    )
+    target_include_directories(combat_model_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME combat_model COMMAND combat_model_test)
+
+    add_executable(planner_choices_test
+            tests/planner_choices_test.c
+            src/game/planner_choices.c
+    )
+    target_include_directories(planner_choices_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME planner_choices COMMAND planner_choices_test)
+
+    add_executable(buff_focus_test
+            tests/buff_focus_test.c
+            src/game/buff_focus.c
+            src/game/buff_model.c
+    )
+    target_include_directories(buff_focus_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME buff_focus COMMAND buff_focus_test)
+
+    add_executable(skill_preview_test
+            tests/skill_preview_test.c
+            src/game/skill_preview.c
+    )
+    target_include_directories(skill_preview_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME skill_preview COMMAND skill_preview_test)
+
+    add_executable(skill_focus_test
+            tests/skill_focus_test.c
+            src/game/skill_focus.c
+    )
+    target_include_directories(skill_focus_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME skill_focus COMMAND skill_focus_test)
+
+    add_executable(stat_raise_test
+            tests/stat_raise_test.c
+            src/game/stat_raise.c
+    )
+    target_include_directories(stat_raise_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/ ${CMAKE_CURRENT_SOURCE_DIR}/)
+    target_precompile_headers(stat_raise_test PRIVATE src/ui/ui_ffi.h)
+    add_test(NAME stat_raise COMMAND stat_raise_test)
 endif ()
 
 include(cmake/dependencies/sdl2.cmake)

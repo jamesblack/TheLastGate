@@ -19,7 +19,6 @@
 
 #define TT_WORN_SLOTS 20
 
-#define TT_HEADER_FONT CHAT_FONT_LIME /* a look reply starts with "<name>:" in this font */
 
 #define INV_LOOK_EQUIPMENT 7
 #define INV_LOOK_ITEM 8
@@ -87,7 +86,7 @@ static struct {
 
 static CaptureTarget capture = CAPTURE_NONE;
 
-/* Sprites whose look reply carries no header (contracts, shrines); never fetched. */
+/* Sprites whose look reply carries no header (such as shrines); never fetched. */
 static int headerless[TT_HEADERLESS_MAX];
 static int headerless_count = 0;
 
@@ -143,11 +142,6 @@ static int is_headerless(const int sprite) {
 static void remember_headerless(const int sprite) {
     if (!sprite || is_headerless(sprite) || headerless_count >= TT_HEADERLESS_MAX) return;
     headerless[headerless_count++] = sprite;
-}
-
-static int is_header(const char *text, const int font) {
-    const size_t text_length = strlen(text);
-    return font == TT_HEADER_FONT && text_length >= 2 && text[text_length - 1] == ':';
 }
 
 static void fifo_push(const RequestRole role) {
@@ -386,7 +380,7 @@ void item_tooltip_manual_look(const ItemTooltipKind kind, const int slot) {
 }
 
 int item_tooltip_capture_line(const char *text, const int font) {
-    if (is_header(text, font)) {
+    if (item_details_is_reply_start(text, font)) {
         close_capture();
         if (fifo_count == 0) return 0;
 

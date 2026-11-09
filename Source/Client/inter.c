@@ -8,10 +8,12 @@
 #include "main.h"
 #include "config/config.h"
 #include "game/game_ui.h"
+#include "game/stat_raise.h"
 #include "mods/stubborn_actions.h"
 #include "mods/give_more.h"
 #include "mods/item_tooltip.h"
 #include "mods/use_queue.h"
+#include "ui/imgui/imgui_wrapper.h"
 #include "ui/option_window.hpp"
 #include "util/math_util.h"
 #include "util/nearest_to_mouse.h"
@@ -24,6 +26,7 @@ int gui_skl_up[]	= { 233, 117, 245, 152 };
 int gui_skl_down[]	= { 233, 222, 245, 256 };
 int gui_update[]	= { 136, 257, 185, 270 };
 int gui_skl_pm[]	= { 160,   6, 184, 255 };
+int gui_planner[]	= {   7, 257,  60, 270 };
 int gui_skl_names[]	= {   6, 118, 135, 255 };
 
 int gui_f_col[]		= {1083,1035 };
@@ -62,6 +65,17 @@ int cursor_type=CT_NONE;
 int selected_char=0;
 int last_skill=-1;
 int got_meta=0;
+
+void toggle_skill_planner(void)
+{
+	game_ui_state.show_enhanced_skills = !game_ui_state.show_enhanced_skills;
+	// The planner shows meta stats by name, which the server only sends on request
+	if (game_ui_state.show_enhanced_skills && !got_meta)
+	{
+		got_meta = 1;
+		cmd1s(CL_CMD_META, 0);
+	}
+}
 
 int xmove=0,xxtimer=0;
 
@@ -208,6 +222,12 @@ int trans_button(int x,int y)
     }
 	
 	if ( x>=339+2 && x<=339+30 && y>=179 && y<=179+30 ) return 47;
+
+	// Skill planner, only on the skill list
+	if (	x>gui_planner[RECT_X1] && y>gui_planner[RECT_Y1]
+		&&  x<gui_planner[RECT_X2] && y<gui_planner[RECT_Y2]
+		&& (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS || game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS_AND_META)
+		&& g_config.ui.skill_planner) return 48;
 
 	return -1;
 }
@@ -369,6 +389,10 @@ void button_command(int nr)
 			}
 			break;
 
+		case 48:
+			toggle_skill_planner();
+			break;
+
 		default: break;
 	}
     if (game_ui_state.meta_scroll > MAX_META_SCROLL) game_ui_state.meta_scroll = MAX_META_SCROLL;
@@ -527,6 +551,9 @@ void button_help(int nr)
 			break;
 		case 46:
 			xlog(1,"Makes the left panel display Defense-related statistics, such as eHP and regeneration rates.");
+			break;
+		case 48:
+			xlog(1,"Open the skill planner.");
 			break;
 
 		default: break;
@@ -710,9 +737,21 @@ int mouse_buttonbox(int x,int y,int state)
 	return 1;
 }
 
+/* Maps a clicked stat box row to its stat_raised slot, or -1 when that row cannot be raised. */
+static int statbox_raise_index(int row)
+{
+	if (row<7 && game_ui_state.hud_mode != HUD_MODE_LIST_SKILLS) return -1;
+	if (row<5) return row;
+	if (row==5) return STAT_RAISE_HITPOINTS;
+	if (row==6) return STAT_RAISE_MANA;
+	if (row==7) return -1;
+	if (game_ui_state.hud_mode == HUD_MODE_LIST_OFFENSES || game_ui_state.hud_mode == HUD_MODE_LIST_DEFENSES) return -1;
+	return row+game_ui_state.skill_scroll;
+}
+
 int _mouse_statbox(int x,int y,int state)
 {
-	int n,m;
+	int n,raise_index;
 
 	/* ***
 	if (screen_windowed == 1) {
@@ -733,22 +772,7 @@ int _mouse_statbox(int x,int y,int state)
 		if (state==MS_RB_UP) xlog(1,"Make the changes permanent");
 		if (state!=MS_LB_UP) return 1;
 
-		stat_points_used=0;
-
-		for (n=0; n<108; n++) 
-		{
-			if (stat_raised[n]) 
-			{
-				if (n>7) 
-				{
-					m=skilltab[n-8].nr+8;
-				} 
-				else 
-					m=n;
-				cmd(CL_CMD_STAT,m,stat_raised[n]);
-			}
-			stat_raised[n]=0;
-		}
+		stat_raise_commit_all();
 		return 1;
 	}
 
@@ -773,32 +797,11 @@ int _mouse_statbox(int x,int y,int state)
 		}
 		if (state!=MS_LB_UP) return 1;
 
-		if (n<5 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) {
-			if (attrib_needed(n,pl.attrib[n][0]+stat_raised[n])>pl.points-stat_points_used) return 1;
-			stat_points_used+=attrib_needed(n,pl.attrib[n][0]+stat_raised[n]);
-			stat_raised[n]++;
-			return 1;
-		} else if (n==5 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) {
-			if (hp_needed(pl.hp[0]+stat_raised[n])>pl.points-stat_points_used) return 1;
-			stat_points_used+=hp_needed(pl.hp[0]+stat_raised[n]);
-			stat_raised[n]++;
-			return 1;
-		} 
-		else if (n==6 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS)
-		{
-			if (mana_needed(pl.mana[0]+stat_raised[n+1])>pl.points-stat_points_used) return 1;
-			stat_points_used+=mana_needed(pl.mana[0]+stat_raised[n+1]);
-			stat_raised[n+1]++;
-			return 1;
-		} 
-		else if (n==7) return 1;
-		else if (n>=8 && game_ui_state.hud_mode != HUD_MODE_LIST_OFFENSES && game_ui_state.hud_mode != HUD_MODE_LIST_DEFENSES) {
-			m=skilltab[n-8+game_ui_state.skill_scroll].nr;
-			if (skill_needed(m,pl.skill[m][0]+stat_raised[n+game_ui_state.skill_scroll])>pl.points-stat_points_used) return 1;
-			stat_points_used+=skill_needed(m,pl.skill[m][0]+stat_raised[n+game_ui_state.skill_scroll]);
-			stat_raised[n+game_ui_state.skill_scroll]++;
-			return 1;
-		}
+		if (n==7) return 1;
+		raise_index=statbox_raise_index(n);
+		if (raise_index<0) return 0;
+		stat_raise_try_raise(raise_index);
+		return 1;
 	} 
 	else 
 	{ // lower
@@ -812,56 +815,23 @@ int _mouse_statbox(int x,int y,int state)
 		}
 		if (state!=MS_LB_UP) return 1;
 
-		if (n<5 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) {
-			if (!stat_raised[n]) return 1;
-			stat_raised[n]--;
-			stat_points_used-=attrib_needed(n,pl.attrib[n][0]+stat_raised[n]);
-			return 1;
-		} else if (n==5 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) {
-			if (!stat_raised[n]) return 1;
-			stat_raised[n]--;
-			stat_points_used-=hp_needed(pl.hp[0]+stat_raised[n]);
-			return 1;
-		} 
-		else if (n==6 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS)
-		{
-			if (!stat_raised[n+1]) return 1;
-			stat_raised[n+1]--;
-			stat_points_used-=mana_needed(pl.mana[0]+stat_raised[n+1]);
-			return 1;
-		} 
-		else if (n==7) return 1;
-		else if (n>=8 && game_ui_state.hud_mode != HUD_MODE_LIST_OFFENSES && game_ui_state.hud_mode != HUD_MODE_LIST_DEFENSES) {
-			if (!stat_raised[n+game_ui_state.skill_scroll]) return 1;
-			m=skilltab[n-8+game_ui_state.skill_scroll].nr;
-			stat_raised[n+game_ui_state.skill_scroll]--;
-			stat_points_used-=skill_needed(m,pl.skill[m][0]+stat_raised[n+game_ui_state.skill_scroll]);
-			return 1;
-		}
+		if (n==7) return 1;
+		raise_index=statbox_raise_index(n);
+		if (raise_index<0) return 0;
+		stat_raise_try_lower(raise_index);
+		return 1;
 	}
 	return 0;
 }
 
 int mouse_statbox(int x,int y,int state)
 {
-	int n,m,keys,ret=0;
-
-	keys=0;
+	int n,m,ret=0;
 	SDL_Keymod mods = SDL_GetModState();
 
-	if (mods & KMOD_SHIFT)
-		keys |= 1;
-
-	if ((mods & KMOD_CTRL) || (mods & KMOD_ALT))
-		keys |= 2;
-
-	if (state==MS_LB_UP) 
-	{
-		if (keys&2) m=90;
-		else if (keys&1) m=10;
-		else m=1;
-	} 
-	else 
+	if (state==MS_LB_UP)
+		m=stat_raise_click_multiplier((mods & KMOD_SHIFT)!=0, (mods & (KMOD_CTRL|KMOD_ALT))!=0);
+	else
 		m=1;
 	
 	if (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS || game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS_AND_META)
@@ -1772,6 +1742,13 @@ void mouse(int x,int y,int state)
 	*/
 
 	mouse_x=x; mouse_y=y;
+
+	/* A UI window under the cursor hides the game behind it, so nothing back there is hovered. */
+	if (state==MS_MOVE && imgui_want_capture_mouse()) {
+		tile_x=-1; tile_y=-1; tile_type=-1;
+		return;
+	}
+
 	if (mouse_inventory(x,y,state)) ;
 	else if (mouse_tree(x,y,state)) ;
 	else if (mouse_shop(x,y,state)) ;
