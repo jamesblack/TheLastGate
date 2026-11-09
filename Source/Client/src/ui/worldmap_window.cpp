@@ -68,7 +68,7 @@ struct WorldmapPanelState {
     AnnotationCodeStatus import_status;
     char export_message[64];
     bool export_too_long;
-    char status_text[64];
+    char status_text[192];
     double status_until;
 };
 
@@ -91,6 +91,7 @@ static const float SWATCH_SIZE = 12.0F;
 static const float PICKER_SWATCH_SIZE = 20.0F;
 static const float EDIT_LABEL_WIDTH = 180.0F;
 static const double STATUS_SECONDS = 3.0;
+static const double NOTICE_SECONDS = 12.0;
 static const int IMPORT_INITIAL_CAPACITY = 4096;
 static const ImU32 OUTLINE_COLOUR = IM_COL32(0, 0, 0, 255);
 static const ImU32 BACKGROUND_COLOUR = IM_COL32(0, 0, 0, 255);
@@ -129,9 +130,13 @@ static ImU32 category_colour_by_id(AnnotationSet *set, int category_id) {
     return category ? category_colour(category) : HIGHLIGHT_COLOUR;
 }
 
-static void set_status(WorldmapPanelState *panel, const char *text) {
+static void set_status_for(WorldmapPanelState *panel, const char *text, double seconds) {
     annotation_copy_text(panel->status_text, sizeof(panel->status_text), text);
-    panel->status_until = ImGui::GetTime() + STATUS_SECONDS;
+    panel->status_until = ImGui::GetTime() + seconds;
+}
+
+static void set_status(WorldmapPanelState *panel, const char *text) {
+    set_status_for(panel, text, STATUS_SECONDS);
 }
 
 static ImVec2 tile_to_screen(const WorldmapPanelState *panel, const MapArea *area, double tile_x, double tile_y) {
@@ -1173,6 +1178,22 @@ static void drop_interrupted_work(WorldmapPanelState *panel) {
     panel->right_press_active = false;
 }
 
+static void show_set_aside_notice(WorldmapPanelState *panel) {
+    static bool notice_shown = false;
+    if (notice_shown || !worldmap_annotations_were_set_aside()) return;
+    notice_shown = true;
+
+    const char *path = worldmap_annotations_path();
+    const char *file_name = path;
+    for (const char *cursor = path; *cursor != '\0'; cursor++) {
+        if (*cursor == '/' || *cursor == '\\') file_name = cursor + 1;
+    }
+    char message[sizeof(panel->status_text)];
+    snprintf(message, sizeof(message), "Your saved annotations could not be read and were set aside as %s.bad.",
+             file_name);
+    set_status_for(panel, message, NOTICE_SECONDS);
+}
+
 void worldmap_window_render(void) {
     static int last_rendered_frame = -1;
     WorldmapPanelState *panel = &panel_state;
@@ -1183,6 +1204,7 @@ void worldmap_window_render(void) {
     const int frame = ImGui::GetFrameCount();
     if (last_rendered_frame >= 0 && frame > last_rendered_frame + 1) drop_interrupted_work(panel);
     last_rendered_frame = frame;
+    show_set_aside_notice(panel);
 
     panel->hovered_tile_valid = false;
     ImGui::SetNextWindowSize(ImVec2(900.0F, 620.0F), ImGuiCond_FirstUseEver);

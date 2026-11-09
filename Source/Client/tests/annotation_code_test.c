@@ -103,6 +103,7 @@ static void check_sample_matches(const AnnotationCategory *category) {
     CHECK(category->annotations[2].tile_x == 500 && category->annotations[2].tile_y == 500);
     CHECK(category->annotations[3].kind == ANNOTATION_PATH);
     CHECK(strcmp(category->annotations[3].label, "Route to boss") == 0);
+    CHECK(category->annotations[3].tile_x == 100 && category->annotations[3].tile_y == 100);
     CHECK(category->annotations[3].segment_count == 2);
     if (category->annotations[3].segment_count != 2) return;
     CHECK(category->annotations[3].segments[0].start_x == 100 && category->annotations[3].segments[0].start_y == 100);
@@ -292,6 +293,43 @@ static void test_segment_total_over_cap_is_too_large(void) {
     free(code);
 }
 
+static void test_empty_category_name_becomes_imported(void) {
+    ByteBuffer buffer = {0};
+    AnnotationCategory imported;
+    char *code;
+    append_header(&buffer, "", 1);
+    append_byte(&buffer, ANNOTATION_PIN);
+    append_byte(&buffer, 0);
+    append_zigzag(&buffer, 10);
+    append_zigzag(&buffer, 20);
+    code = code_from_bytes(buffer.bytes, buffer.size);
+    memset(&imported, 0, sizeof(imported));
+    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_OK);
+    CHECK(strcmp(imported.name, "Imported") == 0);
+    CHECK(imported.annotation_count == 1);
+    if (imported.annotation_count == 1) CHECK(imported.annotations[0].label[0] == '\0');
+    annotation_category_release(&imported);
+    free(code);
+    byte_buffer_release(&buffer);
+}
+
+static void test_empty_text_label_is_damaged(void) {
+    ByteBuffer buffer = {0};
+    AnnotationCategory imported;
+    char *code;
+    append_header(&buffer, "Notes", 1);
+    append_byte(&buffer, ANNOTATION_TEXT);
+    append_byte(&buffer, 0);
+    append_zigzag(&buffer, 10);
+    append_zigzag(&buffer, 20);
+    code = code_from_bytes(buffer.bytes, buffer.size);
+    memset(&imported, 0, sizeof(imported));
+    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    CHECK(imported.annotations == NULL);
+    free(code);
+    byte_buffer_release(&buffer);
+}
+
 int main(void) {
     test_varint_round_trip();
     test_code_round_trip();
@@ -303,6 +341,8 @@ int main(void) {
     test_oversized_count_is_rejected();
     test_typical_maze_guide_fits_discord();
     test_segment_total_over_cap_is_too_large();
+    test_empty_category_name_becomes_imported();
+    test_empty_text_label_is_damaged();
     if (failures != 0) {
         printf("%d annotation code check(s) failed\n", failures);
         return 1;

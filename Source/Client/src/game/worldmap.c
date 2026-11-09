@@ -8,6 +8,7 @@
 static AnnotationSet annotation_set;
 static int annotation_set_ready = 0;
 static char annotation_file_path[512];
+static int annotation_file_set_aside = 0;
 
 AnnotationSet *worldmap_annotations(void) {
     if (!annotation_set_ready) {
@@ -27,6 +28,7 @@ void worldmap_open(const char *host, const int port) {
     server_file_build_path(annotation_file_path, sizeof(annotation_file_path), g_config.runtime.pref_path,
                            ANNOTATION_STORE_PREFIX, host, port);
     load_result = annotation_store_load(annotation_file_path, set);
+    annotation_file_set_aside = load_result < 0;
     if (load_result < 0) {
         log_warning("Saved annotations at %s were damaged and have been set aside", annotation_file_path);
     } else if (load_result > 0) {
@@ -37,6 +39,14 @@ void worldmap_open(const char *host, const int port) {
         annotation_category_add(set, "My notes", 1);
         set->changed = 0;
     }
+}
+
+int worldmap_annotations_were_set_aside(void) {
+    return annotation_file_set_aside;
+}
+
+const char *worldmap_annotations_path(void) {
+    return annotation_file_path;
 }
 
 void worldmap_save_annotations(void) {

@@ -153,6 +153,8 @@ static int read_path(const Reader *reader, int *cursor_x, int *cursor_y, Annotat
             !read_point(reader, cursor_x, cursor_y, &segment->end_x, &segment->end_y))
             return 0;
     }
+    annotation->tile_x = annotation->segments[0].start_x;
+    annotation->tile_y = annotation->segments[0].start_y;
     return 1;
 }
 
@@ -162,6 +164,7 @@ static int read_annotation(const Reader *reader, int *cursor_x, int *cursor_y, A
     annotation->kind = (AnnotationKind) kind;
     if (!read_text(reader, annotation->label, ANNOTATION_LABEL_MAX)) return 0;
     if (annotation->kind == ANNOTATION_PATH) return read_path(reader, cursor_x, cursor_y, annotation);
+    if (annotation->kind == ANNOTATION_TEXT && annotation->label[0] == '\0') return 0;
     return read_point(reader, cursor_x, cursor_y, &annotation->tile_x, &annotation->tile_y);
 }
 
@@ -175,6 +178,7 @@ int annotation_category_decode(const unsigned char *bytes, const size_t size, si
     if (!read_text(&reader, category->name, ANNOTATION_CATEGORY_NAME_MAX) || !read_byte(&reader, &colour_index) ||
         !annotation_varint_read(bytes, size, offset, &annotation_count))
         goto failed;
+    if (category->name[0] == '\0') annotation_copy_text(category->name, sizeof(category->name), "Imported");
     category->colour_index = colour_index >= ANNOTATION_PALETTE_SIZE ? 0 : (int) colour_index;
     if (annotation_count > ANNOTATION_MAX_PER_CATEGORY) {
         status = -1;
