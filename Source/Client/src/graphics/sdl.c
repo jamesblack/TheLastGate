@@ -23,6 +23,9 @@
 #include "shaders/magic_shader.h"
 #include "shaders/solid_shader.h"
 #include "ui/ui.h"
+#include "game/minimap.h"
+#include "game/minimap_overlay.h"
+#include "game/worldmap.h"
 
 Renderer renderer;
 
@@ -78,6 +81,13 @@ static struct FontCache font_cache[10];
 SpriteData *sprite_data = NULL;
 SpriteData *ui_sprite_data = NULL;
 static GLuint minimap_gl_texture = 0; // OpenGL texture for minimap (128x128)
+static GLuint worldmap_gl_texture = 0;
+static unsigned int worldmap_uploaded_revision = 0;
+static Uint32 worldmap_upload_ticks = 0;
+
+#define WORLDMAP_TEXTURE_WIDTH 2048
+#define WORLDMAP_TEXTURE_HEIGHT 1024
+#define WORLDMAP_UPLOAD_INTERVAL_MS 500u
 
 extern char path[];
 
@@ -323,6 +333,11 @@ void sdl_deinit(void) {
     if (minimap_gl_texture) {
         glDeleteTextures(1, &minimap_gl_texture);
         minimap_gl_texture = 0;
+    }
+
+    if (worldmap_gl_texture) {
+        glDeleteTextures(1, &worldmap_gl_texture);
+        worldmap_gl_texture = 0;
     }
 
     drop_effect_shader();
@@ -1067,6 +1082,52 @@ int sdl_isvisible(void) {
     return 1;
 }
 
+static Uint32 rgb555_to_rgba8888(const unsigned short pixel555) {
+    // RGB555: 0RRRRRGGGGGBBBBB (high bit unused)
+    Uint8 r = ((pixel555 >> 10) & 0x1F) << 3;
+    Uint8 g = ((pixel555 >> 5) & 0x1F) << 3;
+    Uint8 b = (pixel555 & 0x1F) << 3;
+
+    // Expand to full 8-bit range (replicate high bits to low bits)
+    r |= (r >> 5);
+    g |= (g >> 5);
+    b |= (b >> 5);
+
+    // RGBA8888 format: 0xAABBGGRR (little-endian)
+    return (0xFFu << 24) | ((Uint32) b << 16) | ((Uint32) g << 8) | r;
+}
+
+unsigned int sdl_worldmap_texture(const unsigned short *tile_colours, const unsigned int revision) {
+    const int texel_count = WORLDMAP_TEXTURE_WIDTH * WORLDMAP_TEXTURE_HEIGHT;
+    const Uint32 now_ticks = SDL_GetTicks();
+    Uint32 *pixels;
+    int texel_index;
+
+    if (worldmap_gl_texture) {
+        if (revision == worldmap_uploaded_revision) return worldmap_gl_texture;
+        if (now_ticks - worldmap_upload_ticks < WORLDMAP_UPLOAD_INTERVAL_MS) return worldmap_gl_texture;
+    }
+
+    pixels = malloc((size_t) texel_count * sizeof(Uint32));
+    if (!pixels) return worldmap_gl_texture;
+
+    for (texel_index = 0; texel_index < texel_count; texel_index++) {
+        pixels[texel_index] = rgb555_to_rgba8888(tile_colours[texel_index]);
+    }
+
+    if (!worldmap_gl_texture) {
+        create_gl_texture(WORLDMAP_TEXTURE_WIDTH, WORLDMAP_TEXTURE_HEIGHT, &worldmap_gl_texture, NULL);
+    }
+    glBindTexture(GL_TEXTURE_2D, worldmap_gl_texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, WORLDMAP_TEXTURE_WIDTH, WORLDMAP_TEXTURE_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE,
+                    pixels);
+    free(pixels);
+
+    worldmap_uploaded_revision = revision;
+    worldmap_upload_ticks = now_ticks;
+    return worldmap_gl_texture;
+}
+
 void sdl_show_map(unsigned short *src, int xo, int yo, int magnify) {
     // Flush sprite batch before rendering minimap
     sdl_batch_flush();
@@ -1096,21 +1157,11 @@ void sdl_show_map(unsigned short *src, int xo, int yo, int magnify) {
             // Read from source (transposed indexing: src[x_coord * MAPX_MAX + y_coord])
             unsigned short pixel555 = src[src_x * MAPX_MAX + src_y];
 
-            // Convert RGB555 to RGB888
-            // RGB555: 0RRRRRGGGGGBBBBB (high bit unused)
-            Uint8 r = ((pixel555 >> 10) & 0x1F) << 3; // 5 bits -> 8 bits
-            Uint8 g = ((pixel555 >> 5) & 0x1F) << 3; // 5 bits -> 8 bits
-            Uint8 b = (pixel555 & 0x1F) << 3; // 5 bits -> 8 bits
-
-            // Expand to full 8-bit range (replicate high bits to low bits)
-            r |= (r >> 5); // Fill lower 3 bits
-            g |= (g >> 5); // Fill lower 3 bits
-            b |= (b >> 5); // Fill lower 3 bits
-
-            // RGBA8888 format: 0xAABBGGRR (little-endian)
-            pixels[x * 128 + y] = (0xFF << 24) | (b << 16) | (g << 8) | r;
+            pixels[x * 128 + y] = rgb555_to_rgba8888(pixel555);
         }
     }
+
+    minimap_overlay_paint(pixels, 128, xo, yo, magnify, worldmap_annotations());
 
     // Upload to GPU
     glBindTexture(GL_TEXTURE_2D, minimap_gl_texture);

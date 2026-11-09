@@ -81,6 +81,7 @@ void sdl_shadow(int nr,int xpos,int ypos,int xoff,int yoff);
 void sdl_shadow_clear(void);
 int sdl_isvisible(void);
 void sdl_show_map(unsigned short *src,int xo,int yo,int magnify);
+unsigned int sdl_worldmap_texture(const unsigned short *tile_colours, unsigned int revision);
 int sdl_get_avgcol(int nr);
 
 SpriteData *sdl_get_ui_sprite_data(int nr);

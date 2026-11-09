@@ -12,6 +12,7 @@
 #include "common.h"
 #include "game/game_input.h"
 #include "game/minimap.h"
+#include "game/worldmap.h"
 #include "inter.h"
 #include "net/connection.h"
 #include "graphics/render.h"
@@ -245,10 +246,12 @@ int main(int argc, char *argv[]) {
 	launcher_shutdown();
 	game_input_init();
 	minimap_open(host_addr, host_port);
+	worldmap_open(host_addr, host_port);
 
 	engine();
 
 	minimap_close();
+	worldmap_close();
 
 	deinit();
 	save_options();

@@ -9,6 +9,7 @@
 #include "engine.h"
 #include "game/game_ui.h"
 #include "game/minimap.h"
+#include "game/worldmap.h"
 #include "game/stat_raise.h"
 #include "graphics/render.h"
 #include "input/input.h"
@@ -101,6 +102,7 @@ void so_error(const char *err) {
 
     save_options();
     minimap_close();
+    worldmap_close();
 
     if (!do_exit) {
         log_error("Networking Error: %s", err);

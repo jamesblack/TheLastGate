@@ -10,12 +10,16 @@
 #define MINIMAP_AUTOSAVE_INTERVAL_MS (5u * 60u * 1000u)
 
 static unsigned short tile_colours[MAPX_MAX * MAPY_MAX];
-static MinimapTiles minimap = {tile_colours, MAPX_MAX, MAPY_MAX, 0};
+static MinimapTiles minimap = {tile_colours, MAPX_MAX, MAPY_MAX, 0, 0};
 static char map_file_path[512];
 static Uint32 last_save_ticks = 0;
 
 unsigned short *minimap_tile_colours(void) {
     return tile_colours;
+}
+
+unsigned int minimap_revision(void) {
+    return minimap.revision;
 }
 
 static void save_if_changed(void) {

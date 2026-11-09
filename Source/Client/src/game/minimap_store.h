@@ -12,6 +12,7 @@ typedef struct {
     int width;
     int height;
     int changed;
+    unsigned int revision;
 } MinimapTiles;
 
 void minimap_store_build_path(char *path, size_t path_size, const char *directory, const char *host, int port);

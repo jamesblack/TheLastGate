@@ -26,6 +26,7 @@ static MinimapTiles make_minimap(unsigned short *tiles) {
     minimap.width = TEST_WIDTH;
     minimap.height = TEST_HEIGHT;
     minimap.changed = 0;
+    minimap.revision = 0;
     return minimap;
 }
 
@@ -246,6 +247,24 @@ static void test_wrong_version_gives_blank_map(void) {
     CHECK(loaded_is_blank());
 }
 
+static void test_revision_counts_changes(void) {
+    MinimapTiles minimap;
+    unsigned int before;
+
+    memset(saved_tiles, 0, sizeof(saved_tiles));
+    minimap = make_minimap(saved_tiles);
+
+    minimap_store_set_tile(&minimap, 1, 1, 0x0101);
+    CHECK(minimap.revision == 1);
+    minimap_store_set_tile(&minimap, 1, 1, 0x0101);
+    CHECK(minimap.revision == 1);
+
+    remove(TEST_PATH);
+    before = minimap.revision;
+    minimap_store_load(TEST_PATH, &minimap);
+    CHECK(minimap.revision == before + 1);
+}
+
 static void test_delete_removes_the_file(void) {
     MinimapTiles saved;
     FILE *file;
@@ -276,6 +295,7 @@ int main(void) {
     test_truncated_file_gives_blank_map();
     test_different_map_size_gives_blank_map();
     test_wrong_version_gives_blank_map();
+    test_revision_counts_changes();
     test_delete_removes_the_file();
 
     remove(TEST_PATH);

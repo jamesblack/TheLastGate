@@ -37,6 +37,7 @@ void minimap_store_set_tile(MinimapTiles *minimap, const int tile_x, const int t
     if (*tile != colour) {
         *tile = colour;
         minimap->changed = 1;
+        minimap->revision++;
     }
 }
 
@@ -146,6 +147,7 @@ int minimap_store_load(const char *path, MinimapTiles *minimap) {
 
     if (!loaded) memset(minimap->tiles, 0, tile_byte_count(minimap));
     minimap->changed = 0;
+    minimap->revision++;
     return loaded;
 }
 
