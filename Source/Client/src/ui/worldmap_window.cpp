@@ -90,6 +90,9 @@ static const float PATH_THICKNESS = 2.0F;
 static const float DASH_LENGTH = 6.0F;
 static const float DASH_GAP = 4.0F;
 static const float SWATCH_SIZE = 12.0F;
+static const int CATEGORY_LIST_MAP_COLUMN = 0;
+static const int CATEGORY_LIST_LABELS_COLUMN = 1;
+static const int CATEGORY_LIST_NAME_COLUMN = 2;
 static const float PICKER_SWATCH_SIZE = 20.0F;
 static const float EDIT_LABEL_WIDTH = 180.0F;
 static const double STATUS_SECONDS = 3.0;
@@ -794,6 +797,8 @@ static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set
         const bool selected = annotation->id == panel->selected_annotation_id;
         ImGui::PushID(annotation->id);
 
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(CATEGORY_LIST_NAME_COLUMN);
         const float row_start_x = ImGui::GetCursorPosX();
         if (ImGui::Selectable("##row", selected, ImGuiSelectableFlags_AllowOverlap)) {
             select_annotation(panel, annotation->id);
@@ -817,9 +822,17 @@ static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set
     }
 }
 
+static void centre_checkbox_in_column(void) {
+    const float spare = ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight();
+    if (spare > 0.0F) ImGui::SetCursorPosX(ImGui::GetCursorPosX() + spare / 2.0F);
+}
+
 static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, AnnotationCategory *category) {
     ImGui::PushID(category->id);
+    ImGui::TableNextRow();
 
+    ImGui::TableSetColumnIndex(CATEGORY_LIST_MAP_COLUMN);
+    centre_checkbox_in_column();
     bool visible = category->visible != 0;
     if (ImGui::Checkbox("##visible", &visible)) {
         category->visible = visible ? 1 : 0;
@@ -828,7 +841,8 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
     }
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show on map");
 
-    ImGui::SameLine();
+    ImGui::TableSetColumnIndex(CATEGORY_LIST_LABELS_COLUMN);
+    centre_checkbox_in_column();
     bool show_labels = category->show_labels != 0;
     if (ImGui::Checkbox("##labels", &show_labels)) {
         category->show_labels = show_labels ? 1 : 0;
@@ -837,7 +851,7 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
     }
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show pin labels");
 
-    ImGui::SameLine();
+    ImGui::TableSetColumnIndex(CATEGORY_LIST_NAME_COLUMN);
     const ImVec4 swatch = ImGui::ColorConvertU32ToFloat4(category_colour(category));
     ImGui::ColorButton("##swatch", swatch, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoPicker,
                        ImVec2(SWATCH_SIZE, SWATCH_SIZE));
@@ -867,11 +881,22 @@ static void render_category_list(WorldmapPanelState *panel, AnnotationSet *set, 
 
     const ImGuiStyle &style = ImGui::GetStyle();
     const float footer_height = ImGui::GetFrameHeightWithSpacing() * 2.0F + style.ItemSpacing.y;
-    ImGui::BeginChild("category_rows", ImVec2(0.0F, -footer_height));
-    for (int category_index = 0; category_index < set->category_count; category_index++) {
-        render_category_row(panel, set, &set->categories[category_index]);
+    const ImGuiTableFlags table_flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit;
+    if (ImGui::BeginTable("category_rows", 3, table_flags, ImVec2(0.0F, -footer_height))) {
+        const float checkbox_column_width = fmaxf(ImGui::CalcTextSize("Labels").x, ImGui::GetFrameHeight());
+        ImGui::TableSetupScrollFreeze(0, 1);
+        ImGui::TableSetupColumn("Map", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_IndentDisable,
+                                checkbox_column_width);
+        ImGui::TableSetupColumn("Labels", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_IndentDisable,
+                                checkbox_column_width);
+        // Tree indentation is applied only to the name column so expanded rows stay under their category
+        ImGui::TableSetupColumn("Category", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_IndentEnable);
+        ImGui::TableHeadersRow();
+        for (int category_index = 0; category_index < set->category_count; category_index++) {
+            render_category_row(panel, set, &set->categories[category_index]);
+        }
+        ImGui::EndTable();
     }
-    ImGui::EndChild();
 
     ImGui::Separator();
     if (ImGui::Button("+ New")) open_new_category(panel);
