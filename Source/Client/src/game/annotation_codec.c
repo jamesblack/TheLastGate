@@ -123,9 +123,11 @@ static int read_text(const Reader *reader, char *destination, const size_t desti
 
 static int read_coordinate(const Reader *reader, int *cursor, unsigned short *coordinate) {
     unsigned int encoded;
-    int position;
+    int delta, position;
     if (!annotation_varint_read(reader->bytes, reader->size, reader->offset, &encoded)) return 0;
-    position = *cursor + zigzag_decode(encoded);
+    delta = zigzag_decode(encoded);
+    if (delta < -ANNOTATION_TILE_LIMIT || delta > ANNOTATION_TILE_LIMIT) return 0;
+    position = *cursor + delta;
     if (position < 0 || position >= ANNOTATION_TILE_LIMIT) return 0;
     *cursor = position;
     *coordinate = (unsigned short) position;

@@ -189,6 +189,23 @@ static void test_out_of_range_coordinate_is_damaged(void) {
     byte_buffer_release(&buffer);
 }
 
+static void test_huge_delta_is_damaged(void) {
+    ByteBuffer buffer = {0};
+    AnnotationCategory imported;
+    char *code;
+    append_header(&buffer, "Huge delta", 1);
+    append_byte(&buffer, ANNOTATION_PIN);
+    append_byte(&buffer, 0);
+    annotation_varint_write(&buffer, 0xFFFFFFFEu);
+    append_zigzag(&buffer, 0);
+    code = code_from_bytes(buffer.bytes, buffer.size);
+    memset(&imported, 0, sizeof(imported));
+    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    CHECK(imported.annotations == NULL);
+    free(code);
+    byte_buffer_release(&buffer);
+}
+
 static void test_oversized_count_is_rejected(void) {
     ByteBuffer buffer = {0};
     AnnotationCategory imported;
@@ -241,6 +258,7 @@ int main(void) {
     test_missing_prefix_is_not_a_code();
     test_truncated_code_is_damaged();
     test_out_of_range_coordinate_is_damaged();
+    test_huge_delta_is_damaged();
     test_oversized_count_is_rejected();
     test_typical_maze_guide_fits_discord();
     if (failures != 0) {
