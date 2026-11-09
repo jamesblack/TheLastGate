@@ -120,6 +120,7 @@ int annotation_category_add(AnnotationSet *set, const char *name, const int colo
     memcpy(category->name, unique_name, sizeof(unique_name));
     category->colour_index = colour_index >= 0 && colour_index < ANNOTATION_PALETTE_SIZE ? colour_index : 0;
     category->visible = 1;
+    category->show_labels = 1;
     set->changed = 1;
     return category->id;
 }

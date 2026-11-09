@@ -81,6 +81,8 @@ static const float CATEGORY_COLUMN_WIDTH = 220.0F;
 static const double CENTRE_ON_PLAYER_PIXELS_PER_TILE = 8.0;
 static const double ZOOM_STEP = 1.25;
 static const float PIN_RADIUS = 5.0F;
+static const float PIN_LABEL_GAP = 4.0F;
+static const double PIN_LABEL_MIN_PIXELS_PER_TILE = 4.0;
 static const double PIN_HOVER_RADIUS = 8.0;
 static const double SELECT_RADIUS = 8.0;
 static const double SNAP_PIXELS = 8.0;
@@ -96,6 +98,7 @@ static const int IMPORT_INITIAL_CAPACITY = 4096;
 static const ImU32 OUTLINE_COLOUR = IM_COL32(0, 0, 0, 255);
 static const ImU32 BACKGROUND_COLOUR = IM_COL32(0, 0, 0, 255);
 static const ImU32 HIGHLIGHT_COLOUR = IM_COL32(255, 255, 255, 255);
+static const ImU32 PIN_LABEL_COLOUR = IM_COL32(255, 255, 255, 255);
 static const char *const TOOL_NAMES[WORLDMAP_TOOL_COUNT] = {"Select", "Pan", "Pin", "Line", "Text"};
 
 static const char *const ANNOTATION_MENU_ID = "annotation_menu";
@@ -399,12 +402,23 @@ static void draw_path(const WorldmapPanelState *panel, const MapArea *area, ImDr
     }
 }
 
+static bool pin_label_shown(const WorldmapPanelState *panel, const AnnotationCategory *category,
+                            const Annotation *annotation) {
+    return category->show_labels && annotation->label[0] != '\0' &&
+           panel->view.pixels_per_tile >= PIN_LABEL_MIN_PIXELS_PER_TILE;
+}
+
 static void draw_pin(const WorldmapPanelState *panel, const MapArea *area, ImDrawList *draw_list,
-                     const Annotation *annotation, ImU32 colour, bool selected) {
+                     const Annotation *annotation, ImU32 colour, bool selected, bool show_label) {
     const ImVec2 centre = tile_centre_to_screen(panel, area, annotation->tile_x, annotation->tile_y);
     if (selected) draw_list->AddCircle(centre, PIN_RADIUS + 3.0F, HIGHLIGHT_COLOUR, 0, 2.0F);
     draw_list->AddCircleFilled(centre, PIN_RADIUS, colour);
     draw_list->AddCircle(centre, PIN_RADIUS, OUTLINE_COLOUR);
+    if (show_label) {
+        const ImVec2 text_size = ImGui::CalcTextSize(annotation->label);
+        const ImVec2 position(floorf(centre.x + PIN_RADIUS + PIN_LABEL_GAP), floorf(centre.y - text_size.y / 2.0F));
+        draw_outlined_text(draw_list, position, PIN_LABEL_COLOUR, annotation->label);
+    }
 }
 
 static void draw_text_label(const WorldmapPanelState *panel, const MapArea *area, ImDrawList *draw_list,
@@ -431,7 +445,10 @@ static void draw_annotations(const WorldmapPanelState *panel, AnnotationSet *set
             if (panel->editing && annotation->id == panel->edit_annotation_id) annotation = &panel->edit_copy;
             switch (annotation->kind) {
                 case ANNOTATION_PATH: draw_path(panel, area, draw_list, annotation, colour, selected); break;
-                case ANNOTATION_PIN: draw_pin(panel, area, draw_list, annotation, colour, selected); break;
+                case ANNOTATION_PIN:
+                    draw_pin(panel, area, draw_list, annotation, colour, selected,
+                             pin_label_shown(panel, category, annotation));
+                    break;
                 case ANNOTATION_TEXT: draw_text_label(panel, area, draw_list, annotation, colour, selected); break;
             }
         }
@@ -720,8 +737,10 @@ static void show_pin_tooltip(const WorldmapPanelState *panel, AnnotationSet *set
     if (!ImGui::IsItemHovered()) return;
     const WorldmapHit hit = hit_test_at_mouse(panel, set, area, PIN_HOVER_RADIUS);
     if (hit.annotation_id == 0) return;
-    const Annotation *annotation = annotation_find(set, hit.annotation_id, NULL);
-    if (annotation && annotation->kind == ANNOTATION_PIN && annotation->label[0] != '\0') {
+    AnnotationCategory *owner = NULL;
+    const Annotation *annotation = annotation_find(set, hit.annotation_id, &owner);
+    if (annotation && owner && annotation->kind == ANNOTATION_PIN && annotation->label[0] != '\0' &&
+        !pin_label_shown(panel, owner, annotation)) {
         ImGui::SetTooltip("%s", annotation->label);
     }
 }
@@ -807,6 +826,16 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
         set->changed = 1;
         worldmap_save_annotations();
     }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show on map");
+
+    ImGui::SameLine();
+    bool show_labels = category->show_labels != 0;
+    if (ImGui::Checkbox("##labels", &show_labels)) {
+        category->show_labels = show_labels ? 1 : 0;
+        set->changed = 1;
+        worldmap_save_annotations();
+    }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show pin labels");
 
     ImGui::SameLine();
     const ImVec4 swatch = ImGui::ColorConvertU32ToFloat4(category_colour(category));

@@ -15,9 +15,11 @@
 
 /* File layout: the four magic bytes, then 32-bit little-endian words for the format version, uncompressed payload
  * size and compressed byte count, then the payload compressed with zlib. The payload is the show-on-minimap byte, a
- * varint category count, then per category a visible byte followed by the category encoding. */
+ * varint category count, then per category a visible byte, a show-labels byte (format 2 onwards) and the category
+ * encoding. Format 1 files load with labels shown. */
 static const char ANNOTATION_STORE_MAGIC[4] = {'T', 'L', 'G', 'A'};
-#define ANNOTATION_STORE_FORMAT 1
+#define ANNOTATION_STORE_FORMAT 2
+#define ANNOTATION_STORE_FIRST_FORMAT 1
 #define ANNOTATION_STORE_HEADER_BYTES 12
 #define ANNOTATION_STORE_MAX_PAYLOAD (16u * 1024u * 1024u)
 
@@ -49,7 +51,9 @@ static int build_payload(const AnnotationSet *set, ByteBuffer *payload) {
     annotation_varint_write(payload, (unsigned int) set->category_count);
     for (index = 0; index < set->category_count; index++) {
         const unsigned char visible_byte = set->categories[index].visible ? 1 : 0;
+        const unsigned char labels_byte = set->categories[index].show_labels ? 1 : 0;
         if (!byte_buffer_append(payload, &visible_byte, 1)) return 0;
+        if (!byte_buffer_append(payload, &labels_byte, 1)) return 0;
         if (!annotation_category_encode(&set->categories[index], payload)) return 0;
     }
     return 1;
@@ -103,7 +107,7 @@ int annotation_store_save(const char *path, AnnotationSet *set) {
     return saved;
 }
 
-static int read_payload(FILE *file, unsigned char **payload, size_t *payload_size) {
+static int read_payload(FILE *file, unsigned char **payload, size_t *payload_size, uint32_t *format) {
     char magic[sizeof(ANNOTATION_STORE_MAGIC)];
     unsigned char header[ANNOTATION_STORE_HEADER_BYTES];
     unsigned char *compressed;
@@ -118,7 +122,8 @@ static int read_payload(FILE *file, unsigned char **payload, size_t *payload_siz
     if (fread(header, 1, sizeof(header), file) != sizeof(header)) return 0;
     stored_size = read_word(header + 4);
     compressed_size = read_word(header + 8);
-    if (read_word(header) != ANNOTATION_STORE_FORMAT || stored_size == 0 ||
+    *format = read_word(header);
+    if (*format < ANNOTATION_STORE_FIRST_FORMAT || *format > ANNOTATION_STORE_FORMAT || stored_size == 0 ||
         stored_size > ANNOTATION_STORE_MAX_PAYLOAD || compressed_size == 0 ||
         compressed_size > compressBound(stored_size)) {
         return 0;
@@ -140,7 +145,8 @@ static int read_payload(FILE *file, unsigned char **payload, size_t *payload_siz
     return read_ok;
 }
 
-static int parse_payload(const unsigned char *payload, const size_t payload_size, AnnotationSet *set) {
+static int parse_payload(const unsigned char *payload, const size_t payload_size, const uint32_t format,
+                         AnnotationSet *set) {
     size_t offset = 0;
     unsigned int category_count;
     unsigned int index;
@@ -153,11 +159,17 @@ static int parse_payload(const unsigned char *payload, const size_t payload_size
     for (index = 0; index < category_count; index++) {
         AnnotationCategory category;
         int visible;
+        int show_labels = 1;
 
         if (offset >= payload_size) return 0;
         visible = payload[offset++] ? 1 : 0;
+        if (format >= 2) {
+            if (offset >= payload_size) return 0;
+            show_labels = payload[offset++] ? 1 : 0;
+        }
         if (annotation_category_decode(payload, payload_size, &offset, &category) != 1) return 0;
         category.visible = visible;
+        category.show_labels = show_labels;
         if (!annotation_category_adopt(set, &category)) {
             annotation_category_release(&category);
             return 0;
@@ -177,11 +189,12 @@ int annotation_store_load(const char *path, AnnotationSet *set) {
     FILE *file = fopen(path, "rb");
     unsigned char *payload = NULL;
     size_t payload_size = 0;
+    uint32_t format = 0;
     int loaded;
 
     if (file == NULL) return 0;
 
-    loaded = read_payload(file, &payload, &payload_size) && parse_payload(payload, payload_size, set);
+    loaded = read_payload(file, &payload, &payload_size, &format) && parse_payload(payload, payload_size, format, set);
     fclose(file);
     free(payload);
 

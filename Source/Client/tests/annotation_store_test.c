@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <zlib.h>
+
+#include "game/annotation_codec.h"
 #include "game/annotation_store.h"
 #include "game/annotations.h"
 #include "game/server_file.h"
@@ -46,6 +49,7 @@ static void fill_sample(AnnotationSet *set) {
     annotation_add_point(set, first, ANNOTATION_PIN, 100, 200, "Red key");
     annotation_add_point(set, first, ANNOTATION_TEXT, 300, 400, "Beware");
     annotation_add_path(set, second, segments, 3, "Maze");
+    set->categories[0].show_labels = 0;
     set->categories[1].visible = 0;
     set->show_on_minimap = 1;
 }
@@ -73,6 +77,8 @@ static void test_save_load_round_trip(void) {
         CHECK(strcmp(route->name, "Route") == 0);
         CHECK(keys->visible == 1);
         CHECK(route->visible == 0);
+        CHECK(keys->show_labels == 0);
+        CHECK(route->show_labels == 1);
         CHECK(keys->colour_index == 2);
         CHECK(route->colour_index == 5);
         CHECK(keys->annotation_count == 2);
@@ -156,12 +162,71 @@ static void test_save_clears_changed(void) {
     remove_test_files();
 }
 
+static void write_word(FILE *file, const unsigned int value) {
+    const unsigned char bytes[4] = {(unsigned char) (value & 0xff), (unsigned char) ((value >> 8) & 0xff),
+                                    (unsigned char) ((value >> 16) & 0xff), (unsigned char) ((value >> 24) & 0xff)};
+    fwrite(bytes, 1, sizeof(bytes), file);
+}
+
+static void write_version_one_file(const AnnotationCategory *category) {
+    ByteBuffer payload = {NULL, 0, 0};
+    const unsigned char show_on_minimap = 1;
+    const unsigned char visible = 1;
+    unsigned char compressed[4096];
+    uLongf compressed_size = sizeof(compressed);
+    FILE *file;
+
+    byte_buffer_append(&payload, &show_on_minimap, 1);
+    annotation_varint_write(&payload, 1);
+    byte_buffer_append(&payload, &visible, 1);
+    annotation_category_encode(category, &payload);
+    compress2(compressed, &compressed_size, payload.bytes, (uLong) payload.size, 9);
+
+    file = fopen(TEST_PATH, "wb");
+    if (file != NULL) {
+        fwrite("TLGA", 1, 4, file);
+        write_word(file, 1);
+        write_word(file, (unsigned int) payload.size);
+        write_word(file, (unsigned int) compressed_size);
+        fwrite(compressed, 1, compressed_size, file);
+        fclose(file);
+    }
+    byte_buffer_release(&payload);
+}
+
+static void test_version_one_file_loads_with_labels_shown(void) {
+    AnnotationSet source;
+    AnnotationSet loaded;
+    int category_id;
+
+    remove_test_files();
+    annotation_set_init(&source);
+    category_id = annotation_category_add(&source, "Old", 3);
+    annotation_add_point(&source, category_id, ANNOTATION_PIN, 12, 34, "Gate");
+    write_version_one_file(&source.categories[0]);
+
+    annotation_set_init(&loaded);
+    CHECK(annotation_store_load(TEST_PATH, &loaded) == 1);
+    CHECK(loaded.category_count == 1);
+    if (loaded.category_count == 1) {
+        CHECK(strcmp(loaded.categories[0].name, "Old") == 0);
+        CHECK(loaded.categories[0].show_labels == 1);
+        CHECK(loaded.categories[0].annotation_count == 1);
+    }
+    CHECK(!file_exists(TEST_PATH ".bad"));
+
+    annotation_set_release(&source);
+    annotation_set_release(&loaded);
+    remove_test_files();
+}
+
 int main(void) {
     test_server_file_path();
     test_save_load_round_trip();
     test_missing_file_returns_zero();
     test_damaged_file_is_moved_aside();
     test_save_clears_changed();
+    test_version_one_file_loads_with_labels_shown();
     if (failures != 0) {
         printf("%d annotation store check(s) failed\n", failures);
         return 1;

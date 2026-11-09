@@ -91,6 +91,7 @@ static AnnotationCategory build_sample_category(void) {
 static void check_sample_matches(const AnnotationCategory *category) {
     CHECK(strcmp(category->name, "Stronghold keys") == 0);
     CHECK(category->colour_index == 2);
+    CHECK(category->show_labels == 1);
     CHECK(category->annotation_count == 4);
     if (category->annotation_count != 4) return;
     CHECK(category->annotations[0].kind == ANNOTATION_PIN);

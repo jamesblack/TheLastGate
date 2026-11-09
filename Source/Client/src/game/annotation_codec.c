@@ -175,6 +175,7 @@ int annotation_category_decode(const unsigned char *bytes, const size_t size, si
     int cursor_x = 0, cursor_y = 0, status = 0, segment_total = 0;
     memset(category, 0, sizeof(*category));
     category->visible = 1;
+    category->show_labels = 1;
     if (!read_text(&reader, category->name, ANNOTATION_CATEGORY_NAME_MAX) || !read_byte(&reader, &colour_index) ||
         !annotation_varint_read(bytes, size, offset, &annotation_count))
         goto failed;

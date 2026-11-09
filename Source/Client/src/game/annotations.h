@@ -35,6 +35,7 @@ typedef struct {
     char name[ANNOTATION_CATEGORY_NAME_MAX];
     int colour_index;
     int visible;
+    int show_labels;
     Annotation *annotations;
     int annotation_count;
 } AnnotationCategory;

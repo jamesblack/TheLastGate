@@ -197,6 +197,19 @@ static void test_palette_wraps_invalid_index(void) {
     CHECK(annotation_palette_rgb(99) == 0x4FC3FF);
 }
 
+static void test_new_category_shows_labels(void) {
+    AnnotationSet set;
+    int category_id;
+
+    annotation_set_init(&set);
+    category_id = annotation_category_add(&set, "Keys", 0);
+    CHECK(annotation_category_find(&set, category_id) != NULL);
+    if (annotation_category_find(&set, category_id) != NULL) {
+        CHECK(annotation_category_find(&set, category_id)->show_labels == 1);
+    }
+    annotation_set_release(&set);
+}
+
 static void test_count_kind(void) {
     AnnotationSet set;
     AnnotationSegment segment = {1, 1, 2, 2};
@@ -288,6 +301,7 @@ int main(void) {
     test_changed_flag_set_on_mutation();
     test_palette_wraps_invalid_index();
     test_count_kind();
+    test_new_category_shows_labels();
     test_segment_total_per_category_is_capped();
     test_replace_refuses_growing_past_segment_total();
     if (failures != 0) {
