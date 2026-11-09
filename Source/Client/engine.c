@@ -2281,7 +2281,8 @@ void eng_display(int init) // optimize me!!!!!
                     int position = has_cmd_been_queued(CL_CMD_USE, map[m].x, map[m].y);
                     if (position) {
                         copysprite(45, EFFECT_GREEN, x * 32, y * 32, xoff, yoff);
-                        copysprite(4000 + position, 0, x * 32, y * 32, xoff, yoff);
+                        // Number overlays only exist for 1-10; later entries show the marker alone.
+                        if (position <= 10) copysprite(4000 + position, 0, x * 32, y * 32, xoff, yoff);
                     }
                 }
 

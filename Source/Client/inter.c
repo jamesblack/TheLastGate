@@ -1071,6 +1071,46 @@ void cmd1s(int cmd,int x)
 	xsend(buf);
 }
 
+static int is_queueable_item(int map_index, short sprite)
+{
+	return (map[map_index].flags&ISITEM) && (map[map_index].flags&ISUSABLE) &&
+	       (map[map_index].flags&INVIS)==0 && map[map_index].it_sprite==sprite;
+}
+
+// Queues every visible usable item sharing the source tile's sprite, spiralling
+// outward from the source up to six tiles away: ring by ring, each ring walked
+// clockwise from its top-left.
+static void queue_matching_items_spiral(int source_x, int source_y, int dist_diff)
+{
+	QueuedCommand matches[USE_QUEUE_CAPACITY];
+	int match_count=0, radius, step, side;
+	int min_x=dist_diff+3, max_x=screen_renderdist-dist_diff-view_subedges-3;
+	int min_y=dist_diff+view_subedges+3, max_y=screen_renderdist-dist_diff-3;
+	const int max_radius=6;
+	short sprite=map[source_x+source_y*screen_renderdist].it_sprite;
+	static const int side_dx[4]={1,0,-1,0};
+	static const int side_dy[4]={0,1,0,-1};
+
+	matches[match_count++]=(QueuedCommand){ CL_CMD_USE, map[source_x+source_y*screen_renderdist].x, map[source_x+source_y*screen_renderdist].y };
+
+	for (radius=1; radius<=max_radius &&match_count<USE_QUEUE_CAPACITY; radius++) {
+		int tile_x=source_x-radius, tile_y=source_y-radius;
+		for (side=0; side<4 && match_count<USE_QUEUE_CAPACITY; side++) {
+			for (step=0; step<radius*2 && match_count<USE_QUEUE_CAPACITY; step++) {
+				if (tile_x>=min_x && tile_x<=max_x && tile_y>=min_y && tile_y<=max_y) {
+					int map_index=tile_x+tile_y*screen_renderdist;
+					if (is_queueable_item(map_index, sprite))
+						matches[match_count++]=(QueuedCommand){ CL_CMD_USE, map[map_index].x, map[map_index].y };
+				}
+				tile_x+=side_dx[side];
+				tile_y+=side_dy[side];
+			}
+		}
+	}
+
+	add_cmds_to_queue(matches, match_count);
+}
+
 void mouse_mapbox(int x,int y,int state)
 {
 	int mx,my,m,keys,dist_diff;
@@ -1206,8 +1246,8 @@ void mouse_mapbox(int x,int y,int state)
 		}
 	}
 
-	if (keys == 3) {
-		if (g_config.gameplay.give_more && pl.citem) {
+	if (keys == 3 || keys == 7) {
+		if (keys == 3 && g_config.gameplay.give_more && pl.citem) {
 			if (map[m].flags&ISCHAR) hightlight=HL_MAP;
 			else if (find_nearest(ISCHAR, ivec2(mx, my), mouse_world_pos, RENDERDIST, map, &target)) {
 			    mx = target.x;
@@ -1247,7 +1287,8 @@ void mouse_mapbox(int x,int y,int state)
 				if (state==MS_LB_UP) {
 					if (map[m].flags&ISUSABLE && (map[m].flags&INVIS) == 0) {
 						xmove=xxtimer=0;
-						add_cmd_to_queue(CL_CMD_USE, map[m].x, map[m].y);
+						if (keys == 7) queue_matching_items_spiral(mx, my, dist_diff);
+						else add_cmd_to_queue(CL_CMD_USE, map[m].x, map[m].y);
 						if (pl.misc_action != DR_USE) {
 							mod_stubborn_actions_on_cmd(CL_CMD_USE, m);
 						}
