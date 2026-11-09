@@ -538,15 +538,16 @@ static void add_edit_segment(WorldmapPanelState *panel, int end_x, int end_y) {
     }
 }
 
-static void delete_edit_segment_at_mouse(WorldmapPanelState *panel, const MapArea *area) {
+static bool delete_edit_segment_at_mouse(WorldmapPanelState *panel, const MapArea *area) {
     Annotation *edited = &panel->edit_copy;
     const ImVec2 mouse = ImGui::GetIO().MousePos;
     const int segment_index = worldmap_hit_segment(edited, &panel->view, area->size.x, area->size.y,
                                                    mouse.x - area->origin.x, mouse.y - area->origin.y, SELECT_RADIUS);
-    if (segment_index < 0) return;
+    if (segment_index < 0) return false;
     memmove(&edited->segments[segment_index], &edited->segments[segment_index + 1],
             sizeof(AnnotationSegment) * (size_t) (edited->segment_count - segment_index - 1));
     edited->segment_count--;
+    return true;
 }
 
 static void begin_left_press(WorldmapPanelState *panel, const MapArea *area) {
@@ -572,14 +573,16 @@ static void begin_left_press(WorldmapPanelState *panel, const MapArea *area) {
     panel->press_tile_y = tile_y;
 }
 
-static void finish_edit_press(WorldmapPanelState *panel, const MapArea *area, bool dragged, int release_x,
-                              int release_y) {
-    if (panel->edit_copy.kind != ANNOTATION_PATH) return;
+static void finish_edit_press(WorldmapPanelState *panel, AnnotationSet *set, const MapArea *area, bool dragged,
+                              int release_x, int release_y) {
+    const bool editing_path = panel->edit_copy.kind == ANNOTATION_PATH;
     if (dragged) {
-        if (panel->press_inside_world) add_edit_segment(panel, release_x, release_y);
-    } else {
-        delete_edit_segment_at_mouse(panel, area);
+        if (editing_path && panel->press_inside_world) add_edit_segment(panel, release_x, release_y);
+        return;
     }
+    if (editing_path && delete_edit_segment_at_mouse(panel, area)) return;
+    const int hit_id = hit_test_at_mouse(panel, set, area, SELECT_RADIUS).annotation_id;
+    if (hit_id != 0 && hit_id != panel->edit_annotation_id) select_annotation(panel, hit_id);
 }
 
 static void finish_left_press(WorldmapPanelState *panel, AnnotationSet *set, const MapArea *area, bool dragged) {
@@ -587,7 +590,7 @@ static void finish_left_press(WorldmapPanelState *panel, AnnotationSet *set, con
     mouse_tile(panel, area, &release_x, &release_y);
 
     if (panel->editing) {
-        finish_edit_press(panel, area, dragged, release_x, release_y);
+        finish_edit_press(panel, set, area, dragged, release_x, release_y);
         return;
     }
     switch (panel->active_tool) {
@@ -837,7 +840,10 @@ static void render_edit_controls(WorldmapPanelState *panel, AnnotationSet *set) 
         ImGui::SetNextItemWidth(EDIT_LABEL_WIDTH);
         ImGui::InputText("##edit_label", panel->edit_copy.label, sizeof(panel->edit_copy.label));
         ImGui::SameLine();
+        const bool empty_text = panel->edit_copy.kind == ANNOTATION_TEXT && panel->edit_copy.label[0] == '\0';
+        ImGui::BeginDisabled(empty_text);
         if (ImGui::Button("Save")) save_edit(panel, set);
+        ImGui::EndDisabled();
         ImGui::SameLine();
         if (ImGui::Button("Cancel")) cancel_edit(panel);
         return;
@@ -929,6 +935,11 @@ static void cancel_label(WorldmapPanelState *panel) {
 
 static void render_label_popup(WorldmapPanelState *panel, AnnotationSet *set) {
     if (!ImGui::BeginPopupModal(LABEL_POPUP_ID, NULL, ImGuiWindowFlags_AlwaysAutoResize)) return;
+    if (panel->label_purpose == LABEL_PURPOSE_NONE) {
+        ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+        return;
+    }
 
     if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
     const bool submitted = ImGui::InputText("##label", panel->label_text, sizeof(panel->label_text),
@@ -1122,10 +1133,25 @@ static void render_popups(WorldmapPanelState *panel, AnnotationSet *set) {
     render_delete_category_popup(panel, set);
 }
 
+static void discard_unfinished_work(WorldmapPanelState *panel) {
+    cancel_edit(panel);
+    panel->pending_segment_count = 0;
+    panel->label_purpose = LABEL_PURPOSE_NONE;
+    if (panel->popup_request == LABEL_POPUP_ID) panel->popup_request = NULL;
+    panel->left_press_active = false;
+    panel->right_press_active = false;
+}
+
 void worldmap_window_render(void) {
+    static int last_rendered_frame = -1;
     WorldmapPanelState *panel = &panel_state;
     AnnotationSet *set = worldmap_annotations();
     bool open = true;
+
+    // A gap in rendered frames means the window was hidden (e.g. by its hotkey) since the last render.
+    const int frame = ImGui::GetFrameCount();
+    if (last_rendered_frame >= 0 && frame > last_rendered_frame + 1) discard_unfinished_work(panel);
+    last_rendered_frame = frame;
 
     panel->hovered_tile_valid = false;
     ImGui::SetNextWindowSize(ImVec2(900.0F, 620.0F), ImGuiCond_FirstUseEver);
@@ -1144,5 +1170,8 @@ void worldmap_window_render(void) {
     }
     ImGui::End();
 
-    if (!open) game_ui_state.show_worldmap = false;
+    if (!open) {
+        discard_unfinished_work(panel);
+        game_ui_state.show_worldmap = false;
+    }
 }
