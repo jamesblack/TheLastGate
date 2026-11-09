@@ -164,9 +164,14 @@ static void test_truncated_code_is_damaged(void) {
     AnnotationCategory imported;
     char *code = annotation_code_export(&sample);
     memset(&imported, 0, sizeof(imported));
-    code[strlen(code) - 6] = '\0';
+    code[strlen(code) - 8] = '\0';
+    CHECK(strchr(code, '=') == NULL);
+    CHECK(strlen(code) % 4 == 0);
     CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
     CHECK(imported.annotation_count == 0);
+    CHECK(imported.annotations == NULL);
+    code[strlen(code) - 2] = '\0';
+    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
     CHECK(imported.annotations == NULL);
     annotation_category_release(&sample);
     free(code);
@@ -244,7 +249,6 @@ static void test_typical_maze_guide_fits_discord(void) {
     code = annotation_code_export(&set.categories[0]);
     CHECK(code != NULL);
     if (code != NULL) {
-        printf("maze guide code length: %u\n", (unsigned int) strlen(code));
         CHECK(strlen(code) < ANNOTATION_CODE_DISCORD_LIMIT);
     }
     free(code);
