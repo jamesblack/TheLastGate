@@ -243,7 +243,7 @@ struct cplayer {
 
 	int points;
 	int points_tot;
-	unsigned long kindred;
+	unsigned int kindred;
 
 	// possessions
 	int gold;

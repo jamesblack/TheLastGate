@@ -300,9 +300,9 @@ int sv_terminology(unsigned char *buf) {
 void sv_newplayer(unsigned char *buf) {
     DEBUG("SV NEWPLAYER");
 
-    okey.usnr = *(unsigned long *) (buf + 1);
-    okey.pass1 = *(unsigned long *) (buf + 5);
-    okey.pass2 = *(unsigned long *) (buf + 9);
+    okey.usnr = *(unsigned int *) (buf + 1);
+    okey.pass1 = *(unsigned int *) (buf + 5);
+    okey.pass2 = *(unsigned int *) (buf + 9);
 
     save_options();
 }
@@ -321,7 +321,7 @@ void sv_setchar_name3(unsigned char *buf) {
     DEBUG("SV SETCHAR NAME3");
     memcpy(pl.name + 30, buf + 1, 10);
     strcpy(okey.name, pl.name);
-    okey.race = *(unsigned long *) (buf + 11);
+    okey.race = *(unsigned int *) (buf + 11);
     save_options();
 }
 
@@ -423,29 +423,29 @@ void sv_setchar_pts(unsigned char *buf) {
     int n;
 
     DEBUG("SV SETCHAR PTS");
-    pl.points = *(unsigned long *) (buf + 1);
-    pl.points_tot = *(unsigned long *) (buf + 5);
+    pl.points = *(unsigned int *) (buf + 1);
+    pl.points_tot = *(unsigned int *) (buf + 5);
 
-    if (pl.kindred != *(unsigned long *) (buf + 9)) {
+    if (pl.kindred != *(unsigned int *) (buf + 9)) {
         stat_points_used = 0;
         for (n = 0; n < 108; n++) {
             stat_raised[n] = 0;
         }
     }
 
-    pl.kindred = *(unsigned long *) (buf + 9);
+    pl.kindred = *(unsigned int *) (buf + 9);
 }
 
 void sv_setchar_wps(unsigned char *buf) {
     DEBUG("SV SETCHAR WPS");
-    pl.waypoints = *(unsigned long *) (buf + 1);
-    pl.bs_points = *(unsigned long *) (buf + 5);
-    pl.os_points = *(unsigned long *) (buf + 9);
+    pl.waypoints = *(unsigned int *) (buf + 1);
+    pl.bs_points = *(unsigned int *) (buf + 5);
+    pl.os_points = *(unsigned int *) (buf + 9);
 }
 
 void sv_setchar_tok(unsigned char *buf) {
     DEBUG("SV SETCHAR TOK");
-    pl.tokens = *(unsigned long *) (buf + 1);
+    pl.tokens = *(unsigned int *) (buf + 1);
     pl.tree_points = *(unsigned short *) (buf + 5);
     pl.os_tree = *(unsigned short *) (buf + 7);
 }
@@ -462,16 +462,16 @@ void sv_setchar_tre(unsigned char *buf) {
 
 void sv_setchar_gold(unsigned char *buf) {
     DEBUG("SV SETCHAR GOLD");
-    pl.gold = *(unsigned long *) (buf + 1);
-    pl.armor = *(unsigned long *) (buf + 5);
-    pl.weapon = *(unsigned long *) (buf + 9);
+    pl.gold = *(unsigned int *) (buf + 1);
+    pl.armor = *(unsigned int *) (buf + 5);
+    pl.weapon = *(unsigned int *) (buf + 9);
 }
 
 void sv_setchar_item(unsigned char *buf) {
     int n;
     DEBUG("SV SETCHAR ITEM");
 
-    n = *(unsigned long *) (buf + 1);
+    n = *(unsigned int *) (buf + 1);
     if (n < 0 || n > (MAXITEMS - 1)) xlog(0, "Invalid setchar item");
 
     pl.item[n] = *(short int *) (buf + 5);
@@ -482,14 +482,14 @@ void sv_setchar_item(unsigned char *buf) {
     pl.item_info[n] = (ItemDisplayInfo){pl.item[n], pl.item_p[n], pl.item_s[n], pl.item_l[n]};
     item_tooltip_slot_changed(ITEM_TOOLTIP_INVENTORY, n, pl.item[n]);
 
-    //	xlog("SV SETCHAR ITEM (%d,%d,%d)",*(unsigned long*)(buf+1),*(short int*)(buf+5),*(short int*)(buf+7));
+    //	xlog("SV SETCHAR ITEM (%d,%d,%d)",*(unsigned int*)(buf+1),*(short int*)(buf+5),*(short int*)(buf+7));
 }
 
 void sv_setchar_worn(unsigned char *buf) {
     int n;
     DEBUG("SV SETCHAR WORN");
 
-    n = *(unsigned long *) (buf + 1);
+    n = *(unsigned int *) (buf + 1);
     if (n < 0 || n > 19) xlog(0, "Invalid setchar worn");
     pl.worn[n] = *(short int *) (buf + 5);
     pl.worn_p[n] = *(short int *) (buf + 7);
@@ -503,7 +503,7 @@ void sv_setchar_spell(unsigned char *buf) {
     int n;
     DEBUG("SV SETCHAR SPELL");
 
-    n = *(unsigned long *) (buf + 1);
+    n = *(unsigned int *) (buf + 1);
     if (n < 0 || n > (MAXBUFFS - 1)) {
         xlog(0, "Invalid setchar spell");
         return;

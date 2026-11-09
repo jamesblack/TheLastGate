@@ -1015,7 +1015,7 @@ void cmd(int cmd,int x,int y)
 
 	buf[0]=(char)cmd;
 	*(unsigned short*)(buf+1)=(short)x;
-	*(unsigned long*)(buf+3)=(long)y;
+	*(unsigned int*)(buf+3)=(int)y;
 	xsend(buf);
 }
 
@@ -1024,7 +1024,7 @@ void cmdq(int cmd, int x, int y) {
 
 	buf[0]=(char)cmd;
 	*(unsigned short*)(buf+1)=(short)x;
-	*(unsigned long*)(buf+3)=(long)y;
+	*(unsigned int*)(buf+3)=(int)y;
 	xsend(buf);
 }
 
@@ -1034,7 +1034,7 @@ void cmds(int cmd,int x,int y)
 
 	buf[0]=(char)cmd;
 	*(unsigned short*)(buf+1)=(short)x;
-	*(unsigned long*)(buf+3)=(long)y;
+	*(unsigned int*)(buf+3)=(int)y;
 	xsend(buf);
 }
 
@@ -1045,9 +1045,9 @@ void cmd3(int cmd,int x,int y,int z)
 	play_sound("sfx/click.wav",CLICKVOL,0);
 
 	buf[0]=(char)cmd;
-	*(unsigned long*)(buf+1)=x;
-	*(unsigned long*)(buf+5)=y;
-	*(unsigned long*)(buf+9)=z;
+	*(unsigned int*)(buf+1)=x;
+	*(unsigned int*)(buf+5)=y;
+	*(unsigned int*)(buf+9)=z;
 	xsend(buf);
 }
 

@@ -177,9 +177,9 @@ ConnectionStatus connection_update(void) {
 			/* Prepare login or newlogin packet */
 			if (okey.usnr) {
 				obuf[0] = CL_LOGIN;
-				*(unsigned long*)(obuf + 1) = okey.usnr;
-				*(unsigned long*)(obuf + 5) = okey.pass1;
-				*(unsigned long*)(obuf + 9) = okey.pass2;
+				*(unsigned int*)(obuf + 1) = okey.usnr;
+				*(unsigned int*)(obuf + 5) = okey.pass1;
+				*(unsigned int*)(obuf + 9) = okey.pass2;
 			} else {
 				obuf[0] = CL_NEWLOGIN;
 			}
@@ -334,21 +334,21 @@ static int handle_login_packet(unsigned char *buf) {
 		/* Answer challenge */
 		strcpy(status.status_message, "Login challenge...");
 
-		unsigned long tmp = *(unsigned long*)(buf + 1);
+		unsigned int tmp = *(unsigned int*)(buf + 1);
 		tmp = xcrypt(tmp);
 
 		unsigned char obuf[16];
 		obuf[0] = CL_CHALLENGE;
-		*(unsigned long*)(obuf + 1) = tmp;
-		*(unsigned long*)(obuf + 5) = NETWORKING_VERSION;
-		*(unsigned long*)(obuf + 9) = race_param;
+		*(unsigned int*)(obuf + 1) = tmp;
+		*(unsigned int*)(obuf + 5) = NETWORKING_VERSION;
+		*(unsigned int*)(obuf + 9) = race_param;
 		SDLNet_TCP_Send(sock, (char*)obuf, 16);
 
 		security_id_load();
 
 		obuf[0] = CL_CMD_UNIQUE;
-		*(unsigned long*)(obuf + 1) = unique1;
-		*(unsigned long*)(obuf + 5) = unique2;
+		*(unsigned int*)(obuf + 1) = unique1;
+		*(unsigned int*)(obuf + 5) = unique2;
 		SDLNet_TCP_Send(sock, (char*)obuf, 16);
 
 		capcnt = 0;
@@ -359,9 +359,9 @@ static int handle_login_packet(unsigned char *buf) {
 	if (buf[0] == SV_NEWPLAYER) {
 		/* New player login success */
 		strcpy(status.status_message, "Login as new player OK");
-		okey.usnr = *(unsigned long*)(buf + 1);
-		okey.pass1 = *(unsigned long*)(buf + 5);
-		okey.pass2 = *(unsigned long*)(buf + 9);
+		okey.usnr = *(unsigned int*)(buf + 1);
+		okey.pass1 = *(unsigned int*)(buf + 5);
+		okey.pass2 = *(unsigned int*)(buf + 9);
 		ser_ver = *(unsigned char*)(buf + 13);
 		ser_ver += (int)((*(unsigned char*)(buf + 14))) << 8;
 		ser_ver += (int)((*(unsigned char*)(buf + 15))) << 16;
@@ -403,7 +403,7 @@ static int handle_login_packet(unsigned char *buf) {
 
 	if (buf[0] == SV_LOGIN_OK) {
 		/* Existing player login success */
-		ser_ver = *(unsigned long*)(buf + 1);
+		ser_ver = *(unsigned int*)(buf + 1);
 		strcpy(status.status_message, "Login OK");
 		return 1;
 	}
