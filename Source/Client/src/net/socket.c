@@ -8,6 +8,7 @@
 
 #include "engine.h"
 #include "game/game_ui.h"
+#include "game/minimap.h"
 #include "game/stat_raise.h"
 #include "graphics/render.h"
 #include "input/input.h"
@@ -98,6 +99,7 @@ void so_error(const char *err) {
     deinit();
 
     save_options();
+    minimap_close();
 
     if (!do_exit) {
         log_error("Networking Error: %s", err);
@@ -997,25 +999,11 @@ void sv_waypoints() {
     game_ui_state.show_waypoints = true;
 }
 
-extern unsigned short ymap[MAPX_MAX * MAPY_MAX];
-extern unsigned short xmap[MAPX_MAX * MAPY_MAX];
-
 void sv_clearbox(unsigned char *buf) {
-    int xx, yy, x, y, w, h;
-
     DEBUG("SV CLEARBOX");
 
-    x = *(unsigned short *) (buf + 1);
-    y = *(unsigned short *) (buf + 3);
-    w = *(unsigned short *) (buf + 5);
-    h = *(unsigned short *) (buf + 7);
-
-    for (xx = x; xx < x + w; xx++) {
-        for (yy = y; yy < y + h; yy++) {
-            xmap[yy + xx * MAPX_MAX] = 0;
-            ymap[yy + xx * MAPX_MAX] = 1;
-        }
-    }
+    minimap_clear_box(*(unsigned short *) (buf + 1), *(unsigned short *) (buf + 3), *(unsigned short *) (buf + 5),
+                      *(unsigned short *) (buf + 7));
 }
 
 void sv_settarget(unsigned char *buf) {

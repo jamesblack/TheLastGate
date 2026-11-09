@@ -46,6 +46,7 @@ typedef struct {
     char connection_status_text[300];
     ConnectionStatus connection_status;
     bool is_connecting;
+    bool show_clear_map_confirmation;
 } LauncherState;
 
 extern LauncherState launcher_state;
@@ -55,4 +56,6 @@ void launcher_shutdown(void);
 void launcher_tick(void);
 void launcher_connect(void);
 void launcher_set_fyi(const char* text);
+const char *launcher_server_label(void);
+void launcher_clear_saved_map(void);
 EXTERN_C_END

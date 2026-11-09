@@ -416,6 +416,52 @@ static void render_fyi_popover(const LauncherLayout *layout) {
     pop_popover_styles();
 }
 
+static void render_clear_map_popover(const LauncherLayout *layout) {
+    if (launcher_state.show_clear_map_confirmation) {
+        ImGui::OpenPopup("Clear saved map?");
+        launcher_state.show_clear_map_confirmation = false;
+    }
+
+    ImGui::SetNextWindowPos(layout->popover_position);
+    ImGui::SetNextWindowSize(layout->popover_size);
+    const auto pop_popover_styles = create_popover_styles(layout);
+    if (ImGui::BeginPopupModal("Clear saved map?", nullptr,
+                               ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                                       ImGuiWindowFlags_NoSavedSettings)) {
+        imgui_center_next_item(layout->popover_inner_size.x);
+        if (ImGui::BeginChild("text_container", layout->popover_inner_size, 0, ImGuiWindowFlags_NoScrollbar)) {
+            ImGui::TextWrapped("Do you really want to clear the saved map for %s?", launcher_server_label());
+            ImGui::Spacing();
+
+            ImGui::PushStyleColor(ImGuiCol_Text, layout->warning_text_color);
+            ImGui::TextWrapped("Every area explored on this server, by all of your characters, will be forgotten.");
+            ImGui::PopStyleColor(1);
+            ImGui::EndChild();
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        imgui_center_next_item((layout->popover_button_size.x * 2) + layout->popover_button_spacing);
+        const auto pop_button_styles = create_button_style(layout);
+        if (ImGui::Button("Yes", layout->popover_button_size)) {
+            ImGui::CloseCurrentPopup();
+            launcher_clear_saved_map();
+        }
+
+        ImGui::SameLine(0, layout->popover_button_spacing);
+
+        if (ImGui::Button("Cancel", layout->popover_button_size)) {
+            ImGui::CloseCurrentPopup();
+        }
+        pop_button_styles();
+        ImGui::EndPopup();
+    }
+
+    pop_popover_styles();
+}
+
 static void render_connection_popover(const LauncherLayout *layout) {
     ImGui::SetNextWindowPos(layout->popover_position);
     ImGui::SetNextWindowSize(layout->popover_size);
@@ -694,6 +740,16 @@ static void render_options(const LauncherLayout *layout) {
 
         ImGui::EndTable();
     }
+
+    ImGui::Dummy(ImVec2(0, layout->section_header_spacing));
+    const float clear_map_button_width =
+            layout->character_select_label_column_width + layout->character_select_input_column_width;
+    imgui_center_next_item(clear_map_button_width);
+    const auto pop_button_styles = create_button_style(layout);
+    if (ImGui::Button("Clear saved map data (destructive)", ImVec2(clear_map_button_width, 0))) {
+        launcher_state.show_clear_map_confirmation = true;
+    }
+    pop_button_styles();
 }
 
 void launcher_ui_render(void) {
@@ -711,6 +767,7 @@ void launcher_ui_render(void) {
 
         render_confirmation_popover(layout);
         render_fyi_popover(layout);
+        render_clear_map_popover(layout);
         render_connection_popover(layout);
 
         if (ImGui::BeginTable("Launcher Layout", 2, ImGuiTableFlags_SizingStretchSame)) {

@@ -61,6 +61,8 @@ add_executable(TheLastGate
         src/game/combat_model.c
         src/game/game_input.c
         src/game/planner_choices.c
+        src/game/minimap.c
+        src/game/minimap_store.c
         src/game/game_ui.c
         src/game/stat_display.c
         src/game/skill_focus.c
@@ -179,6 +181,15 @@ if (TLG_BUILD_TESTS)
     )
     target_include_directories(planner_choices_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME planner_choices COMMAND planner_choices_test)
+
+    find_package(ZLIB REQUIRED)
+    add_executable(minimap_store_test
+            tests/minimap_store_test.c
+            src/game/minimap_store.c
+    )
+    target_include_directories(minimap_store_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    target_link_libraries(minimap_store_test PRIVATE ZLIB::ZLIB)
+    add_test(NAME minimap_store COMMAND minimap_store_test)
 
     add_executable(buff_focus_test
             tests/buff_focus_test.c

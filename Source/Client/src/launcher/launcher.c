@@ -7,6 +7,7 @@
 #include "inter.h"
 #include "main.h"
 #include "character_manager.h"
+#include "game/minimap.h"
 #include "graphics/sdl.h"
 #include "log/log.h"
 #include "net/connection.h"
@@ -59,4 +60,22 @@ void launcher_connect(void) {
 void launcher_set_fyi(const char *text) {
     snprintf(launcher_state.simple_popover_state.text, sizeof(launcher_state.simple_popover_state.text), "%s", text);
     launcher_state.simple_popover_state.display = true;
+}
+
+const char *launcher_server_label(void) {
+    static char server_label[100];
+
+    snprintf(server_label, sizeof(server_label), "%s:%d", host_addr, host_port);
+    return server_label;
+}
+
+void launcher_clear_saved_map(void) {
+    char message[sizeof(launcher_state.simple_popover_state.text)];
+
+    if (minimap_delete_saved(host_addr, host_port)) {
+        snprintf(message, sizeof(message), "Saved map data for %s has been cleared.", launcher_server_label());
+    } else {
+        snprintf(message, sizeof(message), "Could not clear the saved map data for %s.", launcher_server_label());
+    }
+    launcher_set_fyi(message);
 }

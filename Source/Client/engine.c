@@ -11,6 +11,7 @@
 #include "main.h"
 #include "config/config.h"
 #include "game/game_ui.h"
+#include "game/minimap.h"
 #include "game/stat_display.h"
 #include "game/stat_raise.h"
 #include "graphics/render.h"
@@ -2043,9 +2044,6 @@ void display_floortile(int tile, int light, int x, int y, int xoff, int yoff, in
     copysprite(tile, light, x, y, xoff, yoff);
 }
 
-unsigned short ymap[MAPX_MAX * MAPY_MAX];
-unsigned short xmap[MAPX_MAX * MAPY_MAX];
-
 void draw_goto_target(const int map_x, const int map_y, const int tile_index) {
     static const int move_to_indicator_sprite = 31;
     if (pl.goto_x == map[tile_index].x && pl.goto_y == map[tile_index].y) {
@@ -2055,30 +2053,18 @@ void draw_goto_target(const int map_x, const int map_y, const int tile_index) {
     }
 }
 
-void set_minimap_background(int m) {
-    if (map[m].x < MAPX_MAX && map[m].y < MAPY_MAX && !(map[m].flags & INVIS)) {
-        if (!xmap[map[m].y + map[m].x * MAPX_MAX] || xmap[map[m].y + map[m].x * MAPX_MAX] == 0xffff
-            || ymap[map[m].y + map[m].x * MAPX_MAX] == 1) {
-            xmap[map[m].y + map[m].x * MAPX_MAX] = (unsigned short) get_avgcol(map[m].back);
-            ymap[map[m].y + map[m].x * MAPX_MAX] = 0;
-        }
-    }
+static void see_minimap_tile(int m) {
+    if (map[m].flags & INVIS) return;
+    // Unlit and off-map tiles arrive as SPR_EMPTY with no flags set
+    if (map[m].back == SPR_EMPTY || map[m].back == 0) return;
+    minimap_see_tile(map[m].x, map[m].y, (unsigned short) get_avgcol(map[m].obj1 ? map[m].obj1 : map[m].back));
 }
 
 void eng_display(int init) // optimize me!!!!!
 {
     int x, y, rx, ry, m, plr_sprite, tmp, mapx, mapy, selected_visible = 0, alpha, alphastr, txtclr;
     extern int dd_cache_hit, dd_cache_miss, swap, MAXCACHE;
-    static int xm_flag = 1;
     int inj;
-
-    if (xm_flag) {
-        for (m = 0; m < MAPX_MAX * MAPY_MAX; m++) {
-            xmap[m] = 0;
-            ymap[m] = 0;
-        }
-        xm_flag = 0;
-    }
 
     // check if we're visible. If not, just leave.
     if (!isvisible()) return;
@@ -2115,7 +2101,7 @@ void eng_display(int init) // optimize me!!!!!
                 display_floortile(map[m].back, map[m].light | tmp, x * 32, y * 32, xoff, yoff,
                                   map[x + y * screen_renderdist].x, map[x + y * screen_renderdist].y);
 
-                set_minimap_background(m);
+                see_minimap_tile(m);
                 draw_goto_target(x, y, m);
             }
         }
@@ -2208,10 +2194,6 @@ void eng_display(int init) // optimize me!!!!!
                     }
                 } else if (map[m].obj1) {
                     copysprite(map[m].obj1 + 1, map[m].light | tmp, x * 32, y * 32, xoff, yoff);
-                }
-
-                if (map[m].obj1 && map[m].x < MAPX_MAX && map[m].y < MAPY_MAX) {
-                    xmap[map[m].y + map[m].x * MAPX_MAX] = (unsigned short) get_avgcol(map[m].obj1);
                 }
 
                 // character
@@ -2362,8 +2344,16 @@ void eng_display(int init) // optimize me!!!!!
     copyspritex(do_darkmode ? 18001 : 1, 0, 0, 0);
 
     if (init) {
-        // Store your position on the map as a white pixel
-        xmap[mapy + mapx * MAPX_MAX] = 0xffff;
+        unsigned short *minimap_colours = minimap_tile_colours();
+        unsigned short *player_tile = NULL;
+        unsigned short remembered_colour = 0;
+
+        // Show your position as a white pixel for this frame only, so it is never saved into the map
+        if (mapx >= 0 && mapx < MAPX_MAX && mapy >= 0 && mapy < MAPY_MAX) {
+            player_tile = &minimap_colours[mapy + mapx * MAPX_MAX];
+            remembered_colour = *player_tile;
+            *player_tile = 0xffff;
+        }
 
         // offsets the minimap draw, so that it begins drawing from 64 tiles to the upper-left of your position,
         //   drawing 128 x 128 tiles as pixels in dd_show_map.
@@ -2379,7 +2369,8 @@ void eng_display(int init) // optimize me!!!!!
         if (mapy > MAPY_MAX - ((128 / max(1, game_ui_state.minimap_magnification)) + 1))
             mapy = MAPY_MAX - ((128 / max(1, game_ui_state.minimap_magnification)) + 1);
 
-        show_map(xmap, mapx, mapy, max(1, game_ui_state.minimap_magnification));
+        show_map(minimap_colours, mapx, mapy, max(1, game_ui_state.minimap_magnification));
+        if (player_tile) *player_tile = remembered_colour;
     }
 
     eng_display_win(plr_sprite, init);
@@ -3454,6 +3445,7 @@ void engine(void) {
     while (!quit) {
         handle_input();
         if (wantquit && maynotquit) maynotquit--;
+        minimap_autosave_tick();
 
         if (do_ticker && (ticker & 15) == 0) cmd1s(CL_CMD_CTICK, ticker);
 
