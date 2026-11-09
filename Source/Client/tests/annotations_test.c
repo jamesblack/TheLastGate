@@ -213,6 +213,69 @@ static void test_count_kind(void) {
     annotation_set_release(&set);
 }
 
+static void fill_long_path(AnnotationSegment *segments, const int segment_count) {
+    int index;
+    for (index = 0; index < segment_count; index++) {
+        segments[index].start_x = (unsigned short) index;
+        segments[index].start_y = 1;
+        segments[index].end_x = (unsigned short) (index + 1);
+        segments[index].end_y = 1;
+    }
+}
+
+static void test_segment_total_per_category_is_capped(void) {
+    AnnotationSet set;
+    static AnnotationSegment segments[ANNOTATION_MAX_SEGMENTS];
+    AnnotationSegment single = {1, 1, 2, 2};
+    int category_id, other_id, path_index;
+    annotation_set_init(&set);
+    fill_long_path(segments, ANNOTATION_MAX_SEGMENTS);
+    category_id = annotation_category_add(&set, "Flood", 0);
+    other_id = annotation_category_add(&set, "Other", 0);
+    for (path_index = 0; path_index < ANNOTATION_MAX_SEGMENTS_PER_CATEGORY / ANNOTATION_MAX_SEGMENTS; path_index++) {
+        CHECK(annotation_add_path(&set, category_id, segments, ANNOTATION_MAX_SEGMENTS, "flood") != 0);
+    }
+    CHECK(annotation_category_segment_total(annotation_category_find(&set, category_id)) ==
+          ANNOTATION_MAX_SEGMENTS_PER_CATEGORY);
+    CHECK(annotation_add_path(&set, category_id, &single, 1, "one more") == 0);
+    CHECK(annotation_add_path(&set, other_id, &single, 1, "elsewhere") != 0);
+    annotation_set_release(&set);
+}
+
+static void test_replace_refuses_growing_past_segment_total(void) {
+    AnnotationSet set;
+    static AnnotationSegment segments[ANNOTATION_MAX_SEGMENTS];
+    AnnotationSegment pair[2] = {{1, 1, 2, 2}, {2, 2, 3, 3}};
+    Annotation edited;
+    Annotation *stored;
+    int category_id, small_id, path_index;
+    annotation_set_init(&set);
+    fill_long_path(segments, ANNOTATION_MAX_SEGMENTS);
+    category_id = annotation_category_add(&set, "Flood", 0);
+    for (path_index = 0; path_index < ANNOTATION_MAX_SEGMENTS_PER_CATEGORY / ANNOTATION_MAX_SEGMENTS - 1;
+         path_index++) {
+        CHECK(annotation_add_path(&set, category_id, segments, ANNOTATION_MAX_SEGMENTS, "flood") != 0);
+    }
+    CHECK(annotation_add_path(&set, category_id, segments, ANNOTATION_MAX_SEGMENTS - 1, "almost") != 0);
+    small_id = annotation_add_path(&set, category_id, pair, 1, "small");
+    CHECK(small_id != 0);
+    stored = annotation_find(&set, small_id, NULL);
+    CHECK(stored != NULL);
+    if (stored == NULL) {
+        annotation_set_release(&set);
+        return;
+    }
+    CHECK(annotation_copy(&edited, stored) == 1);
+    free(edited.segments);
+    edited.segments = pair;
+    edited.segment_count = 2;
+    CHECK(annotation_replace(&set, small_id, &edited) == 0);
+    edited.segment_count = 1;
+    strcpy(edited.label, "renamed");
+    CHECK(annotation_replace(&set, small_id, &edited) == 1);
+    annotation_set_release(&set);
+}
+
 int main(void) {
     test_ids_are_unique_and_start_at_one();
     test_add_point_rejects_unknown_category_and_out_of_range();
@@ -225,6 +288,8 @@ int main(void) {
     test_changed_flag_set_on_mutation();
     test_palette_wraps_invalid_index();
     test_count_kind();
+    test_segment_total_per_category_is_capped();
+    test_replace_refuses_growing_past_segment_total();
     if (failures != 0) {
         printf("%d annotations check(s) failed\n", failures);
         return 1;

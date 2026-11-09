@@ -160,6 +160,12 @@ int annotation_category_count_kind(const AnnotationCategory *category, const Ann
     return total;
 }
 
+int annotation_category_segment_total(const AnnotationCategory *category) {
+    int index, total = 0;
+    for (index = 0; index < category->annotation_count; index++) total += category->annotations[index].segment_count;
+    return total;
+}
+
 static Annotation *append_annotation(AnnotationCategory *category) {
     Annotation *grown;
     if (category->annotation_count >= ANNOTATION_MAX_PER_CATEGORY) return NULL;
@@ -194,6 +200,7 @@ int annotation_add_path(AnnotationSet *set, const int category_id, const Annotat
     AnnotationSegment *copied;
     if (category == NULL || !segments_valid(segments, segment_count)) return 0;
     if (category->annotation_count >= ANNOTATION_MAX_PER_CATEGORY) return 0;
+    if (annotation_category_segment_total(category) + segment_count > ANNOTATION_MAX_SEGMENTS_PER_CATEGORY) return 0;
     copied = duplicate_segments(segments, segment_count);
     if (copied == NULL) return 0;
     annotation = append_annotation(category);
@@ -252,11 +259,15 @@ int annotation_copy(Annotation *destination, const Annotation *source) {
 }
 
 int annotation_replace(AnnotationSet *set, const int annotation_id, const Annotation *edited) {
-    Annotation *annotation = annotation_find(set, annotation_id, NULL);
+    AnnotationCategory *owner = NULL;
+    Annotation *annotation = annotation_find(set, annotation_id, &owner);
     AnnotationSegment *copied = NULL;
     if (annotation == NULL) return 0;
     if (annotation->kind == ANNOTATION_PATH) {
         if (!segments_valid(edited->segments, edited->segment_count)) return 0;
+        if (annotation_category_segment_total(owner) - annotation->segment_count + edited->segment_count >
+            ANNOTATION_MAX_SEGMENTS_PER_CATEGORY)
+            return 0;
         copied = duplicate_segments(edited->segments, edited->segment_count);
         if (copied == NULL) return 0;
     } else if (!tile_in_range(edited->tile_x) || !tile_in_range(edited->tile_y)) {

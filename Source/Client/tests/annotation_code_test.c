@@ -255,6 +255,43 @@ static void test_typical_maze_guide_fits_discord(void) {
     annotation_set_release(&set);
 }
 
+static char *code_for_flood(const int path_count) {
+    ByteBuffer buffer = {0};
+    char *code;
+    int path_index, segment_index;
+    append_header(&buffer, "Flood", (unsigned int) path_count);
+    for (path_index = 0; path_index < path_count; path_index++) {
+        append_byte(&buffer, ANNOTATION_PATH);
+        append_byte(&buffer, 0);
+        annotation_varint_write(&buffer, ANNOTATION_MAX_SEGMENTS);
+        for (segment_index = 0; segment_index < ANNOTATION_MAX_SEGMENTS; segment_index++) {
+            append_zigzag(&buffer, segment_index == 0 && path_index == 0 ? 0 : -1);
+            append_zigzag(&buffer, 0);
+            append_zigzag(&buffer, 1);
+            append_zigzag(&buffer, 0);
+        }
+    }
+    code = code_from_bytes(buffer.bytes, buffer.size);
+    byte_buffer_release(&buffer);
+    return code;
+}
+
+static void test_segment_total_over_cap_is_too_large(void) {
+    const int paths_at_cap = ANNOTATION_MAX_SEGMENTS_PER_CATEGORY / ANNOTATION_MAX_SEGMENTS;
+    AnnotationCategory imported;
+    char *code = code_for_flood(paths_at_cap);
+    memset(&imported, 0, sizeof(imported));
+    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_OK);
+    annotation_category_release(&imported);
+    free(code);
+
+    code = code_for_flood(paths_at_cap + 1);
+    memset(&imported, 0, sizeof(imported));
+    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_TOO_LARGE);
+    CHECK(imported.annotations == NULL);
+    free(code);
+}
+
 int main(void) {
     test_varint_round_trip();
     test_code_round_trip();
@@ -265,6 +302,7 @@ int main(void) {
     test_huge_delta_is_damaged();
     test_oversized_count_is_rejected();
     test_typical_maze_guide_fits_discord();
+    test_segment_total_over_cap_is_too_large();
     if (failures != 0) {
         printf("%d annotation code check(s) failed\n", failures);
         return 1;

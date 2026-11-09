@@ -46,27 +46,61 @@ static void paint_pin(const OverlayCanvas *canvas, const int tile_x, const int t
     }
 }
 
-static void paint_segment(const OverlayCanvas *canvas, const AnnotationSegment *segment) {
-    int tile_x = segment->start_x;
-    int tile_y = segment->start_y;
-    const int delta_x = abs((int) segment->end_x - tile_x);
-    const int delta_y = -abs((int) segment->end_y - tile_y);
-    const int step_x = tile_x < segment->end_x ? 1 : -1;
-    const int step_y = tile_y < segment->end_y ? 1 : -1;
-    int error = delta_x + delta_y;
-    int doubled_error;
+static int segment_misses_view(const OverlayCanvas *canvas, const AnnotationSegment *segment, const int visible_tiles) {
+    const int lowest_x = segment->start_x < segment->end_x ? segment->start_x : segment->end_x;
+    const int highest_x = segment->start_x < segment->end_x ? segment->end_x : segment->start_x;
+    const int lowest_y = segment->start_y < segment->end_y ? segment->start_y : segment->end_y;
+    const int highest_y = segment->start_y < segment->end_y ? segment->end_y : segment->start_y;
 
-    for (;;) {
-        fill_tile(canvas, tile_x, tile_y);
-        if (tile_x == segment->end_x && tile_y == segment->end_y) break;
-        doubled_error = 2 * error;
-        if (doubled_error >= delta_y) {
-            error += delta_y;
-            tile_x += step_x;
-        }
-        if (doubled_error <= delta_x) {
-            error += delta_x;
-            tile_y += step_y;
+    return highest_x < canvas->origin_tile_x || lowest_x >= canvas->origin_tile_x + visible_tiles ||
+           highest_y < canvas->origin_tile_y || lowest_y >= canvas->origin_tile_y + visible_tiles;
+}
+
+/*
+ * Walks only the steps whose major-axis tile lies in the view. Bresenham's minor-axis offset after `step` major
+ * steps is floor((2 * minor_length * step + major_length) / (2 * major_length)), so any step can be computed
+ * directly and the tiles painted are exactly those of a full walk from the segment start.
+ */
+static void paint_segment(const OverlayCanvas *canvas, const AnnotationSegment *segment) {
+    const int visible_tiles = (canvas->pixel_size + canvas->magnify - 1) / canvas->magnify;
+    const int delta_x = abs((int) segment->end_x - (int) segment->start_x);
+    const int delta_y = abs((int) segment->end_y - (int) segment->start_y);
+    const int step_x = segment->start_x < segment->end_x ? 1 : -1;
+    const int step_y = segment->start_y < segment->end_y ? 1 : -1;
+    const int x_major = delta_x >= delta_y;
+    const int major_length = x_major ? delta_x : delta_y;
+    const int minor_length = x_major ? delta_y : delta_x;
+    const int major_start = x_major ? segment->start_x : segment->start_y;
+    const int major_direction = x_major ? step_x : step_y;
+    const int view_first_major = x_major ? canvas->origin_tile_x : canvas->origin_tile_y;
+    const int view_last_major = view_first_major + visible_tiles - 1;
+    int first_step;
+    int last_step;
+    int step;
+
+    if (segment_misses_view(canvas, segment, visible_tiles)) return;
+    if (major_length == 0) {
+        fill_tile(canvas, segment->start_x, segment->start_y);
+        return;
+    }
+
+    if (major_direction > 0) {
+        first_step = view_first_major - major_start;
+        last_step = view_last_major - major_start;
+    } else {
+        first_step = major_start - view_last_major;
+        last_step = major_start - view_first_major;
+    }
+    if (first_step < 0) first_step = 0;
+    if (last_step > major_length) last_step = major_length;
+
+    for (step = first_step; step <= last_step; step++) {
+        const int minor_offset = (2 * minor_length * step + major_length) / (2 * major_length);
+
+        if (x_major) {
+            fill_tile(canvas, segment->start_x + step_x * step, segment->start_y + step_y * minor_offset);
+        } else {
+            fill_tile(canvas, segment->start_x + step_x * minor_offset, segment->start_y + step_y * step);
         }
     }
 }

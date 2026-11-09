@@ -11,6 +11,7 @@ extern "C" {
 #define ANNOTATION_MAX_CATEGORIES 64
 #define ANNOTATION_MAX_PER_CATEGORY 256
 #define ANNOTATION_MAX_SEGMENTS 512
+#define ANNOTATION_MAX_SEGMENTS_PER_CATEGORY 4096
 #define ANNOTATION_TILE_LIMIT 2048
 #define ANNOTATION_PALETTE_SIZE 8
 
@@ -56,6 +57,7 @@ int annotation_category_remove(AnnotationSet *set, int category_id);
 AnnotationCategory *annotation_category_find(AnnotationSet *set, int category_id);
 void annotation_category_release(AnnotationCategory *category);
 int annotation_category_count_kind(const AnnotationCategory *category, AnnotationKind kind);
+int annotation_category_segment_total(const AnnotationCategory *category);
 int annotation_add_point(AnnotationSet *set, int category_id, AnnotationKind kind, int tile_x, int tile_y,
                          const char *label);
 int annotation_add_path(AnnotationSet *set, int category_id, const AnnotationSegment *segments, int segment_count,

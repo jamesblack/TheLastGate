@@ -169,7 +169,7 @@ int annotation_category_decode(const unsigned char *bytes, const size_t size, si
                                AnnotationCategory *category) {
     const Reader reader = {bytes, size, offset};
     unsigned int colour_index, annotation_count, index;
-    int cursor_x = 0, cursor_y = 0, status = 0;
+    int cursor_x = 0, cursor_y = 0, status = 0, segment_total = 0;
     memset(category, 0, sizeof(*category));
     category->visible = 1;
     if (!read_text(&reader, category->name, ANNOTATION_CATEGORY_NAME_MAX) || !read_byte(&reader, &colour_index) ||
@@ -189,6 +189,11 @@ int annotation_category_decode(const unsigned char *bytes, const size_t size, si
         const int result = read_annotation(&reader, &cursor_x, &cursor_y, &category->annotations[index]);
         if (result != 1) {
             status = result;
+            goto failed;
+        }
+        segment_total += category->annotations[index].segment_count;
+        if (segment_total > ANNOTATION_MAX_SEGMENTS_PER_CATEGORY) {
+            status = -1;
             goto failed;
         }
     }

@@ -374,12 +374,21 @@ static void draw_dashed_line(ImDrawList *draw_list, ImVec2 start, ImVec2 end, Im
     }
 }
 
+static bool line_misses_area(const MapArea *area, ImVec2 start, ImVec2 end) {
+    const float margin = PATH_THICKNESS + 2.0F;
+    return fmaxf(start.x, end.x) < area->origin.x - margin ||
+           fminf(start.x, end.x) > area->origin.x + area->size.x + margin ||
+           fmaxf(start.y, end.y) < area->origin.y - margin ||
+           fminf(start.y, end.y) > area->origin.y + area->size.y + margin;
+}
+
 static void draw_path(const WorldmapPanelState *panel, const MapArea *area, ImDrawList *draw_list,
                       const Annotation *annotation, ImU32 colour, bool selected) {
     for (int segment_index = 0; segment_index < annotation->segment_count; segment_index++) {
         const AnnotationSegment *segment = &annotation->segments[segment_index];
         const ImVec2 start = tile_centre_to_screen(panel, area, segment->start_x, segment->start_y);
         const ImVec2 end = tile_centre_to_screen(panel, area, segment->end_x, segment->end_y);
+        if (line_misses_area(area, start, end)) continue;
         if (selected) draw_list->AddLine(start, end, HIGHLIGHT_COLOUR, PATH_THICKNESS + 2.0F);
         draw_list->AddLine(start, end, colour, PATH_THICKNESS);
     }
@@ -429,8 +438,10 @@ static void draw_pending_path(const WorldmapPanelState *panel, AnnotationSet *se
     const ImU32 colour = category_colour_by_id(set, panel->pending_category_id);
     for (int segment_index = 0; segment_index < panel->pending_segment_count; segment_index++) {
         const AnnotationSegment *segment = &panel->pending_segments[segment_index];
-        draw_dashed_line(draw_list, tile_centre_to_screen(panel, area, segment->start_x, segment->start_y),
-                         tile_centre_to_screen(panel, area, segment->end_x, segment->end_y), colour);
+        const ImVec2 start = tile_centre_to_screen(panel, area, segment->start_x, segment->start_y);
+        const ImVec2 end = tile_centre_to_screen(panel, area, segment->end_x, segment->end_y);
+        if (line_misses_area(area, start, end)) continue;
+        draw_dashed_line(draw_list, start, end, colour);
     }
 }
 
@@ -510,23 +521,40 @@ static bool append_segment(AnnotationSegment *segment, int start_x, int start_y,
     return true;
 }
 
-static void add_pending_segment(WorldmapPanelState *panel, int end_x, int end_y) {
+static bool category_has_segment_room(AnnotationSet *set, int category_id, int extra_segments) {
+    const AnnotationCategory *category = annotation_category_find(set, category_id);
+    if (!category) return true;
+    return annotation_category_segment_total(category) + extra_segments <= ANNOTATION_MAX_SEGMENTS_PER_CATEGORY;
+}
+
+static void add_pending_segment(WorldmapPanelState *panel, AnnotationSet *set, int end_x, int end_y) {
+    if (panel->press_tile_x == end_x && panel->press_tile_y == end_y) return;
     if (panel->pending_segment_count >= ANNOTATION_MAX_SEGMENTS) {
         set_status(panel, "Path is full.");
         return;
     }
     if (panel->pending_segment_count == 0) panel->pending_category_id = panel->current_category_id;
+    if (!category_has_segment_room(set, panel->pending_category_id, panel->pending_segment_count + 1)) {
+        set_status(panel, "Category is full.");
+        return;
+    }
     if (append_segment(&panel->pending_segments[panel->pending_segment_count], panel->press_tile_x, panel->press_tile_y,
                        end_x, end_y)) {
         panel->pending_segment_count++;
     }
 }
 
-static void add_edit_segment(WorldmapPanelState *panel, int end_x, int end_y) {
+static void add_edit_segment(WorldmapPanelState *panel, AnnotationSet *set, int end_x, int end_y) {
     Annotation *edited = &panel->edit_copy;
     if (panel->press_tile_x == end_x && panel->press_tile_y == end_y) return;
     if (edited->segment_count >= ANNOTATION_MAX_SEGMENTS) {
         set_status(panel, "Path is full.");
+        return;
+    }
+    AnnotationCategory *owner = NULL;
+    const Annotation *stored = annotation_find(set, panel->edit_annotation_id, &owner);
+    if (stored && !category_has_segment_room(set, owner->id, edited->segment_count + 1 - stored->segment_count)) {
+        set_status(panel, "Category is full.");
         return;
     }
     AnnotationSegment *grown = (AnnotationSegment *) realloc(
@@ -577,7 +605,7 @@ static void finish_edit_press(WorldmapPanelState *panel, AnnotationSet *set, con
                               int release_x, int release_y) {
     const bool editing_path = panel->edit_copy.kind == ANNOTATION_PATH;
     if (dragged) {
-        if (editing_path && panel->press_inside_world) add_edit_segment(panel, release_x, release_y);
+        if (editing_path && panel->press_inside_world) add_edit_segment(panel, set, release_x, release_y);
         return;
     }
     if (editing_path && delete_edit_segment_at_mouse(panel, area)) return;
@@ -605,7 +633,7 @@ static void finish_left_press(WorldmapPanelState *panel, AnnotationSet *set, con
             }
             break;
         case WORLDMAP_TOOL_LINE:
-            if (panel->press_inside_world) add_pending_segment(panel, release_x, release_y);
+            if (panel->press_inside_world) add_pending_segment(panel, set, release_x, release_y);
             break;
         default: break;
     }
