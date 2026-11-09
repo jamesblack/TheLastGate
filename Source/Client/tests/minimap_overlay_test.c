@@ -67,12 +67,10 @@ static void test_pin_paints_three_by_three(void) {
     annotation_set_release(&set);
 }
 
-static void test_segment_fills_magnified_blocks(void) {
+static void test_magnified_segment_is_one_dotted_pixel_wide(void) {
     AnnotationSet set;
     int category;
-    int tile_y;
-    int sub_x;
-    int sub_y;
+    int pixel_y;
     AnnotationSegment segment = {0, 0, 0, 3};
 
     annotation_set_init(&set);
@@ -82,12 +80,10 @@ static void test_segment_fills_magnified_blocks(void) {
     memset(view, 0, sizeof(view));
 
     minimap_overlay_paint(view, VIEW_SIZE, 0, 0, 2, &set);
-    for (tile_y = 0; tile_y <= 3; tile_y++) {
-        for (sub_x = 0; sub_x < 2; sub_x++) {
-            for (sub_y = 0; sub_y < 2; sub_y++) CHECK(view[sub_x * VIEW_SIZE + tile_y * 2 + sub_y] == PAINTED);
-        }
+    for (pixel_y = 1; pixel_y <= 7; pixel_y++) {
+        CHECK(view[1 * VIEW_SIZE + pixel_y] == (pixel_y % 2 == 1 ? PAINTED : 0));
     }
-    CHECK(count_painted() == 16);
+    CHECK(count_painted() == 4);
     annotation_set_release(&set);
 }
 
@@ -129,49 +125,50 @@ static void test_out_of_view_is_clipped(void) {
     minimap_overlay_paint(guarded + 1, VIEW_SIZE, 0, 0, 1, &set);
     CHECK(guarded[0] == CANARY);
     CHECK(guarded[VIEW_SIZE * VIEW_SIZE + 1] == CANARY);
-    CHECK(guarded[1 + 127 * VIEW_SIZE + 127] == PAINTED);
+    CHECK(guarded[1 + 126 * VIEW_SIZE + 126] == PAINTED);
+    CHECK(guarded[1 + 127 * VIEW_SIZE + 127] == 0);
     annotation_set_release(&set);
 }
 
 static unsigned int reference[VIEW_SIZE * VIEW_SIZE];
 
-static void reference_fill_tile(const int origin_tile_x, const int origin_tile_y, const int magnify, const int tile_x,
-                                const int tile_y) {
-    int sub_x;
-    int sub_y;
-    for (sub_x = 0; sub_x < magnify; sub_x++) {
-        for (sub_y = 0; sub_y < magnify; sub_y++) {
-            const int pixel_x = (tile_x - origin_tile_x) * magnify + sub_x;
-            const int pixel_y = (tile_y - origin_tile_y) * magnify + sub_y;
-            if (pixel_x >= 0 && pixel_y >= 0 && pixel_x < VIEW_SIZE && pixel_y < VIEW_SIZE)
-                reference[pixel_x * VIEW_SIZE + pixel_y] = PAINTED;
-        }
-    }
+static void reference_put_pixel(const int pixel_x, const int pixel_y) {
+    if (pixel_x >= 0 && pixel_y >= 0 && pixel_x < VIEW_SIZE && pixel_y < VIEW_SIZE)
+        reference[pixel_x * VIEW_SIZE + pixel_y] = PAINTED;
 }
 
 static void reference_paint_segment(const AnnotationSegment *segment, const int origin_tile_x, const int origin_tile_y,
                                     const int magnify) {
-    int tile_x = segment->start_x;
-    int tile_y = segment->start_y;
-    const int delta_x = abs((int) segment->end_x - tile_x);
-    const int delta_y = -abs((int) segment->end_y - tile_y);
-    const int step_x = tile_x < segment->end_x ? 1 : -1;
-    const int step_y = tile_y < segment->end_y ? 1 : -1;
+    int pixel_x = (segment->start_x - origin_tile_x) * magnify + magnify / 2;
+    int pixel_y = (segment->start_y - origin_tile_y) * magnify + magnify / 2;
+    const int end_x = (segment->end_x - origin_tile_x) * magnify + magnify / 2;
+    const int end_y = (segment->end_y - origin_tile_y) * magnify + magnify / 2;
+    const int delta_x = abs(end_x - pixel_x);
+    const int delta_y = -abs(end_y - pixel_y);
+    const int step_x = pixel_x < end_x ? 1 : -1;
+    const int step_y = pixel_y < end_y ? 1 : -1;
+    const int x_major = delta_x >= -delta_y;
     int error = delta_x + delta_y;
+    int major_steps = 0;
 
     memset(reference, 0, sizeof(reference));
     for (;;) {
         const int doubled_error = 2 * error;
-        reference_fill_tile(origin_tile_x, origin_tile_y, magnify, tile_x, tile_y);
-        if (tile_x == segment->end_x && tile_y == segment->end_y) break;
+        int moved_x = 0;
+        int moved_y = 0;
+        if (major_steps % 2 == 0) reference_put_pixel(pixel_x, pixel_y);
+        if (pixel_x == end_x && pixel_y == end_y) break;
         if (doubled_error >= delta_y) {
             error += delta_y;
-            tile_x += step_x;
+            pixel_x += step_x;
+            moved_x = 1;
         }
         if (doubled_error <= delta_x) {
             error += delta_x;
-            tile_y += step_y;
+            pixel_y += step_y;
+            moved_y = 1;
         }
+        if (x_major ? moved_x : moved_y) major_steps++;
     }
 }
 
@@ -194,20 +191,24 @@ static int paint_matches_reference(const AnnotationSegment *segment, const int o
 
 static void test_long_row_paints_only_visible_part(void) {
     AnnotationSegment segment = {10, 0, 10, 2000};
-    int tile_y;
+    int pixel_y;
 
     CHECK(paint_matches_reference(&segment, 0, 0, 1));
-    for (tile_y = 0; tile_y < VIEW_SIZE; tile_y++) CHECK(view[10 * VIEW_SIZE + tile_y] == PAINTED);
-    CHECK(count_painted() == VIEW_SIZE);
+    for (pixel_y = 0; pixel_y < VIEW_SIZE; pixel_y++) {
+        CHECK(view[10 * VIEW_SIZE + pixel_y] == (pixel_y % 2 == 0 ? PAINTED : 0));
+    }
+    CHECK(count_painted() == VIEW_SIZE / 2);
 }
 
 static void test_long_column_paints_only_visible_part(void) {
     AnnotationSegment segment = {0, 10, 2000, 10};
-    int tile_x;
+    int pixel_x;
 
     CHECK(paint_matches_reference(&segment, 0, 0, 1));
-    for (tile_x = 0; tile_x < VIEW_SIZE; tile_x++) CHECK(view[tile_x * VIEW_SIZE + 10] == PAINTED);
-    CHECK(count_painted() == VIEW_SIZE);
+    for (pixel_x = 0; pixel_x < VIEW_SIZE; pixel_x++) {
+        CHECK(view[pixel_x * VIEW_SIZE + 10] == (pixel_x % 2 == 0 ? PAINTED : 0));
+    }
+    CHECK(count_painted() == VIEW_SIZE / 2);
 }
 
 static void test_segment_outside_view_paints_nothing(void) {
@@ -284,7 +285,7 @@ static void test_many_long_segments_paint_quickly(void) {
 int main(void) {
     test_nothing_painted_when_disabled();
     test_pin_paints_three_by_three();
-    test_segment_fills_magnified_blocks();
+    test_magnified_segment_is_one_dotted_pixel_wide();
     test_hidden_category_and_text_skipped();
     test_out_of_view_is_clipped();
     test_long_row_paints_only_visible_part();

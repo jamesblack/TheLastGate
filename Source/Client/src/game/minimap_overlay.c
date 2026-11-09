@@ -2,6 +2,8 @@
 
 #include <stdlib.h>
 
+#define DOT_SPACING 2
+
 typedef struct {
     unsigned int *pixels;
     int pixel_size;
@@ -22,17 +24,6 @@ static unsigned int abgr_from_rgb(const unsigned int rgb) {
 static void put_pixel(const OverlayCanvas *canvas, const int pixel_x, const int pixel_y) {
     if (pixel_x < 0 || pixel_y < 0 || pixel_x >= canvas->pixel_size || pixel_y >= canvas->pixel_size) return;
     canvas->pixels[pixel_x * canvas->pixel_size + pixel_y] = canvas->colour;
-}
-
-static void fill_tile(const OverlayCanvas *canvas, const int tile_x, const int tile_y) {
-    const int base_x = (tile_x - canvas->origin_tile_x) * canvas->magnify;
-    const int base_y = (tile_y - canvas->origin_tile_y) * canvas->magnify;
-    int sub_x;
-    int sub_y;
-
-    for (sub_x = 0; sub_x < canvas->magnify; sub_x++) {
-        for (sub_y = 0; sub_y < canvas->magnify; sub_y++) put_pixel(canvas, base_x + sub_x, base_y + sub_y);
-    }
 }
 
 static void paint_pin(const OverlayCanvas *canvas, const int tile_x, const int tile_y) {
@@ -56,51 +47,60 @@ static int segment_misses_view(const OverlayCanvas *canvas, const AnnotationSegm
            highest_y < canvas->origin_tile_y || lowest_y >= canvas->origin_tile_y + visible_tiles;
 }
 
+static int tile_centre_pixel(const OverlayCanvas *canvas, const int tile, const int origin_tile) {
+    return (tile - origin_tile) * canvas->magnify + canvas->magnify / 2;
+}
+
 /*
- * Walks only the steps whose major-axis tile lies in the view. Bresenham's minor-axis offset after `step` major
- * steps is floor((2 * minor_length * step + major_length) / (2 * major_length)), so any step can be computed
- * directly and the tiles painted are exactly those of a full walk from the segment start.
+ * Draws a 1-pixel line between tile centres, lighting every DOT_SPACING-th pixel counted from the segment start so
+ * the dots stay put as the minimap scrolls. Only steps whose major-axis pixel lies in the view are walked: Bresenham's
+ * minor-axis offset after `step` major steps is floor((2 * minor_length * step + major_length) / (2 * major_length)),
+ * so any step can be computed directly and the pixels painted are exactly those of a full walk from the start.
  */
 static void paint_segment(const OverlayCanvas *canvas, const AnnotationSegment *segment) {
     const int visible_tiles = (canvas->pixel_size + canvas->magnify - 1) / canvas->magnify;
-    const int delta_x = abs((int) segment->end_x - (int) segment->start_x);
-    const int delta_y = abs((int) segment->end_y - (int) segment->start_y);
-    const int step_x = segment->start_x < segment->end_x ? 1 : -1;
-    const int step_y = segment->start_y < segment->end_y ? 1 : -1;
+    const int start_x = tile_centre_pixel(canvas, segment->start_x, canvas->origin_tile_x);
+    const int start_y = tile_centre_pixel(canvas, segment->start_y, canvas->origin_tile_y);
+    const int end_x = tile_centre_pixel(canvas, segment->end_x, canvas->origin_tile_x);
+    const int end_y = tile_centre_pixel(canvas, segment->end_y, canvas->origin_tile_y);
+    const int delta_x = abs(end_x - start_x);
+    const int delta_y = abs(end_y - start_y);
+    const int step_x = start_x < end_x ? 1 : -1;
+    const int step_y = start_y < end_y ? 1 : -1;
     const int x_major = delta_x >= delta_y;
     const int major_length = x_major ? delta_x : delta_y;
     const int minor_length = x_major ? delta_y : delta_x;
-    const int major_start = x_major ? segment->start_x : segment->start_y;
+    const int major_start = x_major ? start_x : start_y;
     const int major_direction = x_major ? step_x : step_y;
-    const int view_first_major = x_major ? canvas->origin_tile_x : canvas->origin_tile_y;
-    const int view_last_major = view_first_major + visible_tiles - 1;
+    const int view_last_major = canvas->pixel_size - 1;
     int first_step;
     int last_step;
     int step;
 
     if (segment_misses_view(canvas, segment, visible_tiles)) return;
     if (major_length == 0) {
-        fill_tile(canvas, segment->start_x, segment->start_y);
+        put_pixel(canvas, start_x, start_y);
         return;
     }
 
     if (major_direction > 0) {
-        first_step = view_first_major - major_start;
+        first_step = -major_start;
         last_step = view_last_major - major_start;
     } else {
         first_step = major_start - view_last_major;
-        last_step = major_start - view_first_major;
+        last_step = major_start;
     }
     if (first_step < 0) first_step = 0;
     if (last_step > major_length) last_step = major_length;
+    if (first_step % DOT_SPACING != 0) first_step += DOT_SPACING - first_step % DOT_SPACING;
 
-    for (step = first_step; step <= last_step; step++) {
+    for (step = first_step; step <= last_step; step += DOT_SPACING) {
         const int minor_offset = (2 * minor_length * step + major_length) / (2 * major_length);
 
         if (x_major) {
-            fill_tile(canvas, segment->start_x + step_x * step, segment->start_y + step_y * minor_offset);
+            put_pixel(canvas, start_x + step_x * step, start_y + step_y * minor_offset);
         } else {
-            fill_tile(canvas, segment->start_x + step_x * minor_offset, segment->start_y + step_y * step);
+            put_pixel(canvas, start_x + step_x * minor_offset, start_y + step_y * step);
         }
     }
 }
