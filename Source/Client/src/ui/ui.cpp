@@ -53,13 +53,13 @@ static ImFont *load_font(const char *filename, float size_pixels) {
 }
 
 static void load_fonts() {
-    font_sizes.ui = load_font("resources/astonia.ttf", 10);
+    font_sizes.ui = load_font("resources/Astonia.ttf", 10);
     font_sizes.normal = load_font("resources/PixelOperator.ttf", 16);
     font_sizes.large = load_font("resources/PixelOperator.ttf", 24);
     font_sizes.subheader = load_font("resources/PixelOperator.ttf", 28);
     font_sizes.header = load_font("resources/PixelOperator.ttf", 32);
 
-    font_sizes_bold.ui = load_font("resources/astonia.ttf", 10);
+    font_sizes_bold.ui = load_font("resources/Astonia.ttf", 10);
     font_sizes_bold.normal = load_font("resources/PixelOperator-Bold.ttf", 16);
     font_sizes_bold.large = load_font("resources/PixelOperator-Bold.ttf", 24);
     font_sizes_bold.subheader = load_font("resources/PixelOperator-Bold.ttf", 28);
