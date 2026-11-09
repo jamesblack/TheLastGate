@@ -109,7 +109,7 @@ static void render_spell_popover() {
             }
             get_skill_tab_info_from_id(skill_id, skill_name, &skill_tab_id);
             if (skill_tab_id == -1) continue;
-            if (pl.skill[skill_tab_id][0] == 0) continue;
+            if (pl.skill[skill_id][0] == 0) continue;
             if (ImGui::Selectable(skill_name, false)) {
                 handle_spell_selection(skill_tab_id);
             }
