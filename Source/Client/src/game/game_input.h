@@ -18,5 +18,6 @@ typedef enum {
     WAYPOINT_PAGE,
     DEPOT_PAGE,
     OPTIONS_WINDOW,
-    CHAT_HISTORY
+    CHAT_HISTORY,
+    MINIMAP
 } ScrollableRegion;

@@ -40,6 +40,8 @@ static ScrollableRegion get_scrollable_region(int x, int y) {
 
     if (x > 973 && x < 1275 && y > 6 && y < 230) return CHAT_HISTORY;
 
+    if (x >= 6 && x < 134 && y >= 582 && y < 710) return MINIMAP;
+
 
     return NONE;
 }
@@ -578,6 +580,11 @@ void game_handle_input(const SDL_Event *e) {
                         logstart += 3;
                         logtimer = TICKS * 30 / TICKMULTI;
                     }
+                    break;
+                case MINIMAP:
+                    if (delta > 0 && game_ui_state.minimap_magnification < 4) game_ui_state.minimap_magnification++;
+                    else if (delta < 0 && game_ui_state.minimap_magnification > 1)
+                        game_ui_state.minimap_magnification--;
                     break;
                 default: break;
             }
