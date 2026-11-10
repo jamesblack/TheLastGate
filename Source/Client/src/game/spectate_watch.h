@@ -6,9 +6,12 @@ extern "C" {
 
 typedef enum { SPECTATE_NONE, SPECTATE_STARTING, SPECTATE_WATCHING } SpectatePhase;
 
+#define SPECTATE_TARGET_NAME_MAX 40
+
 typedef struct {
     SpectatePhase phase;
     int own_character;
+    char target_name[SPECTATE_TARGET_NAME_MAX];
 } SpectateWatch;
 
 void spectate_watch_reset(SpectateWatch *watch);

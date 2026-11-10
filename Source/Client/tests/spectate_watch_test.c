@@ -78,6 +78,40 @@ static void test_unknown_own_character_waits_for_stop_message(void) {
     CHECK(!spectate_watch_active(&watch));
 }
 
+static void test_target_leaving_game_ends_spectating(void) {
+    SpectateWatch watch = started_watch();
+    spectate_watch_view_centre(&watch, TARGET);
+    spectate_watch_log_line(&watch, "Bobby left the game.", TARGET);
+    CHECK(spectate_watch_active(&watch));
+    spectate_watch_log_line(&watch, "Carl left the game.", TARGET);
+    CHECK(spectate_watch_active(&watch));
+    spectate_watch_log_line(&watch, "Bob left the game.", TARGET);
+    CHECK(!spectate_watch_active(&watch));
+}
+
+static void test_target_leaving_without_goodbye_ends_spectating(void) {
+    SpectateWatch watch = started_watch();
+    spectate_watch_view_centre(&watch, TARGET);
+    spectate_watch_log_line(&watch, "Bob left the game without saying goodbye.", TARGET);
+    CHECK(!spectate_watch_active(&watch));
+}
+
+static void test_switching_target_watches_new_name(void) {
+    SpectateWatch watch = started_watch();
+    spectate_watch_log_line(&watch, "Now spectating Carl. Use /spectate self to return.", TARGET);
+    spectate_watch_log_line(&watch, "Bob left the game.", OTHER_TARGET);
+    CHECK(spectate_watch_active(&watch));
+    spectate_watch_log_line(&watch, "Carl left the game.", OTHER_TARGET);
+    CHECK(!spectate_watch_active(&watch));
+}
+
+static void test_left_game_ignored_when_not_spectating(void) {
+    SpectateWatch watch;
+    spectate_watch_reset(&watch);
+    spectate_watch_log_line(&watch, " left the game.", OWN);
+    CHECK(!spectate_watch_active(&watch));
+}
+
 int main(void) {
     test_ordinary_lines_change_nothing();
     test_start_message_pauses_before_view_moves();
@@ -85,6 +119,10 @@ int main(void) {
     test_stop_message_ends_spectating();
     test_switching_target_keeps_own_character();
     test_unknown_own_character_waits_for_stop_message();
+    test_target_leaving_game_ends_spectating();
+    test_target_leaving_without_goodbye_ends_spectating();
+    test_switching_target_watches_new_name();
+    test_left_game_ignored_when_not_spectating();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

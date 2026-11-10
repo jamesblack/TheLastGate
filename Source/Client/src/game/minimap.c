@@ -14,7 +14,7 @@ static unsigned short tile_colours[MAPX_MAX * MAPY_MAX];
 static MinimapTiles minimap = {tile_colours, MAPX_MAX, MAPY_MAX, 0, 0};
 static char map_file_path[512];
 static Uint32 last_save_ticks = 0;
-static SpectateWatch spectate_watch = {SPECTATE_NONE, 0};
+static SpectateWatch spectate_watch = {SPECTATE_NONE, 0, ""};
 
 unsigned short *minimap_tile_colours(void) {
     return tile_colours;
