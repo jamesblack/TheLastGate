@@ -12,6 +12,7 @@
 #include "game/annotations.h"
 #include "game/game_ui.h"
 #include "game/minimap.h"
+#include "game/minimap_overlay.h"
 #include "game/worldmap.h"
 #include "game/worldmap_view.h"
 #include "graphics/sdl.h"
@@ -96,6 +97,9 @@ static const float EDIT_LABEL_WIDTH = 180.0F;
 static const double STATUS_SECONDS = 3.0;
 static const double NOTICE_SECONDS = 12.0;
 static const int IMPORT_INITIAL_CAPACITY = 4096;
+static const float MINIMAP_SCREEN_LEFT = 6.0F;
+static const float MINIMAP_SCREEN_TOP = 582.0F;
+static const float MINIMAP_SCREEN_SIZE = 128.0F;
 static const ImU32 OUTLINE_COLOUR = IM_COL32(0, 0, 0, 255);
 static const ImU32 BACKGROUND_COLOUR = IM_COL32(0, 0, 0, 255);
 static const ImU32 HIGHLIGHT_COLOUR = IM_COL32(255, 255, 255, 255);
@@ -1291,4 +1295,22 @@ void worldmap_window_render(void) {
         drop_interrupted_work(panel);
         game_ui_state.show_worldmap = false;
     }
+}
+
+void worldmap_minimap_tooltip_render(void) {
+    const ImGuiIO &io = ImGui::GetIO();
+    if (!game_ui_state.minimap_shown || io.WantCaptureMouse) return;
+
+    const float offset_left = io.MousePos.x - MINIMAP_SCREEN_LEFT;
+    const float offset_top = io.MousePos.y - MINIMAP_SCREEN_TOP;
+    if (offset_left < 0.0F || offset_top < 0.0F || offset_left >= MINIMAP_SCREEN_SIZE ||
+        offset_top >= MINIMAP_SCREEN_SIZE)
+        return;
+
+    // The minimap runs map x down the screen and map y across it
+    const Annotation *pin = minimap_overlay_pin_at(
+            worldmap_annotations(), game_ui_state.minimap_origin_tile_x, game_ui_state.minimap_origin_tile_y,
+            game_ui_state.minimap_magnification < 1 ? 1 : game_ui_state.minimap_magnification, (int) offset_top,
+            (int) offset_left);
+    if (pin && pin->label[0] != '\0') ImGui::SetTooltip("%s", pin->label);
 }

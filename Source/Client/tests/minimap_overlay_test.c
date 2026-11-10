@@ -282,6 +282,49 @@ static void test_many_long_segments_paint_quickly(void) {
     annotation_set_release(&set);
 }
 
+static void test_pin_found_under_mouse(void) {
+    AnnotationSet set;
+    int category;
+    const Annotation *found;
+
+    annotation_set_init(&set);
+    category = annotation_category_add(&set, "Pins", 0);
+    annotation_add_point(&set, category, ANNOTATION_PIN, 10, 20, "key");
+    set.show_on_minimap = 1;
+
+    found = minimap_overlay_pin_at(&set, 0, 0, 1, 11, 22);
+    CHECK(found != NULL && strcmp(found->label, "key") == 0);
+    CHECK(minimap_overlay_pin_at(&set, 0, 0, 1, 14, 20) == NULL);
+    CHECK(minimap_overlay_pin_at(&set, 5, 10, 2, 11, 21) == found);
+    CHECK(minimap_overlay_pin_at(&set, 5, 10, 2, 10, 20) == found);
+    CHECK(minimap_overlay_pin_at(&set, 5, 10, 2, 16, 21) == NULL);
+    annotation_set_release(&set);
+}
+
+static void test_nearest_shown_pin_wins(void) {
+    AnnotationSet set;
+    int shown;
+    int hidden;
+    const Annotation *found;
+
+    annotation_set_init(&set);
+    shown = annotation_category_add(&set, "Shown", 0);
+    hidden = annotation_category_add(&set, "Hidden", 1);
+    annotation_add_point(&set, shown, ANNOTATION_PIN, 10, 20, "far");
+    annotation_add_point(&set, shown, ANNOTATION_PIN, 10, 23, "near");
+    annotation_add_point(&set, shown, ANNOTATION_TEXT, 10, 22, "text");
+    annotation_add_point(&set, hidden, ANNOTATION_PIN, 10, 22, "hidden");
+    annotation_category_find(&set, hidden)->visible = 0;
+    set.show_on_minimap = 1;
+
+    found = minimap_overlay_pin_at(&set, 0, 0, 1, 10, 22);
+    CHECK(found != NULL && strcmp(found->label, "near") == 0);
+
+    set.show_on_minimap = 0;
+    CHECK(minimap_overlay_pin_at(&set, 0, 0, 1, 10, 22) == NULL);
+    annotation_set_release(&set);
+}
+
 int main(void) {
     test_nothing_painted_when_disabled();
     test_pin_paints_three_by_three();
@@ -293,6 +336,8 @@ int main(void) {
     test_segment_outside_view_paints_nothing();
     test_clipped_segments_match_unclipped_reference();
     test_many_long_segments_paint_quickly();
+    test_pin_found_under_mouse();
+    test_nearest_shown_pin_wins();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

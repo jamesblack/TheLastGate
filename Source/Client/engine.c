@@ -2385,6 +2385,9 @@ void eng_display(int init) // optimize me!!!!!
             mapy = MAPY_MAX - ((128 / max(1, game_ui_state.minimap_magnification)) + 1);
 
         show_map(minimap_colours, mapx, mapy, max(1, game_ui_state.minimap_magnification));
+        game_ui_state.minimap_shown = true;
+        game_ui_state.minimap_origin_tile_x = mapx;
+        game_ui_state.minimap_origin_tile_y = mapy;
         if (player_tile) *player_tile = remembered_colour;
     }
 

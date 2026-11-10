@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #define DOT_SPACING 2
+#define PIN_HOVER_PIXELS 3
 
 typedef struct {
     unsigned int *pixels;
@@ -138,4 +139,37 @@ void minimap_overlay_paint(unsigned int *pixels, const int pixel_size, const int
             }
         }
     }
+}
+
+const Annotation *minimap_overlay_pin_at(const AnnotationSet *set, const int origin_tile_x, const int origin_tile_y,
+                                         const int magnify, const int pixel_x, const int pixel_y) {
+    const Annotation *nearest = NULL;
+    int nearest_distance = PIN_HOVER_PIXELS * PIN_HOVER_PIXELS + 1;
+    int category_index;
+    int annotation_index;
+
+    if (set == NULL || !set->show_on_minimap || magnify < 1) return NULL;
+
+    for (category_index = 0; category_index < set->category_count; category_index++) {
+        const AnnotationCategory *category = &set->categories[category_index];
+
+        if (!category->visible) continue;
+        for (annotation_index = 0; annotation_index < category->annotation_count; annotation_index++) {
+            const Annotation *annotation = &category->annotations[annotation_index];
+            int offset_x;
+            int offset_y;
+            int distance;
+
+            if (annotation->kind != ANNOTATION_PIN) continue;
+            offset_x = (annotation->tile_x - origin_tile_x) * magnify + magnify / 2 - pixel_x;
+            offset_y = (annotation->tile_y - origin_tile_y) * magnify + magnify / 2 - pixel_y;
+            if (abs(offset_x) > PIN_HOVER_PIXELS || abs(offset_y) > PIN_HOVER_PIXELS) continue;
+            distance = offset_x * offset_x + offset_y * offset_y;
+            if (distance < nearest_distance) {
+                nearest = annotation;
+                nearest_distance = distance;
+            }
+        }
+    }
+    return nearest;
 }

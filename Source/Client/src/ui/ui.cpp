@@ -125,6 +125,7 @@ void ui_render(const UIState ui_state) {
         if (game_ui_state.show_worldmap) {
             worldmap_window_render();
         }
+        worldmap_minimap_tooltip_render();
         if (g_config.runtime.show_performance) {
             perf_window_render(&game_ui_state.perf_window_state);
         }

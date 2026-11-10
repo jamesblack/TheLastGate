@@ -46,6 +46,9 @@ typedef struct {
 
     /* Minimap */
     int minimap_magnification;
+    bool minimap_shown;
+    int minimap_origin_tile_x;
+    int minimap_origin_tile_y;
 
     /* Quick State Window (WV, AV, HS, PS Exp) */
     QuickStatState quick_stat_state;
