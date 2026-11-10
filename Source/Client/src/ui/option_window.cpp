@@ -312,6 +312,9 @@ static void general_settings_tab() {
                      "Show Hit/Parry Score with Weapon/Armor value.");
     togglable_option("##12", &g_config.ui.skill_planner,
                      "Enable the skill planner: the Planner button below the skill list and its hotkey.");
+    togglable_option(
+            "##13", &g_config.gameplay.adaptive_tick_pacing,
+            "Adaptive network smoothing: lower delay on steady connections, more buffering when the connection is uneven.");
 
 
     imgui_spacing();

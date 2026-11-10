@@ -29,7 +29,8 @@ GlobalConfig g_config = {
     },
     .gameplay = {
         .give_more = false,
-        .use_queue = false
+        .use_queue = false,
+        .adaptive_tick_pacing = false
     },
     .runtime = {
         .base_path = "",

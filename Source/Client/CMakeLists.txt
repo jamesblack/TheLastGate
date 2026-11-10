@@ -94,6 +94,7 @@ add_executable(TheLastGate
         src/mods/use_queue.c
         src/net/connection.c
         src/net/socket.c
+        src/net/tick_pacer.c
         src/security/security.c
         src/security/single_instance.c
         src/security/unique_id.c
@@ -220,6 +221,13 @@ if (TLG_BUILD_TESTS)
     target_include_directories(stat_raise_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/ ${CMAKE_CURRENT_SOURCE_DIR}/)
     target_precompile_headers(stat_raise_test PRIVATE src/ui/ui_ffi.h)
     add_test(NAME stat_raise COMMAND stat_raise_test)
+
+    add_executable(tick_pacer_test
+            tests/tick_pacer_test.c
+            src/net/tick_pacer.c
+    )
+    target_include_directories(tick_pacer_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME tick_pacer COMMAND tick_pacer_test)
 endif ()
 
 include(cmake/dependencies/sdl2.cmake)

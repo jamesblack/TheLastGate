@@ -18,6 +18,7 @@
 #include "mods/buff_watch.h"
 #include "mods/item_tooltip.h"
 #include "mods/use_queue.h"
+#include "net/tick_pacer.h"
 #include "security/security.h"
 #include "util/math_util.h"
 
@@ -1316,6 +1317,7 @@ int game_loop(void) {
             if (tmp < 2) so_error("transmission corrupt");
             tickstart += tmp;
             t_size++;
+            tick_pacer_on_arrival(SDL_GetTicks());
         } else break;
         handle_input();
     }

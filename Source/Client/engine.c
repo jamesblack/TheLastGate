@@ -20,6 +20,7 @@
 #include "input/input.h"
 #include "mods/stubborn_actions.h"
 #include "mods/use_queue.h"
+#include "net/tick_pacer.h"
 #include "ui/option_window.hpp"
 #include "ui/ui.h"
 #include "util/math_util.h"
@@ -3444,6 +3445,7 @@ void engine(void) {
     Uint32 next_world_tick, next_present, now, wait_until, sleep_start;
     const Uint32 present_interval = 1000 / UI_TARGET_FPS;
     int world_drawn, world_tick_due, world_behind;
+    bool adaptive_pacing, was_adaptive_pacing = false;
 
     raw_skilltab = malloc(sizeof(struct skilltab) * MAXSKILL);
     skilltab = malloc(sizeof(struct skilltab) * MAXSKILL);
@@ -3461,6 +3463,12 @@ void engine(void) {
         handle_input();
         world_drawn = 0;
 
+        adaptive_pacing = g_config.gameplay.adaptive_tick_pacing;
+        if (adaptive_pacing && !was_adaptive_pacing) tick_pacer_reset();
+        was_adaptive_pacing = adaptive_pacing;
+
+        // Read every pass so arrival times reflect the network, not the client's own tick rhythm
+        if (adaptive_pacing) game_loop();
         world_tick_due = SDL_TICKS_PASSED(SDL_GetTicks(), next_world_tick);
 
         if (world_tick_due) {
@@ -3575,7 +3583,8 @@ void engine(void) {
                 skipinrow++;
             }
 
-            if (t_size) tick = TICK * QSIZE / t_size;
+            if (adaptive_pacing) tick = tick_pacer_next_tick_ms(t_size, TICK);
+            else if (t_size) tick = TICK * QSIZE / t_size;
             else tick = TICK;
 
             next_world_tick = t;

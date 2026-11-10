@@ -21,6 +21,9 @@ void PerfWindow::RenderStats(const PerfWindowState *state) {
     ImGui::Text("Fastest: %fms", state->sample_ms_min);
     ImGui::SameLine();
     ImGui::Text("Slowest: %fms", state->sample_ms_max);
+    ImGui::Text("Tick queue: %d / target %d", state->tick_queue, state->tick_buffer_target);
+    ImGui::SameLine();
+    ImGui::Text("Server tick: %.2fms", state->server_tick_ms);
 }
 
 void perf_window_render(const PerfWindowState *state) {

@@ -6,8 +6,11 @@
 
 #include "engine.h"
 #include "inter.h"
+#include "net/tick_pacer.h"
 #include "ui/states/perf_window_state.h"
 #include "util/perf.h"
+
+extern int t_size;
 
 GameUiState game_ui_state = {
     /* Scroll Positions */
@@ -44,6 +47,9 @@ void ui_calculate_perf_window_state() {
     game_ui_state.perf_window_state.fps_avg = stats->fps_avg;
     game_ui_state.perf_window_state.sample_ms_min = stats->sample_ms_min;
     game_ui_state.perf_window_state.sample_ms_max = stats->sample_ms_max;
+    game_ui_state.perf_window_state.tick_queue = t_size;
+    game_ui_state.perf_window_state.tick_buffer_target = tick_pacer_target();
+    game_ui_state.perf_window_state.server_tick_ms = (float) tick_pacer_period_ms();
 }
 
 static const int META_HIT_SCORE_ID = 5;

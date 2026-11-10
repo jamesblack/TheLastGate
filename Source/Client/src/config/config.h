@@ -38,6 +38,7 @@ typedef struct {
     bool stubborn_give;
     bool stubborn_pickup;
     bool stubborn_drop;
+    bool adaptive_tick_pacing;
 } GameConfig;
 
 

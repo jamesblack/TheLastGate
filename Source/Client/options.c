@@ -160,6 +160,7 @@ void load_extended_options(void)
 	g_config.gameplay.give_more = 0;
 	g_config.gameplay.use_queue = 0;
 	g_config.ui.skill_planner = 0;
+	g_config.gameplay.adaptive_tick_pacing = 0;
 
 	handle = open("TLGExtended.dat", O_RDONLY|O_BINARY);
 	if (handle != -1) {
@@ -256,6 +257,10 @@ void load_extended_options(void)
 			if (read(handle, &g_config.ui.skill_planner, sizeof(g_config.ui.skill_planner)) != sizeof(g_config.ui.skill_planner)) return;
 		}
 
+		if (version >= 8) {
+			if (read(handle, &g_config.gameplay.adaptive_tick_pacing, sizeof(g_config.gameplay.adaptive_tick_pacing)) != sizeof(g_config.gameplay.adaptive_tick_pacing)) return;
+		}
+
 		close(handle);
 		return;
 	}
@@ -326,6 +331,7 @@ void save_extended_options(void)
 
 		write(handle, &g_config.ui.expanded_quick_stats, sizeof(g_config.ui.expanded_quick_stats));
 		write(handle, &g_config.ui.skill_planner, sizeof(g_config.ui.skill_planner));
+		write(handle, &g_config.gameplay.adaptive_tick_pacing, sizeof(g_config.gameplay.adaptive_tick_pacing));
 
 		close(handle);
 	}
