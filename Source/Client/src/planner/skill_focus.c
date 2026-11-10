@@ -2,7 +2,10 @@
 
 #include <string.h>
 
+#include "planner/tarot_math.h"
 #include "util/math_util.h"
+
+#define FOOL_MAX_BREAKPOINTS 4
 
 /* One attribute the skill uses, with how many of its slots name it. */
 typedef struct {
@@ -119,6 +122,49 @@ static SkillFocusRoute cheapest_attribute_route(const SkillFocusInput *input) {
     return route;
 }
 
+static int slot_sum_after_breakpoints(const SkillFocusInput *input, const int breakpoints) {
+    int value_sum = 0;
+    int slot_index;
+
+    for (slot_index = 0; slot_index < ATTRIBUTES_PER_SKILL; slot_index++) {
+        if (input->attribute_ids[slot_index] < 0) continue;
+        value_sum += tarot_fool_reversed_total(input->attribute_values[slot_index],
+                                               breakpoints * FOOL_POINTS_PER_BREAKPOINT);
+    }
+    return value_sum;
+}
+
+/* Every attribute point moves all five attributes, so the route is just enough breakpoints, bought cheapest-first. */
+static SkillFocusRoute fool_reversed_route(const SkillFocusInput *input) {
+    const int current_share = slot_sum_after_breakpoints(input, 0) / input->divisor;
+    SkillFocusRoute route;
+    AttributePoolPick pick;
+    int breakpoints;
+    int attribute_id;
+
+    memset(&route, 0, sizeof(route));
+    if (input->divisor <= 0) return route;
+    for (breakpoints = 1; breakpoints <= FOOL_MAX_BREAKPOINTS; breakpoints++) {
+        if (slot_sum_after_breakpoints(input, breakpoints) / input->divisor > current_share) break;
+    }
+    if (breakpoints > FOOL_MAX_BREAKPOINTS) return route;
+
+    pick = attribute_pool_cheapest(input->pool_step_costs, breakpoints * FOOL_POINTS_PER_BREAKPOINT);
+    if (!pick.available) return route;
+
+    route.available = 1;
+    route.total_cost = pick.total_cost;
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        if (pick.points[attribute_id] == 0) continue;
+        route.raises[route.raise_count].attribute_id = attribute_id;
+        route.raises[route.raise_count].points = pick.points[attribute_id];
+        route.raises[route.raise_count].cost =
+                prefix_cost(input->pool_step_costs[attribute_id], pick.points[attribute_id]);
+        route.raise_count++;
+    }
+    return route;
+}
+
 SkillFocusSuggestion skill_focus_suggest(const SkillFocusInput *input) {
     SkillFocusSuggestion suggestion;
 
@@ -127,7 +173,7 @@ SkillFocusSuggestion skill_focus_suggest(const SkillFocusInput *input) {
         suggestion.direct.available = 1;
         suggestion.direct.total_cost = input->direct_cost;
     }
-    suggestion.attributes = cheapest_attribute_route(input);
+    suggestion.attributes = input->fool_reversed ? fool_reversed_route(input) : cheapest_attribute_route(input);
 
     suggestion.any_available = suggestion.direct.available || suggestion.attributes.available;
     suggestion.use_direct =

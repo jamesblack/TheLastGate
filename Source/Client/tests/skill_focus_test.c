@@ -16,7 +16,6 @@ static int failures = 0;
         }                                                                        \
     } while (0)
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static SkillFocusInput make_input(const int first_id, const int second_id, const int third_id, const int divisor) {
     SkillFocusInput input;
     int slot_index;
@@ -33,10 +32,15 @@ static SkillFocusInput make_input(const int first_id, const int second_id, const
     }
     input.divisor = divisor;
     input.direct_cost = 1000;
+    input.fool_reversed = 0;
+    for (slot_index = 0; slot_index < ATTRIBUTE_COUNT; slot_index++) {
+        for (step_index = 0; step_index < ATTRIBUTE_POOL_MAX_POINTS; step_index++) {
+            input.pool_step_costs[slot_index][step_index] = SKILL_FOCUS_NO_COST;
+        }
+    }
     return input;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void set_values(SkillFocusInput *input, const int first, const int second, const int third) {
     input->attribute_values[0] = first;
     input->attribute_values[1] = second;
@@ -252,6 +256,61 @@ static void test_invalid_attribute_slot_ignored(void) {
     }
 }
 
+static SkillFocusInput fool_reversed_input(const int divisor) {
+    SkillFocusInput input = make_input(0, 1, 2, divisor);
+    int attribute_id;
+    int step_index;
+
+    input.fool_reversed = 1;
+    set_values(&input, 105, 105, 105);
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        for (step_index = 0; step_index < ATTRIBUTE_POOL_MAX_POINTS; step_index++) {
+            input.pool_step_costs[attribute_id][step_index] = attribute_id == 3 ? 10 : 100;
+        }
+    }
+    return input;
+}
+
+static void test_fool_reversed_route_needs_two_breakpoints(void) {
+    SkillFocusInput input = fool_reversed_input(5);
+    SkillFocusSuggestion suggestion = skill_focus_suggest(&input);
+
+    CHECK(suggestion.attributes.available);
+    CHECK(suggestion.attributes.total_cost == 100);
+    CHECK(suggestion.attributes.raise_count == 1);
+    CHECK(suggestion.attributes.raises[0].attribute_id == 3);
+    CHECK(suggestion.attributes.raises[0].points == 10);
+    CHECK(suggestion.attributes.raises[0].cost == 100);
+    CHECK(!suggestion.use_direct);
+}
+
+static void test_fool_reversed_hard_mode(void) {
+    SkillFocusInput input = fool_reversed_input(6);
+    SkillFocusSuggestion suggestion = skill_focus_suggest(&input);
+
+    CHECK(suggestion.attributes.available);
+    CHECK(total_points(&suggestion.attributes) == 5);
+    CHECK(suggestion.attributes.total_cost == 50);
+}
+
+static void test_fool_reversed_route_unavailable_when_capped(void) {
+    SkillFocusInput input = fool_reversed_input(5);
+    int attribute_id;
+    int step_index;
+
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        for (step_index = 3; step_index < ATTRIBUTE_POOL_MAX_POINTS; step_index++) {
+            input.pool_step_costs[attribute_id][step_index] = SKILL_FOCUS_NO_COST;
+        }
+    }
+    for (attribute_id = 1; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        for (step_index = 0; step_index < ATTRIBUTE_POOL_MAX_POINTS; step_index++) {
+            input.pool_step_costs[attribute_id][step_index] = SKILL_FOCUS_NO_COST;
+        }
+    }
+    CHECK(!skill_focus_suggest(&input).attributes.available);
+}
+
 int main(void) {
     test_direct_cheaper();
     test_attribute_split_cheapest();
@@ -264,6 +323,9 @@ int main(void) {
     test_tie_goes_direct();
     test_hard_mode_divisor();
     test_invalid_attribute_slot_ignored();
+    test_fool_reversed_route_needs_two_breakpoints();
+    test_fool_reversed_hard_mode();
+    test_fool_reversed_route_unavailable_when_capped();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

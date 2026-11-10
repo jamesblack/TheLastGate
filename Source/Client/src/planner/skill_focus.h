@@ -8,6 +8,7 @@
  */
 
 #include "game/attributes.h"
+#include "planner/attribute_pool.h"
 #include "planner/skill_preview.h"
 
 #ifdef __cplusplus
@@ -17,7 +18,7 @@ extern "C" {
 /* Largest divisor: no attribute ever needs more points than this to reach the next boundary. */
 #define SKILL_FOCUS_MAX_STEPS HARD_MODE_ATTRIBUTE_DIVISOR
 /* Marks a point that can't be bought (the stat is capped). */
-#define SKILL_FOCUS_NO_COST (-1)
+#define SKILL_FOCUS_NO_COST ATTRIBUTE_POOL_NO_COST
 
 typedef struct {
     int attribute_ids[ATTRIBUTES_PER_SKILL]; /* -1 marks an unused slot */
@@ -26,6 +27,9 @@ typedef struct {
     int attribute_step_costs[ATTRIBUTES_PER_SKILL][SKILL_FOCUS_MAX_STEPS];
     int divisor;
     int direct_cost; /* SKILL_FOCUS_NO_COST when the skill itself is capped */
+    /* Reverse Fool: any attribute point counts, so routes buy the cheapest points across all five. */
+    int fool_reversed;
+    int pool_step_costs[ATTRIBUTE_COUNT][ATTRIBUTE_POOL_MAX_POINTS];
 } SkillFocusInput;
 
 typedef struct {
@@ -38,7 +42,7 @@ typedef struct {
     int available;
     int total_cost;
     int raise_count; /* 0 for the direct route */
-    SkillFocusRaise raises[ATTRIBUTES_PER_SKILL]; /* ordered by attribute id, ascending */
+    SkillFocusRaise raises[ATTRIBUTE_COUNT]; /* ordered by attribute id, ascending */
 } SkillFocusRoute;
 
 typedef struct {

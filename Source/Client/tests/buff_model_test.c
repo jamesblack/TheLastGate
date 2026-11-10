@@ -26,6 +26,7 @@ static void set_skill(BuffModelSkill *skill, const int server_total, const int f
     skill->attribute_ids[0] = first_id;
     skill->attribute_ids[1] = second_id;
     skill->attribute_ids[2] = third_id;
+    skill->scale_kind = BUFF_SKILL_SCALE_NONE;
 }
 
 static void set_all_attributes(int attributes[ATTRIBUTE_COUNT], const int value) {
@@ -234,6 +235,103 @@ static void test_enhance_uses_blessed_attributes(void) {
     CHECK(result.weapon == 48);
 }
 
+static BuffModelInput fool_reversed_fixture(void) {
+    BuffModelInput input = fixture();
+
+    set_all_attributes(input.server_attributes, 105);
+    input.spell_known[BUFF_KIND_BLESS] = 0;
+    input.show_buffed[BUFF_KIND_BLESS] = 0;
+    input.tarot_cards = (TarotSet) 1 << (unsigned int) TAROT_FOOL_REVERSED;
+    return input;
+}
+
+static void test_fool_reversed_spreads_planned_points(void) {
+    BuffModelInput input = fool_reversed_fixture();
+    BuffModelResult result;
+
+    input.planned_attributes[0] = 5;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 106, 106, 106, 106, 106));
+}
+
+static void test_fool_reversed_four_points_change_nothing(void) {
+    BuffModelInput input = fool_reversed_fixture();
+    BuffModelResult result;
+
+    input.planned_attributes[0] = 4;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 105, 105, 105, 105, 105));
+}
+
+static void test_fool_reversed_removing_active_bless_drops_whole_breakpoints(void) {
+    BuffModelInput input = fool_reversed_fixture();
+    BuffModelResult result;
+
+    input.active[BUFF_KIND_BLESS].known = 1;
+    input.active[BUFF_KIND_BLESS].power = 10;
+    input.active[BUFF_KIND_BLESS].has_exact = 1;
+    input.active[BUFF_KIND_BLESS].attribute_bonus[0] = 2;
+    input.active[BUFF_KIND_BLESS].attribute_bonus[1] = 1;
+    input.active[BUFF_KIND_BLESS].attribute_bonus[2] = 1;
+    input.active[BUFF_KIND_BLESS].attribute_bonus[3] = 1;
+    input.active[BUFF_KIND_BLESS].attribute_bonus[4] = 1;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 102, 102, 102, 102, 102));
+}
+
+static void test_magician_uses_strength_base_for_aptitude(void) {
+    BuffModelInput input = fixture();
+    BuffModelResult result;
+
+    input.show_buffed[BUFF_KIND_BLESS] = 0;
+    input.server_attributes[4] = 60;
+    input.planned_attributes[4] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_aptitude == 200);
+
+    input.tarot_cards = (TarotSet) 1 << (unsigned int) TAROT_MAGICIAN;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_aptitude == 210);
+}
+
+static void test_star_reversed_drops_spell_bonus_from_cast_power(void) {
+    BuffModelInput input = fixture();
+    BuffModelResult without_bonus;
+    BuffModelResult star_reversed;
+
+    buff_model_compute(&input, &without_bonus);
+    input.spell_bonus = 20;
+    input.tarot_cards = (TarotSet) 1 << (unsigned int) TAROT_STAR_REVERSED;
+    buff_model_compute(&input, &star_reversed);
+    CHECK(star_reversed.cast_power[BUFF_KIND_BLESS] == without_bonus.cast_power[BUFF_KIND_BLESS]);
+}
+
+static void test_hermit_scales_resist_skill_change(void) {
+    BuffModelInput input = fixture();
+    BuffModelSkill skill;
+
+    set_skill(&skill, 80, -1, -1, -1);
+    skill.planned = 10;
+    skill.scale_kind = BUFF_SKILL_SCALE_RESIST;
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 90);
+    input.tarot_cards = (TarotSet) 1 << (unsigned int) TAROT_HERMIT;
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 88);
+}
+
+static void test_moon_reversed_scales_tactics_with_mana(void) {
+    BuffModelInput input = fixture();
+    BuffModelSkill skill;
+
+    set_skill(&skill, 110, -1, -1, -1);
+    skill.planned = 10;
+    skill.scale_kind = BUFF_SKILL_SCALE_TACTICS;
+    input.tarot_cards = (TarotSet) 1 << (unsigned int) TAROT_MOON_REVERSED;
+    input.uncapped_mana = 500;
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 121);
+    input.planned_mana = 500;
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 132);
+}
+
 int main(void) {
     test_bless_bonus_formula();
     test_bless_double_cast();
@@ -247,6 +345,13 @@ int main(void) {
     test_exact_bonus_preferred();
     test_enhance_weapon();
     test_enhance_uses_blessed_attributes();
+    test_fool_reversed_spreads_planned_points();
+    test_fool_reversed_four_points_change_nothing();
+    test_fool_reversed_removing_active_bless_drops_whole_breakpoints();
+    test_magician_uses_strength_base_for_aptitude();
+    test_star_reversed_drops_spell_bonus_from_cast_power();
+    test_hermit_scales_resist_skill_change();
+    test_moon_reversed_scales_tactics_with_mana();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

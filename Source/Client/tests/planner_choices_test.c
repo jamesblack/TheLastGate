@@ -26,6 +26,7 @@ static PlannerChoices make_choices(const int weapon, const int offhand) {
     choices.weapon = weapon;
     choices.offhand = offhand;
     choices.spell_toggles = 0;
+    choices.tarot_cards = 0;
     return choices;
 }
 
@@ -101,17 +102,19 @@ static void test_uncreated_character_is_not_saved(void) {
     CHECK(planner_choices_load(TEST_PATH, 0).weapon == PLANNER_CHOICE_NONE);
 }
 
-static void test_spell_toggles_round_trip(void) {
+static void test_spells_and_cards_round_trip(void) {
     PlannerChoices saved = make_choices(COMBAT_WEAPON_SWORD, COMBAT_OFFHAND_SHIELD);
     PlannerChoices loaded;
 
     saved.spell_toggles = 0x5;
+    saved.tarot_cards = ((TarotSet) 1 << 22U) | ((TarotSet) 1 << 43U);
     remove(TEST_PATH);
     CHECK(planner_choices_save(TEST_PATH, 7, saved) == 1);
     loaded = planner_choices_load(TEST_PATH, 7);
     CHECK(loaded.weapon == COMBAT_WEAPON_SWORD);
     CHECK(loaded.offhand == COMBAT_OFFHAND_SHIELD);
     CHECK(loaded.spell_toggles == 0x5);
+    CHECK(loaded.tarot_cards == saved.tarot_cards);
 }
 
 static void write_format_one_file(void) {
@@ -128,6 +131,7 @@ static void test_format_one_file_keeps_weapon_and_offhand(void) {
     CHECK(loaded.weapon == COMBAT_WEAPON_SWORD);
     CHECK(loaded.offhand == COMBAT_OFFHAND_SHIELD);
     CHECK(loaded.spell_toggles == 0);
+    CHECK(loaded.tarot_cards == 0);
 }
 
 static void test_saving_over_format_one_upgrades(void) {
@@ -148,7 +152,7 @@ int main(void) {
     test_out_of_range_values_are_ignored();
     test_damaged_file_is_replaced();
     test_uncreated_character_is_not_saved();
-    test_spell_toggles_round_trip();
+    test_spells_and_cards_round_trip();
     test_format_one_file_keeps_weapon_and_offhand();
     test_saving_over_format_one_upgrades();
     remove(TEST_PATH);

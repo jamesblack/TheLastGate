@@ -65,6 +65,7 @@ add_executable(TheLastGate
         src/game/minimap.c
         src/game/minimap_store.c
         src/planner/attribute_pool.c
+        src/planner/tarot_math.c
         src/game/game_ui.c
         src/game/stat_display.c
         src/planner/skill_focus.c
@@ -173,6 +174,7 @@ if (TLG_BUILD_TESTS)
     add_executable(buff_model_test
             tests/buff_model_test.c
             src/planner/buff_model.c
+            src/planner/tarot_math.c
     )
     target_include_directories(buff_model_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME buff_model COMMAND buff_model_test)
@@ -200,10 +202,19 @@ if (TLG_BUILD_TESTS)
     target_link_libraries(minimap_store_test PRIVATE ZLIB::ZLIB)
     add_test(NAME minimap_store COMMAND minimap_store_test)
 
+    add_executable(tarot_math_test
+            tests/tarot_math_test.c
+            src/planner/tarot_math.c
+    )
+    target_include_directories(tarot_math_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME tarot_math COMMAND tarot_math_test)
+
     add_executable(buff_focus_test
             tests/buff_focus_test.c
             src/planner/buff_focus.c
             src/planner/buff_model.c
+            src/planner/attribute_pool.c
+            src/planner/tarot_math.c
     )
     target_include_directories(buff_focus_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME buff_focus COMMAND buff_focus_test)
@@ -225,6 +236,8 @@ if (TLG_BUILD_TESTS)
     add_executable(skill_focus_test
             tests/skill_focus_test.c
             src/planner/skill_focus.c
+            src/planner/attribute_pool.c
+            src/planner/tarot_math.c
     )
     target_include_directories(skill_focus_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME skill_focus COMMAND skill_focus_test)

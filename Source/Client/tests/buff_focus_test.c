@@ -21,7 +21,6 @@ static int failures = 0;
 #define FOCUSED_SLOT 8
 #define BLESS_SLOT 9
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void set_skill(BuffModelSkill *skill, const int server_total, const int first_id, const int second_id,
                       const int third_id) {
     skill->server_total = server_total;
@@ -51,7 +50,6 @@ static void set_model(BuffModelInput *model) {
     model->show_buffed[BUFF_KIND_BLESS] = 1;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void add_candidate(BuffFocusInput *input, const int raise_index, const int max_points, const int cost) {
     BuffFocusCandidate *candidate = &input->candidates[input->candidate_count++];
     int step_index;
@@ -165,7 +163,37 @@ static void test_focus_on_bless_itself(void) {
     CHECK(result.through_bless.available == 0);
 }
 
+static void test_fool_reversed_uses_attribute_pool(void) {
+    BuffFocusInput input;
+    BuffFocusResult result;
+    int attribute_id;
+
+    memset(&input, 0, sizeof(input));
+    set_model(&input.model);
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        input.model.server_attributes[attribute_id] = 105;
+    }
+    input.model.spell_known[BUFF_KIND_BLESS] = 0;
+    input.model.show_buffed[BUFF_KIND_BLESS] = 0;
+    input.model.tarot_cards = (TarotSet) 1 << (unsigned int) TAROT_FOOL_REVERSED;
+    set_skill(&input.focused, 100, 0, 1, 2);
+    input.focused_raise_index = FOCUSED_SLOT;
+    input.spell_raise_index[BUFF_KIND_BLESS] = -1;
+    input.spell_raise_index[BUFF_KIND_ENHANCE] = -1;
+    input.spell_raise_index[BUFF_KIND_PROTECT] = -1;
+    add_candidate(&input, FOCUSED_SLOT, 1, 1000);
+    add_candidate(&input, BUFF_FOCUS_ATTRIBUTE_POOL, 10, 10);
+
+    result = buff_focus_search(&input);
+    CHECK(result.best.available);
+    CHECK(result.best.raise_count == 1);
+    CHECK(result.best.raises[0].raise_index == BUFF_FOCUS_ATTRIBUTE_POOL);
+    CHECK(result.best.raises[0].points == 10);
+    CHECK(result.best.total_cost == 100);
+}
+
 int main(void) {
+    test_fool_reversed_uses_attribute_pool();
     test_bless_points_win();
     test_direct_when_cheap();
     test_capped_bless_skipped();

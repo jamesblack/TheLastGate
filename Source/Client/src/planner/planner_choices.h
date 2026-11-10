@@ -5,6 +5,8 @@
  * so they survive between sessions.
  */
 
+#include "planner/tarot_math.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,6 +17,7 @@ typedef struct {
     int weapon;  /* a CombatWeapon, or PLANNER_CHOICE_NONE */
     int offhand; /* a CombatOffhand, or PLANNER_CHOICE_NONE */
     unsigned int spell_toggles; /* bit 1 << BuffKind is set when that spell is shown buffed */
+    TarotSet tarot_cards;
 } PlannerChoices;
 
 /* The picks saved for this character. Missing, unreadable or out-of-range values come back as PLANNER_CHOICE_NONE,

@@ -18,6 +18,7 @@ extern "C" {
 
 #define BUFF_FOCUS_MAX_CANDIDATES 8
 #define BUFF_FOCUS_MAX_POINTS 16
+#define BUFF_FOCUS_ATTRIBUTE_POOL (-2)
 
 typedef struct {
     int raise_index; /* stat_raise slot: 0-4 attribute, 8+ skill */

@@ -13,16 +13,20 @@
  * unit tests.
  */
 
+#include "planner/tarot_math.h"
 #include "mods/buff_list.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef enum { BUFF_SKILL_SCALE_NONE = 0, BUFF_SKILL_SCALE_RESIST = 1, BUFF_SKILL_SCALE_TACTICS = 2 } BuffSkillScale;
+
 typedef struct {
     int server_total; /* the skill's value as the server sends it */
     int planned; /* points planned for the skill itself */
     int attribute_ids[ATTRIBUTES_PER_SKILL]; /* -1 marks an unused slot */
+    int scale_kind;
 } BuffModelSkill;
 
 typedef struct {
@@ -41,6 +45,9 @@ typedef struct {
     BuffModelSkill spell_skills[BUFF_KIND_COUNT];
     BuffReading active[BUFF_KIND_COUNT]; /* known == 0 when that buff isn't on the player */
     int show_buffed[BUFF_KIND_COUNT];
+    TarotSet tarot_cards;
+    int uncapped_mana;
+    int planned_mana;
 } BuffModelInput;
 
 typedef struct {

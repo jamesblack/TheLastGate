@@ -52,6 +52,8 @@ static int value_with_points(const BuffFocusInput *input, const int points[BUFF_
 
         if (extra == 0) continue;
         if (raise_index >= 0 && raise_index < ATTRIBUTE_COUNT) model.planned_attributes[raise_index] += extra;
+        /* Under Reverse Fool only the sum of planned attribute points matters, so any attribute can hold them. */
+        if (raise_index == BUFF_FOCUS_ATTRIBUTE_POOL) model.planned_attributes[0] += extra;
         if (raise_index == input->focused_raise_index) focused.planned += extra;
         for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
             if (raise_index == input->spell_raise_index[kind]) model.spell_skills[kind].planned += extra;

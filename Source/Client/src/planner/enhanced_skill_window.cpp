@@ -12,6 +12,7 @@
 #include "options.h"
 #include "ui/ui_common.hpp"
 #include "ui/widgets.hpp"
+#include "planner/attribute_pool.h"
 #include "planner/buff_focus.h"
 #include "planner/buff_model.h"
 #include "planner/combat_model.h"
@@ -20,6 +21,7 @@
 #include "planner/skill_focus.h"
 #include "planner/skill_preview.h"
 #include "game/stat_raise.h"
+#include "planner/tarot_math.h"
 #include "graphics/sdl.h"
 #include "ui/imgui/imgui_wrapper.h"
 #include "mods/buff_watch.h"
@@ -156,6 +158,9 @@ static BuffModelSkill model_skill_for(const int skill_position, const int planne
 
     skill.server_total = sk_score(skill_entry->nr);
     skill.planned = planned;
+    skill.scale_kind = BUFF_SKILL_SCALE_NONE;
+    if (skill_entry->nr == SK_RESIST || skill_entry->nr == SK_IMMUN) skill.scale_kind = BUFF_SKILL_SCALE_RESIST;
+    if (skill_entry->nr == SK_TACTICS) skill.scale_kind = BUFF_SKILL_SCALE_TACTICS;
     for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
         skill.attribute_ids[attribute_slot] = skill_attribute_id(skill_entry, attribute_slot);
     }
@@ -630,6 +635,18 @@ static void planned_value_row_render(const EnhancedSkillLayout *layout, const ch
     imgui_set_cursor_pos(next_row_left, next_row_top);
 }
 
+static void apply_tarot_to_combat(const CombatModelInput *input, CombatValues *result) {
+    const CombatValues server = {input->server_hit, input->server_parry, pl.weapon, pl.armor};
+    const CombatValues raw_change = {
+        result->hit - server.hit,
+        result->parry - server.parry,
+        result->weapon - server.weapon,
+        result->armor - server.armor,
+    };
+
+    *result = tarot_combat_shown(chosen.tarot_cards, server, raw_change);
+}
+
 static void combat_block_render(const EnhancedSkillLayout *layout) {
     CombatModelInput input;
     CombatValues result;
@@ -654,6 +671,7 @@ static void combat_block_render(const EnhancedSkillLayout *layout) {
     }
 
     combat_model_compute(&input, &result);
+    apply_tarot_to_combat(&input, &result);
     const int shown_aptitude = buff_state.planned.spell_aptitude;
     const bool changed = result.hit != input.server_hit || result.parry != input.server_parry ||
                          result.weapon != pl.weapon || result.armor != pl.armor || shown_aptitude != server_aptitude;
@@ -726,6 +744,9 @@ static bool build_buff_model_input(BuffModelInput *input) {
     input->reduced_item_buffs = IS_SEYAN_DU || IS_BRAVER;
     input->server_weapon = pl.weapon;
     input->server_armor = pl.armor;
+    input->tarot_cards = chosen.tarot_cards;
+    input->uncapped_mana = pl.mana[4];
+    input->planned_mana = stat_raised[STAT_RAISE_MANA];
 
     for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
         const int skill_position = spell_skill_position(kind);
@@ -876,6 +897,13 @@ static SkillFocusInput build_focus_input(const int skill_position) {
     }
     input.divisor = attribute_divisor_for_player();
     input.direct_cost = to_focus_cost(stat_raise_cost(STAT_RAISE_SKILL_BASE + skill_position));
+    input.fool_reversed = tarot_set_has(chosen.tarot_cards, TAROT_FOOL_REVERSED);
+    for (slot_index = 0; slot_index < ATTRIBUTE_COUNT; slot_index++) {
+        for (step_index = 0; step_index < ATTRIBUTE_POOL_MAX_POINTS; step_index++) {
+            input.pool_step_costs[slot_index][step_index] =
+                    to_focus_cost(stat_raise_cost_after(slot_index, step_index));
+        }
+    }
     return input;
 }
 
@@ -892,8 +920,8 @@ static void panel_row_render(const EnhancedSkillLayout *layout, const float labe
 }
 
 static void plan_suggestion(const SkillFocusSuggestion *suggestion, const int skill_position) {
-    int raise_indices[ATTRIBUTES_PER_SKILL];
-    int point_counts[ATTRIBUTES_PER_SKILL];
+    int raise_indices[ATTRIBUTE_COUNT];
+    int point_counts[ATTRIBUTE_COUNT];
     int entry_count = 0;
     int raise_number;
 
@@ -938,6 +966,79 @@ static void add_skill_attribute_candidates(BuffFocusInput *input, const BuffMode
     }
 }
 
+#define FOOL_POOL_MAX_POINTS 10
+
+static void fill_attribute_pool_costs(int step_costs[ATTRIBUTE_COUNT][ATTRIBUTE_POOL_MAX_POINTS]) {
+    int attribute_id;
+    int step_index;
+
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        for (step_index = 0; step_index < ATTRIBUTE_POOL_MAX_POINTS; step_index++) {
+            step_costs[attribute_id][step_index] = to_focus_cost(stat_raise_cost_after(attribute_id, step_index));
+        }
+    }
+}
+
+/* The pool's nth point costs what buying n points cheapest-first costs over buying n - 1. */
+static void add_attribute_pool_candidate(BuffFocusInput *input) {
+    int step_costs[ATTRIBUTE_COUNT][ATTRIBUTE_POOL_MAX_POINTS];
+    BuffFocusCandidate *candidate;
+    int previous_total = 0;
+    int point_count;
+
+    if (input->candidate_count >= BUFF_FOCUS_MAX_CANDIDATES) return;
+    fill_attribute_pool_costs(step_costs);
+    candidate = &input->candidates[input->candidate_count++];
+    candidate->raise_index = BUFF_FOCUS_ATTRIBUTE_POOL;
+    candidate->max_points = FOOL_POOL_MAX_POINTS;
+    for (point_count = 1; point_count <= BUFF_FOCUS_MAX_POINTS; point_count++) {
+        const AttributePoolPick pick = attribute_pool_cheapest(step_costs, point_count);
+
+        if (point_count > FOOL_POOL_MAX_POINTS || pick.available == 0) {
+            candidate->step_costs[point_count - 1] = SKILL_FOCUS_NO_COST;
+            continue;
+        }
+        candidate->step_costs[point_count - 1] = pick.total_cost - previous_total;
+        previous_total = pick.total_cost;
+    }
+}
+
+static BuffFocusRoute expand_attribute_pool(const BuffFocusRoute *route) {
+    int step_costs[ATTRIBUTE_COUNT][ATTRIBUTE_POOL_MAX_POINTS];
+    BuffFocusRoute expanded;
+    int raise_number;
+
+    memset(&expanded, 0, sizeof(expanded));
+    expanded.available = route->available;
+    expanded.total_cost = route->total_cost;
+    for (raise_number = 0; raise_number < route->raise_count; raise_number++) {
+        const BuffFocusRaise *raise = &route->raises[raise_number];
+        AttributePoolPick pick;
+        int attribute_id;
+
+        if (raise->raise_index != BUFF_FOCUS_ATTRIBUTE_POOL) {
+            expanded.raises[expanded.raise_count++] = *raise;
+            continue;
+        }
+        fill_attribute_pool_costs(step_costs);
+        pick = attribute_pool_cheapest(step_costs, raise->points);
+        for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+            int step_index;
+            BuffFocusRaise *attribute_raise;
+
+            if (pick.points[attribute_id] == 0 || expanded.raise_count >= BUFF_FOCUS_MAX_CANDIDATES) continue;
+            attribute_raise = &expanded.raises[expanded.raise_count++];
+            attribute_raise->raise_index = attribute_id;
+            attribute_raise->points = pick.points[attribute_id];
+            attribute_raise->cost = 0;
+            for (step_index = 0; step_index < pick.points[attribute_id]; step_index++) {
+                attribute_raise->cost += step_costs[attribute_id][step_index];
+            }
+        }
+    }
+    return expanded;
+}
+
 static void build_buff_focus_input(BuffFocusInput *input, const int skill_position) {
     const int bless_position = spell_skill_position(BUFF_KIND_BLESS);
     int kind;
@@ -952,10 +1053,14 @@ static void build_buff_focus_input(BuffFocusInput *input, const int skill_positi
     }
 
     add_buff_candidate(input, input->focused_raise_index, 1);
-    add_skill_attribute_candidates(input, &input->focused);
-    add_skill_attribute_candidates(input, &input->model.spell_skills[BUFF_KIND_BLESS]);
-    add_buff_candidate(input, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
-    add_buff_candidate(input, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
+    if (tarot_set_has(input->model.tarot_cards, TAROT_FOOL_REVERSED) != 0) {
+        add_attribute_pool_candidate(input);
+    } else {
+        add_skill_attribute_candidates(input, &input->focused);
+        add_skill_attribute_candidates(input, &input->model.spell_skills[BUFF_KIND_BLESS]);
+        add_buff_candidate(input, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
+        add_buff_candidate(input, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
+    }
     add_buff_candidate(input, STAT_RAISE_SKILL_BASE + bless_position, BUFF_FOCUS_MAX_POINTS);
 }
 
@@ -971,6 +1076,10 @@ static const BuffFocusResult *cached_buff_focus(const int skill_position) {
     if (!has_cached || memcmp(&input, &cached_input, sizeof(input)) != 0) {
         cached_input = input;
         cached_result = buff_focus_search(&input);
+        cached_result.best = expand_attribute_pool(&cached_result.best);
+        cached_result.direct = expand_attribute_pool(&cached_result.direct);
+        cached_result.through_attributes = expand_attribute_pool(&cached_result.through_attributes);
+        cached_result.through_bless = expand_attribute_pool(&cached_result.through_bless);
         has_cached = true;
     }
     return &cached_result;
