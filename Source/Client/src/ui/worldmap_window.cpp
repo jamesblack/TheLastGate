@@ -16,6 +16,8 @@
 #include "game/worldmap.h"
 #include "game/worldmap_view.h"
 #include "graphics/sdl.h"
+#include "ui_common.hpp"
+#include "widgets.hpp"
 
 enum WorldmapTool {
     WORLDMAP_TOOL_SELECT,
@@ -92,6 +94,9 @@ static const float PATH_THICKNESS = 2.0F;
 static const float DASH_LENGTH = 6.0F;
 static const float DASH_GAP = 4.0F;
 static const float SWATCH_SIZE = 12.0F;
+static const float TITLE_HEIGHT = 20.0F;
+static const float BUTTON_TEXT_PADDING = 8.0F;
+static const char *const WINDOW_TITLE = "World Map";
 static const float PICKER_SWATCH_SIZE = 20.0F;
 static const float EDIT_LABEL_WIDTH = 180.0F;
 static const double STATUS_SECONDS = 3.0;
@@ -742,6 +747,33 @@ static void handle_line_keys(WorldmapPanelState *panel) {
     }
 }
 
+static bool game_button(const char *text, bool enabled = true, bool pressed = false) {
+    const float width = fmaxf((float) BUTTON_SPRITE_WIDTH, ImGui::CalcTextSize(text).x + BUTTON_TEXT_PADDING * 2.0F);
+    return ui_game_button(text, text, width, (float) BUTTON_SPRITE_HEIGHT, enabled, pressed);
+}
+
+static void frame_current_window(void) {
+    const ImVec2 position = ImGui::GetWindowPos();
+    const ImVec2 size = ImGui::GetWindowSize();
+    ui_game_frame(position.x, position.y, position.x + size.x, position.y + size.y);
+}
+
+static bool begin_game_menu(const char *popup_id) {
+    if (!ImGui::BeginPopup(popup_id)) return false;
+    frame_current_window();
+    return true;
+}
+
+static bool begin_game_modal(const char *popup_id) {
+    const ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
+    if (!ImGui::BeginPopupModal(popup_id, NULL, flags)) return false;
+    frame_current_window();
+    const char *title_end = strstr(popup_id, "###");
+    ImGui::TextUnformatted(popup_id, title_end);
+    ImGui::Separator();
+    return true;
+}
+
 static void show_pin_tooltip(const WorldmapPanelState *panel, AnnotationSet *set, const MapArea *area) {
     if (!ImGui::IsItemHovered()) return;
     const WorldmapHit hit = hit_test_at_mouse(panel, set, area, PIN_HOVER_RADIUS);
@@ -750,18 +782,24 @@ static void show_pin_tooltip(const WorldmapPanelState *panel, AnnotationSet *set
     const Annotation *annotation = annotation_find(set, hit.annotation_id, &owner);
     if (annotation && owner && annotation->kind == ANNOTATION_PIN && annotation->label[0] != '\0' &&
         !pin_label_shown(panel, owner, annotation)) {
-        ImGui::SetTooltip("%s", annotation->label);
+        ui_tooltip(annotation->label);
     }
 }
 
 static void render_map_area(WorldmapPanelState *panel, AnnotationSet *set, float height) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
-    ImGui::BeginChild("map", ImVec2(0.0F, height), ImGuiChildFlags_Borders,
+    ImGui::BeginChild("map", ImVec2(0.0F, height), ImGuiChildFlags_None,
                       ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::PopStyleVar();
+    frame_current_window();
 
-    MapArea area = {ImGui::GetCursorScreenPos(), ImGui::GetContentRegionAvail()};
+    const float inset = (float) WINDOW_SPRITE_BORDER_WIDTH;
+    const ImVec2 child_origin = ImGui::GetCursorScreenPos();
+    const ImVec2 child_size = ImGui::GetContentRegionAvail();
+    MapArea area = {ImVec2(child_origin.x + inset, child_origin.y + inset),
+                    ImVec2(child_size.x - inset * 2.0F, child_size.y - inset * 2.0F)};
     if (area.size.x >= 1.0F && area.size.y >= 1.0F) {
+        ImGui::SetCursorScreenPos(area.origin);
         if (game_ui_state.worldmap_centre_on_player) {
             centre_on_player(panel);
             game_ui_state.worldmap_centre_on_player = false;
@@ -821,7 +859,7 @@ static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set
         const bool being_edited = panel->editing && panel->edit_annotation_id == annotation->id;
         if (selected && !being_edited) {
             ImGui::SameLine();
-            if (ImGui::SmallButton("Edit")) begin_edit(panel, set, annotation->id);
+            if (game_button("Edit")) begin_edit(panel, set, annotation->id);
         }
         ImGui::PopID();
     }
@@ -859,7 +897,7 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
         set->changed = 1;
         worldmap_save_annotations();
     }
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show on map");
+    if (ImGui::IsItemHovered()) ui_tooltip("Show on map");
 
     ImGui::SameLine(category_list_column_x(row_start_x, 1) + checkbox_offset);
     bool show_labels = category->show_labels != 0;
@@ -868,7 +906,7 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
         set->changed = 1;
         worldmap_save_annotations();
     }
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show pin labels");
+    if (ImGui::IsItemHovered()) ui_tooltip("Show pin labels");
 
     ImGui::SameLine(category_list_column_x(row_start_x, 2));
     const ImVec4 swatch = ImGui::ColorConvertU32ToFloat4(category_colour(category));
@@ -896,10 +934,12 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
 }
 
 static void render_category_list(WorldmapPanelState *panel, AnnotationSet *set, float height) {
-    ImGui::BeginChild("categories", ImVec2(CATEGORY_COLUMN_WIDTH, height), ImGuiChildFlags_Borders);
+    ImGui::BeginChild("categories", ImVec2(CATEGORY_COLUMN_WIDTH, height), ImGuiChildFlags_AlwaysUseWindowPadding);
+    frame_current_window();
 
     const ImGuiStyle &style = ImGui::GetStyle();
-    const float footer_height = ImGui::GetFrameHeightWithSpacing() * 2.0F + style.ItemSpacing.y;
+    const float button_row_height = fmaxf((float) BUTTON_SPRITE_HEIGHT, ImGui::GetFrameHeight()) + style.ItemSpacing.y;
+    const float footer_height = button_row_height + ImGui::GetFrameHeightWithSpacing() + style.ItemSpacing.y;
     render_category_list_header();
     ImGui::BeginChild("category_rows", ImVec2(0.0F, -footer_height));
     for (int category_index = 0; category_index < set->category_count; category_index++) {
@@ -908,13 +948,13 @@ static void render_category_list(WorldmapPanelState *panel, AnnotationSet *set, 
     ImGui::EndChild();
 
     ImGui::Separator();
-    if (ImGui::Button("+ New")) open_new_category(panel);
+    if (game_button("+ New")) open_new_category(panel);
     ImGui::SameLine();
-    if (ImGui::Button("Import")) open_import(panel);
+    if (game_button("Import")) open_import(panel);
     ImGui::SameLine();
-    ImGui::BeginDisabled(!annotation_category_find(set, panel->current_category_id));
-    if (ImGui::Button("Export")) export_category(panel, set, panel->current_category_id);
-    ImGui::EndDisabled();
+    if (game_button("Export", annotation_category_find(set, panel->current_category_id) != NULL)) {
+        export_category(panel, set, panel->current_category_id);
+    }
 
     bool show_on_minimap = set->show_on_minimap != 0;
     if (ImGui::Checkbox("Show on minimap", &show_on_minimap)) {
@@ -937,16 +977,14 @@ static void render_edit_controls(WorldmapPanelState *panel, AnnotationSet *set) 
         ImGui::InputText("##edit_label", panel->edit_copy.label, sizeof(panel->edit_copy.label));
         ImGui::SameLine();
         const bool empty_text = panel->edit_copy.kind == ANNOTATION_TEXT && panel->edit_copy.label[0] == '\0';
-        ImGui::BeginDisabled(empty_text);
-        if (ImGui::Button("Save")) save_edit(panel, set);
-        ImGui::EndDisabled();
+        if (game_button("Save", !empty_text)) save_edit(panel, set);
         ImGui::SameLine();
-        if (ImGui::Button("Cancel")) cancel_edit(panel);
+        if (game_button("Cancel")) cancel_edit(panel);
         return;
     }
     if (panel->selected_annotation_id != 0 && annotation_find(set, panel->selected_annotation_id, NULL)) {
         ImGui::SameLine();
-        if (ImGui::Button("Edit")) begin_edit(panel, set, panel->selected_annotation_id);
+        if (game_button("Edit")) begin_edit(panel, set, panel->selected_annotation_id);
     }
 }
 
@@ -957,11 +995,9 @@ static void render_bottom_bar(WorldmapPanelState *panel, AnnotationSet *set) {
         const WorldmapTool tool = (WorldmapTool) tool_index;
         const bool active = panel->active_tool == tool;
         if (tool_index > 0) ImGui::SameLine();
-        ImGui::BeginDisabled(!tool_is_available(tool, has_category));
-        if (active) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-        if (ImGui::Button(TOOL_NAMES[tool_index])) set_active_tool(panel, tool);
-        if (active) ImGui::PopStyleColor();
-        ImGui::EndDisabled();
+        if (game_button(TOOL_NAMES[tool_index], tool_is_available(tool, has_category), active)) {
+            set_active_tool(panel, tool);
+        }
     }
 
     ImGui::SameLine();
@@ -987,13 +1023,13 @@ static void render_bottom_bar(WorldmapPanelState *panel, AnnotationSet *set) {
 }
 
 static void render_annotation_menu(WorldmapPanelState *panel, AnnotationSet *set) {
-    if (!ImGui::BeginPopup(ANNOTATION_MENU_ID)) return;
+    if (!begin_game_menu(ANNOTATION_MENU_ID)) return;
     if (ImGui::MenuItem("Delete")) delete_annotation(panel, set, panel->menu_annotation_id);
     ImGui::EndPopup();
 }
 
 static void render_category_menu(WorldmapPanelState *panel, AnnotationSet *set) {
-    if (!ImGui::BeginPopup(CATEGORY_MENU_ID)) return;
+    if (!begin_game_menu(CATEGORY_MENU_ID)) return;
     if (ImGui::MenuItem("Export")) export_category(panel, set, panel->menu_category_id);
     if (ImGui::MenuItem("Delete category...")) panel->popup_request = DELETE_CATEGORY_POPUP_ID;
     ImGui::EndPopup();
@@ -1033,7 +1069,7 @@ static void cancel_label(WorldmapPanelState *panel) {
 }
 
 static void render_label_popup(WorldmapPanelState *panel, AnnotationSet *set) {
-    if (!ImGui::BeginPopupModal(LABEL_POPUP_ID, NULL, ImGuiWindowFlags_AlwaysAutoResize)) return;
+    if (!begin_game_modal(LABEL_POPUP_ID)) return;
     if (panel->label_purpose == LABEL_PURPOSE_NONE) {
         ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
@@ -1045,11 +1081,9 @@ static void render_label_popup(WorldmapPanelState *panel, AnnotationSet *set) {
                                             ImGuiInputTextFlags_EnterReturnsTrue);
     const bool can_confirm = panel->label_purpose != LABEL_PURPOSE_TEXT || panel->label_text[0] != '\0';
 
-    ImGui::BeginDisabled(!can_confirm);
-    const bool confirmed = ImGui::Button("OK");
-    ImGui::EndDisabled();
+    const bool confirmed = game_button("OK", can_confirm);
     ImGui::SameLine();
-    const bool cancelled = ImGui::Button("Cancel");
+    const bool cancelled = game_button("Cancel");
 
     if ((confirmed || submitted) && can_confirm) {
         commit_label(panel, set);
@@ -1074,7 +1108,7 @@ static void render_colour_picker(WorldmapPanelState *panel) {
             const ImVec2 item_min = ImGui::GetItemRectMin();
             const ImVec2 item_max = ImGui::GetItemRectMax();
             ImGui::GetWindowDrawList()->AddRect(ImVec2(item_min.x - 2.0F, item_min.y - 2.0F),
-                                                ImVec2(item_max.x + 2.0F, item_max.y + 2.0F), HIGHLIGHT_COLOUR, 0.0F, 0,
+                                                ImVec2(item_max.x + 2.0F, item_max.y + 2.0F), GOLD_FONT_COLOR, 0.0F, 0,
                                                 2.0F);
         }
         ImGui::PopID();
@@ -1082,7 +1116,7 @@ static void render_colour_picker(WorldmapPanelState *panel) {
 }
 
 static void render_new_category_popup(WorldmapPanelState *panel, AnnotationSet *set) {
-    if (!ImGui::BeginPopupModal(NEW_CATEGORY_POPUP_ID, NULL, ImGuiWindowFlags_AlwaysAutoResize)) return;
+    if (!begin_game_modal(NEW_CATEGORY_POPUP_ID)) return;
 
     ImGui::TextUnformatted("Name");
     if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
@@ -1091,11 +1125,9 @@ static void render_new_category_popup(WorldmapPanelState *panel, AnnotationSet *
     render_colour_picker(panel);
     const bool can_create = panel->new_category_name[0] != '\0';
 
-    ImGui::BeginDisabled(!can_create);
-    const bool created = ImGui::Button("Create");
-    ImGui::EndDisabled();
+    const bool created = game_button("Create", can_create);
     ImGui::SameLine();
-    const bool cancelled = ImGui::Button("Cancel");
+    const bool cancelled = game_button("Cancel");
 
     if ((created || submitted) && can_create) {
         const int category_id = annotation_category_add(set, panel->new_category_name, panel->new_category_colour);
@@ -1146,7 +1178,7 @@ static void render_import_preview(const WorldmapPanelState *panel) {
 }
 
 static void render_import_popup(WorldmapPanelState *panel, AnnotationSet *set) {
-    if (!ImGui::BeginPopupModal(IMPORT_POPUP_ID, NULL, ImGuiWindowFlags_AlwaysAutoResize)) return;
+    if (!begin_game_modal(IMPORT_POPUP_ID)) return;
     if (!panel->import_text) {
         ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
@@ -1163,11 +1195,9 @@ static void render_import_popup(WorldmapPanelState *panel, AnnotationSet *set) {
     render_import_preview(panel);
 
     const bool can_add = panel->import_text[0] != '\0' && panel->import_status == ANNOTATION_CODE_OK;
-    ImGui::BeginDisabled(!can_add);
-    const bool added = ImGui::Button("Add");
-    ImGui::EndDisabled();
+    const bool added = game_button("Add", can_add);
     ImGui::SameLine();
-    const bool cancelled = ImGui::Button("Cancel");
+    const bool cancelled = game_button("Cancel");
 
     if (added && can_add) {
         const int category_id = annotation_category_adopt(set, &panel->import_preview);
@@ -1186,17 +1216,17 @@ static void render_import_popup(WorldmapPanelState *panel, AnnotationSet *set) {
 }
 
 static void render_export_popup(WorldmapPanelState *panel) {
-    if (!ImGui::BeginPopupModal(EXPORT_POPUP_ID, NULL, ImGuiWindowFlags_AlwaysAutoResize)) return;
+    if (!begin_game_modal(EXPORT_POPUP_ID)) return;
     ImGui::TextUnformatted(panel->export_message);
     if (panel->export_too_long) {
         ImGui::TextUnformatted("Too long for one Discord message; it will still work on the wiki.");
     }
-    if (ImGui::Button("OK")) ImGui::CloseCurrentPopup();
+    if (game_button("OK")) ImGui::CloseCurrentPopup();
     ImGui::EndPopup();
 }
 
 static void render_delete_category_popup(WorldmapPanelState *panel, AnnotationSet *set) {
-    if (!ImGui::BeginPopupModal(DELETE_CATEGORY_POPUP_ID, NULL, ImGuiWindowFlags_AlwaysAutoResize)) return;
+    if (!begin_game_modal(DELETE_CATEGORY_POPUP_ID)) return;
     const AnnotationCategory *category = annotation_category_find(set, panel->menu_category_id);
     if (!category) {
         ImGui::CloseCurrentPopup();
@@ -1209,12 +1239,12 @@ static void render_delete_category_popup(WorldmapPanelState *panel, AnnotationSe
              category->annotation_count);
     ImGui::TextUnformatted(question);
 
-    if (ImGui::Button("Delete")) {
+    if (game_button("Delete")) {
         delete_category(panel, set, panel->menu_category_id);
         ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+    if (game_button("Cancel")) ImGui::CloseCurrentPopup();
     ImGui::EndPopup();
 }
 
@@ -1260,6 +1290,29 @@ static void show_set_aside_notice(WorldmapPanelState *panel) {
     set_status_for(panel, message, NOTICE_SECONDS);
 }
 
+static void render_title_bar(bool *open) {
+    const ImVec2 start = ImGui::GetCursorScreenPos();
+    const float width = ImGui::GetContentRegionAvail().x;
+    const float close_size = (float) BUTTON_SPRITE_HEIGHT;
+    const float drag_width = fmaxf(width - close_size - ImGui::GetStyle().ItemSpacing.x, 1.0F);
+
+    ImGui::InvisibleButton("##title", ImVec2(drag_width, TITLE_HEIGHT));
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0F)) {
+        const ImVec2 position = ImGui::GetWindowPos();
+        const ImVec2 delta = ImGui::GetIO().MouseDelta;
+        ImGui::SetWindowPos(ImVec2(position.x + delta.x, position.y + delta.y));
+    }
+
+    const ImVec2 title_size = ImGui::CalcTextSize(WINDOW_TITLE);
+    ImGui::GetWindowDrawList()->AddText(ImVec2(floorf(start.x + (width - title_size.x) / 2.0F),
+                                               floorf(start.y + (TITLE_HEIGHT - title_size.y) / 2.0F)),
+                                        GOLD_FONT_COLOR, WINDOW_TITLE);
+
+    ImGui::SameLine();
+    ImGui::SetCursorScreenPos(ImVec2(start.x + width - close_size, start.y + (TITLE_HEIGHT - close_size) / 2.0F));
+    if (ui_game_button("##close", "x", close_size, close_size, true, false)) *open = false;
+}
+
 void worldmap_window_render(void) {
     static int last_rendered_frame = -1;
     WorldmapPanelState *panel = &panel_state;
@@ -1273,12 +1326,20 @@ void worldmap_window_render(void) {
     show_set_aside_notice(panel);
 
     panel->hovered_tile_valid = false;
+    ui_push_game_window_style();
     ImGui::SetNextWindowSize(ImVec2(900.0F, 620.0F), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("World Map", &open, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+    // The title bar is drawn by hand, so the window only moves when its title is dragged
+    const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+                                          ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
+                                          ImGuiWindowFlags_NoScrollWithMouse;
+    if (ImGui::Begin(WINDOW_TITLE, NULL, window_flags)) {
+        frame_current_window();
+        render_title_bar(&open);
         ensure_current_category(panel, set);
         handle_line_keys(panel);
 
-        const float bar_height = ImGui::GetFrameHeightWithSpacing();
+        const float bar_height =
+                fmaxf((float) BUTTON_SPRITE_HEIGHT, ImGui::GetFrameHeight()) + ImGui::GetStyle().ItemSpacing.y;
         const float body_height = fmaxf(ImGui::GetContentRegionAvail().y - bar_height, 1.0F);
 
         render_category_list(panel, set, body_height);
@@ -1288,6 +1349,7 @@ void worldmap_window_render(void) {
         render_popups(panel, set);
     }
     ImGui::End();
+    ui_pop_game_window_style();
 
     if (!open) {
         drop_interrupted_work(panel);
@@ -1310,7 +1372,7 @@ void worldmap_minimap_tooltip_render(void) {
             worldmap_annotations(), game_ui_state.minimap_origin_tile_x, game_ui_state.minimap_origin_tile_y,
             game_ui_state.minimap_magnification < 1 ? 1 : game_ui_state.minimap_magnification, (int) offset_top,
             (int) offset_left);
-    if (pin && pin->label[0] != '\0') ImGui::SetTooltip("%s", pin->label);
+    if (pin && pin->label[0] != '\0') ui_tooltip(pin->label);
 }
 
 bool worldmap_window_discard_pending_path(void) {

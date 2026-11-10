@@ -7,6 +7,7 @@
 #include "ui_common.hpp"
 #include "graphics/sdl.h"
 #include "config/keybindings.h"
+#include <math.h>
 #include <stdio.h>
 
 #include "engine.h"
@@ -32,11 +33,15 @@ bool ui_button(const char *label, float width, float height) {
 bool ui_button_enabled(const char *label, float width, float height, bool enabled) {
     if (width < 52) width = 52;
     if (height < 19) height = 19;
+    return ui_game_button(label, label, width, height, enabled, false);
+}
+
+bool ui_game_button(const char *id, const char *text, float width, float height, bool enabled, bool pressed) {
     /* Get draw list BEFORE creating widgets */
     void *draw_list = imgui_get_window_draw_list();
 
     /* Create invisible button */
-    bool clicked = imgui_invisible_button(label, width, height);
+    bool clicked = imgui_invisible_button(id, width, height);
 
     /* Get button rectangle */
     float min_x, min_y, max_x, max_y;
@@ -51,6 +56,9 @@ bool ui_button_enabled(const char *label, float width, float height, bool enable
         tint = BUTTON_DISABLED_TINT;
         text_color = HINT_GREY_FONT_COLOR;
         clicked = false;
+    } else if (pressed) {
+        tint = BUTTON_ACTIVE_TINT;
+        text_color = BLUE_FONT_COLOR;
     } else if (imgui_is_item_active()) {
         /* Clicked/pressed state - darker */
         tint = BUTTON_ACTIVE_TINT;
@@ -69,7 +77,7 @@ bool ui_button_enabled(const char *label, float width, float height, bool enable
     button_sprite_render(draw_list, min_x, min_y, max_x, max_y, tint);
 
     /* Draw centered text */
-    const char *button_text = label;
+    const char *button_text = text;
     float text_width, text_height;
     imgui_calc_text_size_simple(&text_width, &text_height, button_text);
 
@@ -79,6 +87,96 @@ bool ui_button_enabled(const char *label, float width, float height, bool enable
     imgui_draw_list_add_text(draw_list, text_x, text_y, text_color, button_text);
 
     return clicked;
+}
+
+void ui_game_frame(float left, float top, float right, float bottom) {
+    sdl_load_sprite(WINDOW_SPRITE_ID);
+    const SpriteData *frame = &sprite_data[WINDOW_SPRITE_ID];
+    imgui_draw_list_add_image_9_slice(imgui_get_window_draw_list(), (void *) (intptr_t) frame->gl_texture, left, top,
+                                      right, bottom, WINDOW_SPRITE_BORDER_WIDTH, WINDOW_SPRITE_BORDER_WIDTH,
+                                      WINDOW_SPRITE_BORDER_WIDTH, WINDOW_SPRITE_BORDER_WIDTH, frame->pixel_width,
+                                      frame->pixel_height, frame->uv0.u, frame->uv0.v, frame->uv1.u, frame->uv1.v,
+                                      WHITE_TINT);
+}
+
+static const ImU32 GAME_WINDOW_BACKGROUND = IM_COL32(17, 5, 5, 255);
+static const ImU32 GAME_BORDER = IM_COL32(117, 106, 68, 255);
+static const ImU32 GAME_BORDER_HOVERED = IM_COL32(168, 147, 90, 255);
+static const ImU32 GAME_FIELD = IM_COL32(51, 51, 51, 255);
+static const ImU32 GAME_FIELD_HOVERED = IM_COL32(77, 77, 77, 255);
+static const ImU32 GAME_FIELD_ACTIVE = IM_COL32(102, 102, 102, 255);
+static const ImU32 GAME_ROW = IM_COL32(58, 16, 16, 255);
+static const ImU32 GAME_ROW_HOVERED = IM_COL32(74, 24, 24, 255);
+static const ImU32 GAME_ROW_ACTIVE = IM_COL32(90, 32, 32, 255);
+static const ImU32 GAME_TEXT_SELECTION = IM_COL32(90, 32, 32, 200);
+static const ImU32 GAME_SCROLL_TRACK = IM_COL32(23, 0, 5, 255);
+static const ImU32 GAME_SCROLL_GRAB = IM_COL32(0, 97, 0, 255);
+static const ImU32 GAME_SCROLL_GRAB_HOVERED = IM_COL32(0, 122, 0, 255);
+static const ImU32 GAME_SCROLL_GRAB_ACTIVE = IM_COL32(0, 148, 0, 255);
+
+static const struct {
+    ImGuiCol slot;
+    ImU32 colour;
+} GAME_WINDOW_COLOURS[] = {
+    {ImGuiCol_Text, GOLD_FONT_COLOR},
+    {ImGuiCol_TextDisabled, HINT_GREY_FONT_COLOR},
+    {ImGuiCol_WindowBg, GAME_WINDOW_BACKGROUND},
+    {ImGuiCol_ChildBg, TRANSPARENT_COLOR},
+    {ImGuiCol_PopupBg, GAME_WINDOW_BACKGROUND},
+    {ImGuiCol_Border, GAME_BORDER},
+    {ImGuiCol_BorderShadow, TRANSPARENT_COLOR},
+    {ImGuiCol_FrameBg, GAME_FIELD},
+    {ImGuiCol_FrameBgHovered, GAME_FIELD_HOVERED},
+    {ImGuiCol_FrameBgActive, GAME_FIELD_ACTIVE},
+    {ImGuiCol_TitleBg, GAME_WINDOW_BACKGROUND},
+    {ImGuiCol_TitleBgActive, GAME_WINDOW_BACKGROUND},
+    {ImGuiCol_TitleBgCollapsed, GAME_WINDOW_BACKGROUND},
+    {ImGuiCol_CheckMark, GOLD_FONT_COLOR},
+    {ImGuiCol_Button, GAME_ROW},
+    {ImGuiCol_ButtonHovered, GAME_ROW_HOVERED},
+    {ImGuiCol_ButtonActive, GAME_ROW_ACTIVE},
+    {ImGuiCol_Header, GAME_ROW},
+    {ImGuiCol_HeaderHovered, GAME_ROW_HOVERED},
+    {ImGuiCol_HeaderActive, GAME_ROW_ACTIVE},
+    {ImGuiCol_Separator, GAME_BORDER},
+    {ImGuiCol_SeparatorHovered, GAME_BORDER_HOVERED},
+    {ImGuiCol_SeparatorActive, GOLD_FONT_COLOR},
+    {ImGuiCol_ResizeGrip, GAME_BORDER},
+    {ImGuiCol_ResizeGripHovered, GAME_BORDER_HOVERED},
+    {ImGuiCol_ResizeGripActive, GOLD_FONT_COLOR},
+    {ImGuiCol_ScrollbarBg, GAME_SCROLL_TRACK},
+    {ImGuiCol_ScrollbarGrab, GAME_SCROLL_GRAB},
+    {ImGuiCol_ScrollbarGrabHovered, GAME_SCROLL_GRAB_HOVERED},
+    {ImGuiCol_ScrollbarGrabActive, GAME_SCROLL_GRAB_ACTIVE},
+    {ImGuiCol_TextSelectedBg, GAME_TEXT_SELECTION},
+};
+
+static const int GAME_WINDOW_COLOUR_COUNT = (int) (sizeof(GAME_WINDOW_COLOURS) / sizeof(GAME_WINDOW_COLOURS[0]));
+static const int GAME_WINDOW_VAR_COUNT = 11;
+static const float GAME_WINDOW_PADDING = 10.0F;
+
+void ui_push_game_window_style(void) {
+    for (int colour_index = 0; colour_index < GAME_WINDOW_COLOUR_COUNT; colour_index++) {
+        ImGui::PushStyleColor(GAME_WINDOW_COLOURS[colour_index].slot, GAME_WINDOW_COLOURS[colour_index].colour);
+    }
+    // Frames are as tall as the button sprite so text, fields and buttons share one row height
+    const float frame_padding_y = floorf((BUTTON_SPRITE_HEIGHT - ImGui::GetFontSize()) / 2.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(GAME_WINDOW_PADDING, GAME_WINDOW_PADDING));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0F, frame_padding_y > 0.0F ? frame_padding_y : 0.0F));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 0.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 0.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarRounding, 0.0F);
+}
+
+void ui_pop_game_window_style(void) {
+    ImGui::PopStyleVar(GAME_WINDOW_VAR_COUNT);
+    ImGui::PopStyleColor(GAME_WINDOW_COLOUR_COUNT);
 }
 
 bool tab_button(const char *label, bool is_active, float width) {

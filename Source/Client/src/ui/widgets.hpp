@@ -16,6 +16,10 @@ bool ui_button(const char *label, float width, float height);
 
 /* Same as ui_button, but drawn dimmed and never clicked when enabled is false. */
 bool ui_button_enabled(const char *label, float width, float height, bool enabled);
+bool ui_game_button(const char *id, const char *text, float width, float height, bool enabled, bool pressed);
+void ui_game_frame(float left, float top, float right, float bottom);
+void ui_push_game_window_style(void);
+void ui_pop_game_window_style(void);
 bool tab_button(const char *label, bool is_active, float width);
 void ui_tooltip(const char *tooltip_text);
 
