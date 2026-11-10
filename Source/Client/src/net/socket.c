@@ -696,6 +696,7 @@ void sv_log(unsigned char *buf, int font) {
     for (n = cnt; n < cnt + 15; n++)
         if (text[n] == 10) {
             text[n] = 0;
+            minimap_note_log_line(text, engine_view_centre_character());
             if (!buff_watch_capture_line(text, font) && !item_tooltip_capture_line(text, font)) tlog(text, (char) font);
             cnt = 0;
             return;

@@ -26,6 +26,7 @@ void xlog(char font, char *format, ...);
 int at_score(int n);
 int sk_score(int n);
 void engine_player_tile(int *tile_x, int *tile_y);
+int engine_view_centre_character(void);
 int points2rank(int v);
 
 #ifndef GUI_SHOP_X

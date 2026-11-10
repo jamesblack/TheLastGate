@@ -668,6 +668,11 @@ void engine_player_tile(int *tile_x, int *tile_y) {
     *tile_y = map[(screen_renderdist / 2) + (screen_renderdist / 2) * screen_renderdist].y;
 }
 
+int engine_view_centre_character(void) {
+    if (!map) return 0;
+    return map[(screen_renderdist / 2) + (screen_renderdist / 2) * screen_renderdist].ch_nr;
+}
+
 void eng_init_map(void) {
     int n;
 
@@ -2101,6 +2106,7 @@ void eng_display(int init) // optimize me!!!!!
 
         mapx = map[(screen_renderdist / 2) + (screen_renderdist / 2) * screen_renderdist].x;
         mapy = map[(screen_renderdist / 2) + (screen_renderdist / 2) * screen_renderdist].y;
+        minimap_note_view_centre(engine_view_centre_character());
 
         for (y = screen_renderdist - 1; y >= 0; y--) {
             for (x = 0; x < screen_renderdist; x++) {

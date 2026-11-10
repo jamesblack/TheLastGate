@@ -74,6 +74,7 @@ add_executable(TheLastGate
         src/game/worldmap_view.c
         src/game/worldmap.c
         src/game/minimap_overlay.c
+        src/game/spectate_watch.c
         src/game/game_ui.c
         src/game/stat_display.c
         src/planner/skill_focus.c
@@ -247,6 +248,13 @@ if (TLG_BUILD_TESTS)
     )
     target_include_directories(minimap_overlay_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME minimap_overlay COMMAND minimap_overlay_test)
+
+    add_executable(spectate_watch_test
+            tests/spectate_watch_test.c
+            src/game/spectate_watch.c
+    )
+    target_include_directories(spectate_watch_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME spectate_watch COMMAND spectate_watch_test)
 
     add_executable(minimap_store_test
             tests/minimap_store_test.c

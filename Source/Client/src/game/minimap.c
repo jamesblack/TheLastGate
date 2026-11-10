@@ -5,6 +5,7 @@
 #include "inter.h"
 #include "config/config.h"
 #include "game/minimap_store.h"
+#include "game/spectate_watch.h"
 #include "log/log.h"
 
 #define MINIMAP_AUTOSAVE_INTERVAL_MS (5u * 60u * 1000u)
@@ -13,6 +14,7 @@ static unsigned short tile_colours[MAPX_MAX * MAPY_MAX];
 static MinimapTiles minimap = {tile_colours, MAPX_MAX, MAPY_MAX, 0, 0};
 static char map_file_path[512];
 static Uint32 last_save_ticks = 0;
+static SpectateWatch spectate_watch = {SPECTATE_NONE, 0};
 
 unsigned short *minimap_tile_colours(void) {
     return tile_colours;
@@ -41,13 +43,32 @@ void minimap_open(const char *host, const int port) {
         log_info("No usable saved minimap at %s, starting blank", map_file_path);
     }
     last_save_ticks = SDL_GetTicks();
+    spectate_watch_reset(&spectate_watch);
+}
+
+void minimap_note_log_line(const char *line, const int centre_character) {
+    const int was_spectating = spectate_watch_active(&spectate_watch);
+
+    spectate_watch_log_line(&spectate_watch, line, centre_character);
+    if (!was_spectating && spectate_watch_active(&spectate_watch)) log_info("Spectating, minimap recording paused");
+}
+
+void minimap_note_view_centre(const int centre_character) {
+    const int was_spectating = spectate_watch_active(&spectate_watch);
+
+    spectate_watch_view_centre(&spectate_watch, centre_character);
+    if (was_spectating && !spectate_watch_active(&spectate_watch)) {
+        log_info("Stopped spectating, minimap recording resumed");
+    }
 }
 
 void minimap_see_tile(const int tile_x, const int tile_y, const unsigned short colour) {
+    if (spectate_watch_active(&spectate_watch)) return;
     minimap_store_set_tile(&minimap, tile_x, tile_y, colour);
 }
 
 void minimap_clear_box(const int left, const int top, const int box_width, const int box_height) {
+    if (spectate_watch_active(&spectate_watch)) return;
     minimap_store_clear_box(&minimap, left, top, box_width, box_height);
 }
 
