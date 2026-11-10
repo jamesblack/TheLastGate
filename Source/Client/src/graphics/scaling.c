@@ -15,6 +15,9 @@
 static GLuint fbo = 0;
 static GLuint fboTexture = 0;
 static GLuint fboRBO = 0;
+static GLuint world_fbo = 0;
+static GLuint world_texture = 0;
+static GLuint world_rbo = 0;
 static GLuint screenVAO = 0;
 static GLuint screenVBO = 0;
 static GLuint screenShader = 0;
@@ -44,6 +47,18 @@ void init_fbo_scaling(int baseWidth, int baseHeight) {
                            GL_TEXTURE_2D, fboTexture, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
                               GL_RENDERBUFFER, fboRBO);
+
+    // World FBO keeps the last world image so UI frames can redraw over it between world ticks
+    create_gl_texture(BASE_W, BASE_H, &world_texture, NULL);
+    glGenRenderbuffers(1, &world_rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, world_rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, BASE_W, BASE_H);
+    glGenFramebuffers(1, &world_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, world_fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, world_texture, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, world_rbo);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // 4) Screen quad setup
@@ -99,6 +114,25 @@ void sdl_start_scaling(void) {
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void sdl_start_world_scaling(void) {
+    glBindFramebuffer(GL_FRAMEBUFFER, world_fbo);
+    glViewport(0, 0, BASE_W, BASE_H);
+
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void sdl_start_overlay_scaling(void) {
+    glDisable(GL_SCISSOR_TEST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, world_fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+    glBlitFramebuffer(0, 0, BASE_W, BASE_H, 0, 0, BASE_W, BASE_H, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glViewport(0, 0, BASE_W, BASE_H);
+    glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
 // ------------------------------------------------------------

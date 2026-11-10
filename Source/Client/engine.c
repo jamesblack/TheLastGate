@@ -2477,18 +2477,6 @@ void init_engine(void) {
     eng_init_player();
 }
 
-void eng_flip(unsigned int t) {
-    int diff;
-
-    diff = t - SDL_GetTicks();
-    if (diff > 0) idle += diff;
-    do {
-        handle_input();
-    } while (t > SDL_GetTicks());
-
-    frame++;
-}
-
 // Gets the effective "speed table" value, the same way as a hypothetical table of 1's and 0's would.
 int get_speed_value(int speedV, int tickV, bool cast) {
     int bonus = 0;
@@ -3420,8 +3408,31 @@ int noshop = 0;
 extern int xmove, xxtimer;
 extern int do_ticker;
 
-const double target_fps = 120.0;
-const double target_frame_time = 1.0 / target_fps;
+#define UI_TARGET_FPS 120
+
+static void eng_present_frame(int init) {
+    perf_begin();
+    sdl_start_overlay_scaling();
+    calculate_game_ui_state();
+
+    for (int event_index = 0; event_index < input_event_count; event_index++) {
+        imgui_process_event(&input_events[event_index]);
+    }
+    input_event_count = 0;
+
+    ui_render(UI_STATE_GAME);
+    SDL_SetCursor(cursors[cursor_type]);
+
+    if (init) {
+        eng_display_cursor_items();
+        sdl_batch_flush();
+    }
+    sdl_stop_scaling();
+
+    SDL_GL_SwapWindow(renderer.window);
+    perf_end();
+    perf_commit();
+}
 
 void engine(void) {
     int tmp, tick, init = 0;
@@ -3430,6 +3441,9 @@ void engine(void) {
     unsigned int t;
     Uint32 last_time = 0;
     Uint32 delta_time = 0;
+    Uint32 next_world_tick, next_present, now, wait_until, sleep_start;
+    const Uint32 present_interval = 1000 / UI_TARGET_FPS;
+    int world_drawn, world_tick_due, world_behind;
 
     raw_skilltab = malloc(sizeof(struct skilltab) * MAXSKILL);
     skilltab = malloc(sizeof(struct skilltab) * MAXSKILL);
@@ -3440,144 +3454,149 @@ void engine(void) {
 
     init_done = 1;
     t = SDL_GetTicks();
-
+    next_world_tick = t;
+    next_present = t;
 
     while (!quit) {
         handle_input();
-        if (wantquit && maynotquit) maynotquit--;
-        minimap_autosave_tick();
+        world_drawn = 0;
 
-        if (do_ticker && (ticker & 15) == 0) cmd1s(CL_CMD_CTICK, ticker);
+        world_tick_due = SDL_TICKS_PASSED(SDL_GetTicks(), next_world_tick);
 
-        if (step++ > 16) {
-            pskip = 100.0 * (float) skip / (float) frame;
-            pidle = 100.0 * (float) idle / (float) xtime;
-            skip = frame = 0;
-            idle = xtime = 0;
-            step = 0;
-        }
+        if (world_tick_due) {
+            if (wantquit && maynotquit) maynotquit--;
+            minimap_autosave_tick();
 
-        frame++;
+            if (do_ticker && (ticker & 15) == 0) cmd1s(CL_CMD_CTICK, ticker);
 
-        lookstep++;
-        if (lookat && lookstep > QSIZE * 3) {
-            if (lookat >= lookmax || looks[lookat].known == 0)
-                cmd1s(CL_CMD_AUTOLOOK, lookat);
-            lookat = 0;
-            lookstep = 0;
-        }
+            if (step++ > 16) {
+                pskip = 100.0 * (float) skip / (float) frame;
+                pidle = 100.0 * (float) idle / (float) xtime;
+                skip = frame = 0;
+                idle = xtime = 0;
+                step = 0;
+            }
 
-        if (look_timer) look_timer--;
-        else show_look = 0;
+            frame++;
 
-        if ((game_ui_state.open_shop) && lookstep > QSIZE) {
-            cmd1s(CL_CMD_LOOK, shop.nr);
-            lookstep = 0;
-        }
+            lookstep++;
+            if (lookat && lookstep > QSIZE * 3) {
+                if (lookat >= lookmax || looks[lookat].known == 0) cmd1s(CL_CMD_AUTOLOOK, lookat);
+                lookat = 0;
+                lookstep = 0;
+            }
 
-        optstep++;
-        if (optstep > 4 && pdata.changed) {
-            send_opt();
-            optstep = 0;
-        }
+            if (look_timer) look_timer--;
+            else show_look = 0;
 
-        if (autosort < 5) autosort++;
-        if (autosort == 5) {
-            qsort(skilltab, 55, sizeof(struct skilltab), skill_cmp);
-            stat_raise_skill_list_sorted();
-            autosort++;
-        }
+            if ((game_ui_state.open_shop) && lookstep > QSIZE) {
+                cmd1s(CL_CMD_LOOK, shop.nr);
+                lookstep = 0;
+            }
 
-        if (xtime > 0) xtimer--;
+            optstep++;
+            if (optstep > 4 && pdata.changed) {
+                send_opt();
+                optstep = 0;
+            }
 
-        if (xmove && xtimer < 1) {
-            switch (xmove) {
-                case 1: cmds(CL_CMD_MOVE, map[(RENDERDIST / 2 - 7) + screen_renderdist * RENDERDIST / 2].x,
+            if (autosort < 5) autosort++;
+            if (autosort == 5) {
+                qsort(skilltab, 55, sizeof(struct skilltab), skill_cmp);
+                stat_raise_skill_list_sorted();
+                autosort++;
+            }
+
+            if (xtime > 0) xtimer--;
+
+            if (xmove && xtimer < 1) {
+                switch (xmove) {
+                    case 1:
+                        cmds(CL_CMD_MOVE, map[(RENDERDIST / 2 - 7) + screen_renderdist * RENDERDIST / 2].x,
                              map[(RENDERDIST / 2 - 7) + screen_renderdist * RENDERDIST / 2].y);
-                    break;
-                case 3: cmds(CL_CMD_MOVE, map[(RENDERDIST / 2 + 7) + screen_renderdist * RENDERDIST / 2].x,
+                        break;
+                    case 3:
+                        cmds(CL_CMD_MOVE, map[(RENDERDIST / 2 + 7) + screen_renderdist * RENDERDIST / 2].x,
                              map[(RENDERDIST / 2 + 7) + screen_renderdist * RENDERDIST / 2].y);
-                    break;
-                case 2: cmds(CL_CMD_MOVE, map[RENDERDIST / 2 + screen_renderdist * (RENDERDIST / 2 - 7)].x,
+                        break;
+                    case 2:
+                        cmds(CL_CMD_MOVE, map[RENDERDIST / 2 + screen_renderdist * (RENDERDIST / 2 - 7)].x,
                              map[RENDERDIST / 2 + screen_renderdist * (RENDERDIST / 2 - 7)].y);
-                    break;
-                case 4: cmds(CL_CMD_MOVE, map[RENDERDIST / 2 + screen_renderdist * (RENDERDIST / 2 + 7)].x,
+                        break;
+                    case 4:
+                        cmds(CL_CMD_MOVE, map[RENDERDIST / 2 + screen_renderdist * (RENDERDIST / 2 + 7)].x,
                              map[RENDERDIST / 2 + screen_renderdist * (RENDERDIST / 2 + 7)].y);
-                    break;
-                default: break;
+                        break;
+                    default: break;
+                }
+                xtimer = 4;
+                if (xxtimer++ > 1000) xmove = xxtimer = 0;
             }
-            xtimer = 4;
-            if (xxtimer++ > 1000) xmove = xxtimer = 0;
-        }
 
-        panic = 0;
-        do {
+            panic = 0;
+            do {
+                handle_input();
+                tmp = game_loop();
+                panic++;
+            } while (tmp && panic < 8192);
+
+            tmp = tick_do();
+            if (tmp) init = 1;
+            if (do_exit) init = 0;
+
+            if (noshop > 0) {
+                noshop--;
+                game_ui_state.open_shop = 0;
+                game_ui_state.show_waypoints = false;
+                game_ui_state.open_skill_tree = 0;
+                game_ui_state.open_book = 0;
+                game_ui_state.show_motd = false;
+                game_ui_state.show_new_player = false;
+                game_ui_state.tutorial.open = 0;
+            }
+
             handle_input();
-            tmp = game_loop();
-            panic++;
-        } while (tmp && panic < 8192);
-
-        tmp = tick_do();
-        if (tmp) init = 1;
-        if (do_exit) init = 0;
-
-        if (noshop > 0) {
-            noshop--;
-            game_ui_state.open_shop = 0;
-            game_ui_state.show_waypoints = false;
-            game_ui_state.open_skill_tree = 0;
-            game_ui_state.open_book = 0;
-            game_ui_state.show_motd = false;
-            game_ui_state.show_new_player = false;
-            game_ui_state.tutorial.open = 0;
-        }
-
-        handle_input();
-        if (t > SDL_GetTicks() || skipinrow > 100) // display frame only if we've got enough time
-        {
-            perf_begin();
-            delta_time = SDL_GetTicks() - last_time;
-            last_time = SDL_GetTicks();
-            glClear(GL_COLOR_BUFFER_BIT);
-            sdl_start_scaling();
-            eng_display(init);
-            calculate_game_ui_state();
-            perf_end();
-            eng_flip(t);
-            perf_begin();
-            sdl_batch_flush();
-
-            /* Now render ImGui on top at native window resolution */
-            for (int i = 0; i < input_event_count; i++) {
-                imgui_process_event(&input_events[i]);
-            }
-            input_event_count = 0;
-
-            ui_render(UI_STATE_GAME);
-            SDL_SetCursor(cursors[cursor_type]);
-
-            if (init) {
-                eng_display_cursor_items();
+            if (t > SDL_GetTicks() || skipinrow > 100) // display frame only if we've got enough time
+            {
+                perf_begin();
+                delta_time = SDL_GetTicks() - last_time;
+                last_time = SDL_GetTicks();
+                sdl_start_world_scaling();
+                eng_display(init);
                 sdl_batch_flush();
+                perf_end();
+
+                mod_stubborn_actions_on_tick(delta_time);
+                frame++;
+                skipinrow = 0;
+                world_drawn = 1;
+            } else {
+                skip++;
+                skipinrow++;
             }
-            sdl_stop_scaling();
 
-            SDL_GL_SwapWindow(renderer.window);
+            if (t_size) tick = TICK * QSIZE / t_size;
+            else tick = TICK;
 
-            mod_stubborn_actions_on_tick(delta_time);
-            perf_end();
-            perf_commit();
-            skipinrow = 0;
-        } else {
-            skip++;
-            skipinrow++;
+            next_world_tick = t;
+            t += tick;
+            ttime += tick;
+            xtime += tick;
         }
 
-        if (t_size) tick = TICK * QSIZE / t_size;
-        else tick = TICK;
+        now = SDL_GetTicks();
+        world_behind = SDL_TICKS_PASSED(now, next_world_tick);
+        wait_until = SDL_TICKS_PASSED(next_present, next_world_tick) ? next_world_tick : next_present;
+        if (world_drawn || (SDL_TICKS_PASSED(now, next_present) && !world_behind)) {
+            eng_present_frame(init);
+            next_present = now + present_interval;
+        }
 
-        t += tick;
-        ttime += tick;
-        xtime += tick;
+        now = SDL_GetTicks();
+        if (!world_behind && !SDL_TICKS_PASSED(now, wait_until)) {
+            sleep_start = now;
+            SDL_Delay(1);
+            idle += SDL_GetTicks() - sleep_start;
+        }
     }
 }

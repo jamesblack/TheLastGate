@@ -6,4 +6,8 @@ void resize_fbo_scaling(int windowWidth, int windowHeight);
 
 void sdl_start_scaling(void);
 
+void sdl_start_world_scaling(void);
+
+void sdl_start_overlay_scaling(void);
+
 void sdl_stop_scaling(void);
