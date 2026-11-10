@@ -8,6 +8,7 @@
 #include "game/game_input.h"
 #include "log/log.h"
 
+// clang-format off
 GlobalConfig g_config = {
     .video = {
         .gamma = 5000.0f,
@@ -36,6 +37,7 @@ GlobalConfig g_config = {
         .show_performance = false
     }
 };
+// clang-format on
 
 void apply_config_changes(void) {
     if (g_game_state == GAME_STATE_GAME) {
