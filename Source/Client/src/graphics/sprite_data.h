@@ -16,7 +16,7 @@ typedef struct {
     unsigned char xs; // Width in 32x32 tiles
     unsigned char ys; // Height in 32x32 tiles
     unsigned short alphacnt; // Number of bytes in alpha array
-    unsigned short avgcol; // Average color (RGB565 format)
+    unsigned int avgcol; // Average colour as 0x00RRGGBB
     int pixel_width; // Actual pixel width
     int pixel_height; // Actual pixel height
     bool loaded_in_atlas;

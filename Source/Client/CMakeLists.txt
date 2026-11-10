@@ -267,6 +267,7 @@ if (TLG_BUILD_TESTS)
     add_executable(minimap_store_test
             tests/minimap_store_test.c
             src/game/minimap_store.c
+            src/game/minimap_colours.c
             src/game/server_file.c
     )
     target_include_directories(minimap_store_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)

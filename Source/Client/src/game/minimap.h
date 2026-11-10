@@ -1,10 +1,12 @@
 #pragma once
 
+#include "game/minimap_colours.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-unsigned short *minimap_tile_colours(void);
+MinimapColour *minimap_tile_colours(void);
 
 unsigned int minimap_revision(void);
 
@@ -14,7 +16,7 @@ void minimap_note_log_line(const char *line, int centre_character);
 
 void minimap_note_view_centre(int centre_character);
 
-void minimap_see_tile(int tile_x, int tile_y, unsigned short colour);
+void minimap_see_tile(int tile_x, int tile_y, MinimapColour colour);
 
 void minimap_clear_box(int left, int top, int box_width, int box_height);
 

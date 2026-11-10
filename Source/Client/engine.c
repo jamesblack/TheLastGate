@@ -2077,7 +2077,7 @@ static void see_minimap_tile(int m) {
     if (map[m].flags & INVIS) return;
     // Unlit and off-map tiles arrive as SPR_EMPTY with no flags set
     if (map[m].back == SPR_EMPTY || map[m].back == 0) return;
-    minimap_see_tile(map[m].x, map[m].y, (unsigned short) get_avgcol(map[m].obj1 ? map[m].obj1 : map[m].back));
+    minimap_see_tile(map[m].x, map[m].y, (MinimapColour) get_avgcol(map[m].obj1 ? map[m].obj1 : map[m].back));
 }
 
 void eng_display(int init) // optimize me!!!!!
@@ -2365,15 +2365,15 @@ void eng_display(int init) // optimize me!!!!!
     copyspritex(do_darkmode ? 18001 : 1, 0, 0, 0);
 
     if (init) {
-        unsigned short *minimap_colours = minimap_tile_colours();
-        unsigned short *player_tile = NULL;
-        unsigned short remembered_colour = 0;
+        MinimapColour *minimap_colours = minimap_tile_colours();
+        MinimapColour *player_tile = NULL;
+        MinimapColour remembered_colour = 0;
 
         // Show your position as a white pixel for this frame only, so it is never saved into the map
         if (mapx >= 0 && mapx < MAPX_MAX && mapy >= 0 && mapy < MAPY_MAX) {
             player_tile = &minimap_colours[mapy + mapx * MAPX_MAX];
             remembered_colour = *player_tile;
-            *player_tile = 0xffff;
+            *player_tile = MINIMAP_COLOUR_WHITE;
         }
 
         // offsets the minimap draw, so that it begins drawing from 64 tiles to the upper-left of your position,

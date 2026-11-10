@@ -1,5 +1,8 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+#include <zlib.h>
 
 #include "game/minimap_store.h"
 
@@ -17,10 +20,10 @@ static int failures = 0;
 #define TEST_WIDTH 64
 #define TEST_HEIGHT 32
 
-static unsigned short saved_tiles[TEST_WIDTH * TEST_HEIGHT];
-static unsigned short loaded_tiles[TEST_WIDTH * TEST_HEIGHT];
+static MinimapColour saved_tiles[TEST_WIDTH * TEST_HEIGHT];
+static MinimapColour loaded_tiles[TEST_WIDTH * TEST_HEIGHT];
 
-static MinimapTiles make_minimap(unsigned short *tiles) {
+static MinimapTiles make_minimap(MinimapColour *tiles) {
     MinimapTiles minimap;
     minimap.tiles = tiles;
     minimap.width = TEST_WIDTH;
@@ -30,7 +33,7 @@ static MinimapTiles make_minimap(unsigned short *tiles) {
     return minimap;
 }
 
-static unsigned short tile_at(const MinimapTiles *minimap, const int tile_x, const int tile_y) {
+static MinimapColour tile_at(const MinimapTiles *minimap, const int tile_x, const int tile_y) {
     return minimap->tiles[tile_x * minimap->height + tile_y];
 }
 
@@ -144,7 +147,7 @@ static void test_saved_map_loads_back(void) {
     int index;
 
     for (index = 0; index < TEST_WIDTH * TEST_HEIGHT; index++) {
-        saved_tiles[index] = (unsigned short) (index % 7 == 0 ? index : 0);
+        saved_tiles[index] = (MinimapColour) (index % 7 == 0 ? 0x10203 * (unsigned int) index : 0);
     }
     saved = make_minimap(saved_tiles);
     saved.changed = 1;
@@ -247,6 +250,47 @@ static void test_wrong_version_gives_blank_map(void) {
     CHECK(loaded_is_blank());
 }
 
+static void write_rgb555_file(const unsigned short *packed_tiles) {
+    const char magic[4] = {'T', 'L', 'G', 'M'};
+    const uLong packed_size = TEST_WIDTH * TEST_HEIGHT * sizeof(unsigned short);
+    unsigned char compressed[TEST_WIDTH * TEST_HEIGHT * 4];
+    uLongf compressed_size = sizeof(compressed);
+    uint32_t header[4];
+    FILE *file;
+
+    if (compress2(compressed, &compressed_size, (const Bytef *) packed_tiles, packed_size, Z_BEST_SPEED) != Z_OK)
+        return;
+    header[0] = 1;
+    header[1] = TEST_WIDTH;
+    header[2] = TEST_HEIGHT;
+    header[3] = (uint32_t) compressed_size;
+    file = fopen(TEST_PATH, "wb");
+    if (file == NULL) return;
+    fwrite(magic, sizeof(magic), 1, file);
+    fwrite(header, sizeof(uint32_t), 4, file);
+    fwrite(compressed, 1, compressed_size, file);
+    fclose(file);
+}
+
+static void test_rgb555_file_loads_as_full_colour(void) {
+    static unsigned short packed_tiles[TEST_WIDTH * TEST_HEIGHT];
+    MinimapTiles loaded;
+
+    memset(packed_tiles, 0, sizeof(packed_tiles));
+    packed_tiles[0] = 0x7FFF;
+    packed_tiles[5] = (unsigned short) ((4 << 10) | (4 << 5) | 4);
+    packed_tiles[TEST_WIDTH * TEST_HEIGHT - 1] = (unsigned short) (31 << 10);
+    write_rgb555_file(packed_tiles);
+
+    fill_loaded_with_garbage();
+    loaded = make_minimap(loaded_tiles);
+    CHECK(minimap_store_load(TEST_PATH, &loaded) == 1);
+    CHECK(loaded_tiles[0] == 0xFFFFFF);
+    CHECK(loaded_tiles[1] == 0);
+    CHECK(loaded_tiles[5] == 0x212121);
+    CHECK(loaded_tiles[TEST_WIDTH * TEST_HEIGHT - 1] == 0xFF0000);
+}
+
 static void test_revision_counts_changes(void) {
     MinimapTiles minimap;
     unsigned int before;
@@ -295,6 +339,7 @@ int main(void) {
     test_truncated_file_gives_blank_map();
     test_different_map_size_gives_blank_map();
     test_wrong_version_gives_blank_map();
+    test_rgb555_file_loads_as_full_colour();
     test_revision_counts_changes();
     test_delete_removes_the_file();
 

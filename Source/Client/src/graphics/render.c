@@ -62,7 +62,7 @@ void alphaeffect_magic(int nr, int str, int xpos, int ypos, int xoff, int yoff) 
     sdl_alphaeffect_magic(nr, str, xpos, ypos, xoff, yoff);
 }
 
-void show_map(unsigned short *src, int xo, int yo, int magnify) {
+void show_map(const MinimapColour *src, int xo, int yo, int magnify) {
     sdl_show_map(src, xo, yo, magnify);
 }
 

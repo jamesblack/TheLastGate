@@ -1018,7 +1018,7 @@ static void render_bottom_bar(WorldmapPanelState *panel, AnnotationSet *set) {
     }
 
     if (panel->hovered_tile_valid) {
-        const unsigned short colour =
+        const MinimapColour colour =
                 minimap_tile_colours()[panel->hovered_tile_x * WORLDMAP_TILES_ACROSS + panel->hovered_tile_y];
         const MinimapRgb rgb = minimap_colour_rgb(colour);
         char coordinates[64];

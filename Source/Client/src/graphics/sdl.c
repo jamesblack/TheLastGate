@@ -458,9 +458,9 @@ static Uint32 get_pixel(SDL_Surface *surface, int x, int y) {
  * calculate_average_color - Calculate average RGB color of surface
  * @surface: Source surface
  *
- * Returns: Average color in RGB565 format
+ * Returns: Average color as 0x00RRGGBB
  */
-static unsigned short calculate_average_color(SDL_Surface *surface) {
+static unsigned int calculate_average_color(SDL_Surface *surface) {
     Uint32 total_r = 0, total_g = 0, total_b = 0;
     int pixel_count = 0; // Count only non-transparent pixels
 
@@ -494,8 +494,7 @@ static unsigned short calculate_average_color(SDL_Surface *surface) {
     Uint8 avg_g = total_g / pixel_count;
     Uint8 avg_b = total_b / pixel_count;
 
-    // Convert to RGB555 (DirectDraw format)
-    return ((avg_r >> 3) << 10) | ((avg_g >> 3) << 5) | (avg_b >> 3);
+    return minimap_colour_from_rgb(avg_r, avg_g, avg_b);
 }
 
 /**
@@ -610,7 +609,7 @@ void sdl_load_sprite(const int nr) {
     unsigned char *alpha = extract_alpha_channel(surface, &alphacnt);
 
     // Calculate average color for lighting effects
-    unsigned short avgcol = calculate_average_color(surface);
+    unsigned int avgcol = calculate_average_color(surface);
 
     // Store sprite data
     sprite_data[nr].alphacnt = alphacnt;
@@ -663,7 +662,7 @@ void sdl_load_ui(const int nr) {
     unsigned char *alpha = extract_alpha_channel(surface, &alphacnt);
 
     // Calculate average color for lighting effects
-    unsigned short avgcol = calculate_average_color(surface);
+    unsigned int avgcol = calculate_average_color(surface);
 
     // Store sprite data
     ui_sprite_data[nr].alphacnt = alphacnt;
@@ -1083,22 +1082,14 @@ int sdl_isvisible(void) {
     return 1;
 }
 
-static Uint32 rgb555_to_rgba8888(const unsigned short pixel555) {
-    // RGB555: 0RRRRRGGGGGBBBBB (high bit unused)
-    Uint8 r = ((pixel555 >> 10) & 0x1F) << 3;
-    Uint8 g = ((pixel555 >> 5) & 0x1F) << 3;
-    Uint8 b = (pixel555 & 0x1F) << 3;
-
-    // Expand to full 8-bit range (replicate high bits to low bits)
-    r |= (r >> 5);
-    g |= (g >> 5);
-    b |= (b >> 5);
+static Uint32 minimap_colour_to_rgba8888(const MinimapColour colour) {
+    const MinimapRgb rgb = minimap_colour_rgb(minimap_displayed_colour(colour));
 
     // RGBA8888 format: 0xAABBGGRR (little-endian)
-    return (0xFFu << 24) | ((Uint32) b << 16) | ((Uint32) g << 8) | r;
+    return (0xFFu << 24) | ((Uint32) rgb.blue << 16) | ((Uint32) rgb.green << 8) | rgb.red;
 }
 
-unsigned int sdl_worldmap_texture(const unsigned short *tile_colours, const unsigned int revision) {
+unsigned int sdl_worldmap_texture(const MinimapColour *tile_colours, const unsigned int revision) {
     const int texel_count = WORLDMAP_TEXTURE_WIDTH * WORLDMAP_TEXTURE_HEIGHT;
     const Uint32 now_ticks = SDL_GetTicks();
     Uint32 *pixels;
@@ -1113,7 +1104,7 @@ unsigned int sdl_worldmap_texture(const unsigned short *tile_colours, const unsi
     if (!pixels) return worldmap_gl_texture;
 
     for (texel_index = 0; texel_index < texel_count; texel_index++) {
-        pixels[texel_index] = rgb555_to_rgba8888(minimap_displayed_colour(tile_colours[texel_index]));
+        pixels[texel_index] = minimap_colour_to_rgba8888(tile_colours[texel_index]);
     }
 
     if (!worldmap_gl_texture) {
@@ -1129,7 +1120,7 @@ unsigned int sdl_worldmap_texture(const unsigned short *tile_colours, const unsi
     return worldmap_gl_texture;
 }
 
-void sdl_show_map(unsigned short *src, int xo, int yo, int magnify) {
+void sdl_show_map(const MinimapColour *src, int xo, int yo, int magnify) {
     // Flush sprite batch before rendering minimap
     sdl_batch_flush();
 
@@ -1156,9 +1147,9 @@ void sdl_show_map(unsigned short *src, int xo, int yo, int magnify) {
             }
 
             // Read from source (transposed indexing: src[x_coord * MAPX_MAX + y_coord])
-            unsigned short pixel555 = src[src_x * MAPX_MAX + src_y];
+            const MinimapColour source_colour = src[src_x * MAPX_MAX + src_y];
 
-            pixels[x * 128 + y] = rgb555_to_rgba8888(minimap_displayed_colour(pixel555));
+            pixels[x * 128 + y] = minimap_colour_to_rgba8888(source_colour);
         }
     }
 

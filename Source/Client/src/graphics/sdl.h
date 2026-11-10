@@ -5,6 +5,7 @@
 #include "common.h"
 #include "sprite_data.h"
 #include "glad/glad.h"
+#include "game/minimap_colours.h"
 
 EXTERN_C_BEGIN
 
@@ -80,8 +81,8 @@ void sdl_showbar(int xf,int yf,int xs,int ys,unsigned short col);
 void sdl_shadow(int nr,int xpos,int ypos,int xoff,int yoff);
 void sdl_shadow_clear(void);
 int sdl_isvisible(void);
-void sdl_show_map(unsigned short *src,int xo,int yo,int magnify);
-unsigned int sdl_worldmap_texture(const unsigned short *tile_colours, unsigned int revision);
+void sdl_show_map(const MinimapColour *src, int xo, int yo, int magnify);
+unsigned int sdl_worldmap_texture(const MinimapColour *tile_colours, unsigned int revision);
 int sdl_get_avgcol(int nr);
 
 SpriteData *sdl_get_ui_sprite_data(int nr);

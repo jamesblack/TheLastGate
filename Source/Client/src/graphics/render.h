@@ -2,6 +2,8 @@
 
 #include <SDL2/SDL.h>
 
+#include "game/minimap_colours.h"
+
 int init(int windowed);
 
 void deinit(void);
@@ -28,7 +30,7 @@ void shadow(int nr, int xpos, int ypos, int xoff, int yoff);
 
 void alphaeffect_magic(int nr, int str, int xpos, int ypos, int xoff, int yoff);
 
-void show_map(unsigned short *src, int xo, int yo, int magnify);
+void show_map(const MinimapColour *src, int xo, int yo, int magnify);
 
 int isvisible(void);
 
