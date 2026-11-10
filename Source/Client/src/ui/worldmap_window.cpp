@@ -12,6 +12,7 @@
 #include "game/annotations.h"
 #include "game/game_ui.h"
 #include "game/minimap.h"
+#include "game/minimap_colours.h"
 #include "game/minimap_overlay.h"
 #include "game/worldmap.h"
 #include "game/worldmap_view.h"
@@ -1017,8 +1018,12 @@ static void render_bottom_bar(WorldmapPanelState *panel, AnnotationSet *set) {
     }
 
     if (panel->hovered_tile_valid) {
-        char coordinates[32];
-        snprintf(coordinates, sizeof(coordinates), "%d, %d", panel->hovered_tile_x, panel->hovered_tile_y);
+        const unsigned short colour =
+                minimap_tile_colours()[panel->hovered_tile_x * WORLDMAP_TILES_ACROSS + panel->hovered_tile_y];
+        const MinimapRgb rgb = minimap_colour_rgb(colour);
+        char coordinates[64];
+        snprintf(coordinates, sizeof(coordinates), "RGB %d,%d,%d   %d, %d", rgb.red, rgb.green, rgb.blue,
+                 panel->hovered_tile_x, panel->hovered_tile_y);
         const float text_width = ImGui::CalcTextSize(coordinates).x;
         ImGui::SameLine();
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - text_width -

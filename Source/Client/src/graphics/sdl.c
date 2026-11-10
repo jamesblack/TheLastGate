@@ -24,6 +24,7 @@
 #include "shaders/solid_shader.h"
 #include "ui/ui.h"
 #include "game/minimap.h"
+#include "game/minimap_colours.h"
 #include "game/minimap_overlay.h"
 #include "game/worldmap.h"
 
@@ -1112,7 +1113,7 @@ unsigned int sdl_worldmap_texture(const unsigned short *tile_colours, const unsi
     if (!pixels) return worldmap_gl_texture;
 
     for (texel_index = 0; texel_index < texel_count; texel_index++) {
-        pixels[texel_index] = rgb555_to_rgba8888(tile_colours[texel_index]);
+        pixels[texel_index] = rgb555_to_rgba8888(minimap_displayed_colour(tile_colours[texel_index]));
     }
 
     if (!worldmap_gl_texture) {
@@ -1157,7 +1158,7 @@ void sdl_show_map(unsigned short *src, int xo, int yo, int magnify) {
             // Read from source (transposed indexing: src[x_coord * MAPX_MAX + y_coord])
             unsigned short pixel555 = src[src_x * MAPX_MAX + src_y];
 
-            pixels[x * 128 + y] = rgb555_to_rgba8888(pixel555);
+            pixels[x * 128 + y] = rgb555_to_rgba8888(minimap_displayed_colour(pixel555));
         }
     }
 

@@ -63,6 +63,7 @@ add_executable(TheLastGate
         src/game/game_input.c
         src/planner/planner_choices.c
         src/game/minimap.c
+        src/game/minimap_colours.c
         src/game/minimap_store.c
         src/planner/attribute_pool.c
         src/planner/tarot_math.c
@@ -255,6 +256,13 @@ if (TLG_BUILD_TESTS)
     )
     target_include_directories(spectate_watch_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME spectate_watch COMMAND spectate_watch_test)
+
+    add_executable(minimap_colours_test
+            tests/minimap_colours_test.c
+            src/game/minimap_colours.c
+    )
+    target_include_directories(minimap_colours_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME minimap_colours COMMAND minimap_colours_test)
 
     add_executable(minimap_store_test
             tests/minimap_store_test.c
