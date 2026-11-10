@@ -739,8 +739,6 @@ static void handle_line_keys(WorldmapPanelState *panel) {
     if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || ImGui::GetIO().WantTextInput) return;
     if (ImGui::IsKeyPressed(ImGuiKey_Enter, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false)) {
         request_path_label(panel);
-    } else if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
-        panel->pending_segment_count = 0;
     }
 }
 
@@ -1313,4 +1311,11 @@ void worldmap_minimap_tooltip_render(void) {
             game_ui_state.minimap_magnification < 1 ? 1 : game_ui_state.minimap_magnification, (int) offset_top,
             (int) offset_left);
     if (pin && pin->label[0] != '\0') ImGui::SetTooltip("%s", pin->label);
+}
+
+bool worldmap_window_discard_pending_path(void) {
+    WorldmapPanelState *panel = &panel_state;
+    if (panel->active_tool != WORLDMAP_TOOL_LINE || panel->pending_segment_count == 0) return false;
+    panel->pending_segment_count = 0;
+    return true;
 }
