@@ -46,11 +46,11 @@ static void test_nothing_painted_when_disabled(void) {
     annotation_set_release(&set);
 }
 
-static void test_pin_paints_three_by_three(void) {
+static void test_pin_paints_five_by_five_diamond(void) {
     AnnotationSet set;
     int category;
-    int column;
-    int row;
+    int offset_x;
+    int offset_y;
 
     annotation_set_init(&set);
     category = annotation_category_add(&set, "Pins", 0);
@@ -59,11 +59,13 @@ static void test_pin_paints_three_by_three(void) {
     memset(view, 0, sizeof(view));
 
     minimap_overlay_paint(view, VIEW_SIZE, 0, 0, 1, &set);
-    for (column = 9; column <= 11; column++) {
-        for (row = 19; row <= 21; row++) CHECK(view[column * VIEW_SIZE + row] == PAINTED);
+    for (offset_x = -2; offset_x <= 2; offset_x++) {
+        for (offset_y = -2; offset_y <= 2; offset_y++) {
+            const int inside = abs(offset_x) + abs(offset_y) <= 2;
+            CHECK((view[(10 + offset_x) * VIEW_SIZE + 20 + offset_y] == PAINTED) == inside);
+        }
     }
-    CHECK(view[8 * VIEW_SIZE + 20] == 0);
-    CHECK(count_painted() == 9);
+    CHECK(count_painted() == 13);
     annotation_set_release(&set);
 }
 
@@ -327,7 +329,7 @@ static void test_nearest_shown_pin_wins(void) {
 
 int main(void) {
     test_nothing_painted_when_disabled();
-    test_pin_paints_three_by_three();
+    test_pin_paints_five_by_five_diamond();
     test_magnified_segment_is_one_dotted_pixel_wide();
     test_hidden_category_and_text_skipped();
     test_out_of_view_is_clipped();

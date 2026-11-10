@@ -85,13 +85,20 @@ struct MapArea {
 static const float CATEGORY_COLUMN_WIDTH = 220.0F;
 static const double CENTRE_ON_PLAYER_PIXELS_PER_TILE = 8.0;
 static const double ZOOM_STEP = 1.25;
-static const float PIN_RADIUS = 5.0F;
+static const int PIN_DIAMOND_RADIUS = 3;
+static const int PIN_SELECTION_RADIUS = 6;
 static const float PIN_LABEL_GAP = 4.0F;
 static const double PIN_LABEL_MIN_PIXELS_PER_TILE = 2.0;
 static const double PIN_HOVER_RADIUS = 8.0;
 static const double SELECT_RADIUS = 8.0;
 static const double SNAP_PIXELS = 8.0;
 static const float PATH_THICKNESS = 2.0F;
+static const float PATH_EDGE_THICKNESS = 4.0F;
+static const float CHEVRON_SPACING = 48.0F;
+static const float CHEVRON_SIZE = 3.0F;
+static const float TEXT_PLATE_PADDING_X = 4.0F;
+static const float TEXT_PLATE_PADDING_Y = 2.0F;
+static const float FOLLOW_RING_RADIUS = 5.0F;
 static const float DASH_LENGTH = 6.0F;
 static const float DASH_GAP = 4.0F;
 static const float SWATCH_SIZE = 12.0F;
@@ -114,7 +121,9 @@ static const float MINIMAP_SCREEN_SIZE = 128.0F;
 static const ImU32 OUTLINE_COLOUR = IM_COL32(0, 0, 0, 255);
 static const ImU32 BACKGROUND_COLOUR = IM_COL32(0, 0, 0, 255);
 static const ImU32 HIGHLIGHT_COLOUR = IM_COL32(255, 255, 255, 255);
-static const ImU32 PIN_LABEL_COLOUR = IM_COL32(255, 255, 255, 255);
+static const ImU32 SHADOW_COLOUR = IM_COL32(0, 0, 0, 255);
+static const ImU32 PATH_EDGE_COLOUR = IM_COL32(0, 0, 0, 200);
+static const ImU32 TEXT_PLATE_COLOUR = IM_COL32(17, 5, 5, 200);
 static const char *const TOOL_NAMES[WORLDMAP_TOOL_COUNT] = {"Select", "Pan", "Pin", "Line", "Text"};
 
 static const char *const ANNOTATION_MENU_ID = "annotation_menu";
@@ -377,16 +386,52 @@ static void open_new_category(WorldmapPanelState *panel) {
     panel->popup_request = NEW_CATEGORY_POPUP_ID;
 }
 
-static void draw_outlined_text(ImDrawList *draw_list, ImVec2 position, ImU32 colour, const char *text) {
-    static const float OFFSETS[4][2] = {{-1.0F, 0.0F}, {1.0F, 0.0F}, {0.0F, -1.0F}, {0.0F, 1.0F}};
-    for (int offset_index = 0; offset_index < 4; offset_index++) {
-        draw_list->AddText(ImVec2(position.x + OFFSETS[offset_index][0], position.y + OFFSETS[offset_index][1]),
-                           OUTLINE_COLOUR, text);
+static void draw_pixel(ImDrawList *draw_list, float left, float top, ImU32 colour) {
+    draw_list->AddRectFilled(ImVec2(left, top), ImVec2(left + 1.0F, top + 1.0F), colour);
+}
+
+static void fill_square(ImDrawList *draw_list, ImVec2 centre, int radius, ImU32 colour) {
+    draw_list->AddRectFilled(ImVec2(centre.x - (float) radius, centre.y - (float) radius),
+                             ImVec2(centre.x + (float) radius + 1.0F, centre.y + (float) radius + 1.0F), colour);
+}
+
+static ImVec2 snap_to_pixel(ImVec2 point) {
+    return ImVec2(floorf(point.x), floorf(point.y));
+}
+
+static void draw_diamond(ImDrawList *draw_list, ImVec2 centre, int radius, ImU32 colour) {
+    for (int row = -radius; row <= radius; row++) {
+        const float half_width = (float) (radius - abs(row));
+        draw_list->AddRectFilled(ImVec2(centre.x - half_width, centre.y + (float) row),
+                                 ImVec2(centre.x + half_width + 1.0F, centre.y + (float) row + 1.0F), colour);
     }
+}
+
+static void draw_dotted_diamond(ImDrawList *draw_list, ImVec2 centre, int radius, ImU32 colour) {
+    for (int row = -radius; row <= radius; row += 2) {
+        const float half_width = (float) (radius - abs(row));
+        draw_pixel(draw_list, centre.x - half_width, centre.y + (float) row, colour);
+        draw_pixel(draw_list, centre.x + half_width, centre.y + (float) row, colour);
+    }
+}
+
+static void draw_dotted_rect(ImDrawList *draw_list, ImVec2 rect_min, ImVec2 rect_max, ImU32 colour) {
+    for (float column = rect_min.x; column < rect_max.x; column += 2.0F) {
+        draw_pixel(draw_list, column, rect_min.y, colour);
+        draw_pixel(draw_list, column, rect_max.y - 1.0F, colour);
+    }
+    for (float row = rect_min.y; row < rect_max.y; row += 2.0F) {
+        draw_pixel(draw_list, rect_min.x, row, colour);
+        draw_pixel(draw_list, rect_max.x - 1.0F, row, colour);
+    }
+}
+
+static void draw_shadowed_text(ImDrawList *draw_list, ImVec2 position, ImU32 colour, const char *text) {
+    draw_list->AddText(ImVec2(position.x + 1.0F, position.y + 1.0F), SHADOW_COLOUR, text);
     draw_list->AddText(position, colour, text);
 }
 
-static void draw_dashed_line(ImDrawList *draw_list, ImVec2 start, ImVec2 end, ImU32 colour) {
+static void draw_dashed_line(ImDrawList *draw_list, ImVec2 start, ImVec2 end, ImU32 colour, float thickness) {
     const float delta_x = end.x - start.x;
     const float delta_y = end.y - start.y;
     const float length = sqrtf(delta_x * delta_x + delta_y * delta_y);
@@ -395,7 +440,28 @@ static void draw_dashed_line(ImDrawList *draw_list, ImVec2 start, ImVec2 end, Im
         const float dash_end = fminf(distance + DASH_LENGTH, length);
         draw_list->AddLine(ImVec2(start.x + delta_x * distance / length, start.y + delta_y * distance / length),
                            ImVec2(start.x + delta_x * dash_end / length, start.y + delta_y * dash_end / length), colour,
-                           PATH_THICKNESS);
+                           thickness);
+    }
+}
+
+static void draw_chevrons(ImDrawList *draw_list, ImVec2 start, ImVec2 end, ImU32 colour) {
+    const float delta_x = end.x - start.x;
+    const float delta_y = end.y - start.y;
+    const float length = sqrtf(delta_x * delta_x + delta_y * delta_y);
+    if (length < CHEVRON_SPACING) return;
+    const float along_x = delta_x / length;
+    const float along_y = delta_y / length;
+    for (float distance = CHEVRON_SPACING / 2.0F; distance < length - CHEVRON_SIZE; distance += CHEVRON_SPACING) {
+        const ImVec2 middle(start.x + along_x * distance, start.y + along_y * distance);
+        const ImVec2 points[3] = {
+            ImVec2(middle.x - along_x * CHEVRON_SIZE - along_y * CHEVRON_SIZE,
+                   middle.y - along_y * CHEVRON_SIZE + along_x * CHEVRON_SIZE),
+            ImVec2(middle.x + along_x * CHEVRON_SIZE, middle.y + along_y * CHEVRON_SIZE),
+            ImVec2(middle.x - along_x * CHEVRON_SIZE + along_y * CHEVRON_SIZE,
+                   middle.y - along_y * CHEVRON_SIZE - along_x * CHEVRON_SIZE),
+        };
+        draw_list->AddPolyline(points, 3, PATH_EDGE_COLOUR, ImDrawFlags_None, 3.0F);
+        draw_list->AddPolyline(points, 3, colour, ImDrawFlags_None, 1.0F);
     }
 }
 
@@ -409,14 +475,34 @@ static bool line_misses_area(const MapArea *area, ImVec2 start, ImVec2 end) {
 
 static void draw_path(const WorldmapPanelState *panel, const MapArea *area, ImDrawList *draw_list,
                       const Annotation *annotation, ImU32 colour, bool selected) {
-    for (int segment_index = 0; segment_index < annotation->segment_count; segment_index++) {
-        const AnnotationSegment *segment = &annotation->segments[segment_index];
-        const ImVec2 start = tile_centre_to_screen(panel, area, segment->start_x, segment->start_y);
-        const ImVec2 end = tile_centre_to_screen(panel, area, segment->end_x, segment->end_y);
-        if (line_misses_area(area, start, end)) continue;
-        if (selected) draw_list->AddLine(start, end, HIGHLIGHT_COLOUR, PATH_THICKNESS + 2.0F);
-        draw_list->AddLine(start, end, colour, PATH_THICKNESS);
+    if (annotation->segment_count == 0) return;
+    // Edges for every segment go down first so joins between segments stay clean
+    for (int pass = 0; pass < 3; pass++) {
+        for (int segment_index = 0; segment_index < annotation->segment_count; segment_index++) {
+            const AnnotationSegment *segment = &annotation->segments[segment_index];
+            const ImVec2 start = snap_to_pixel(tile_centre_to_screen(panel, area, segment->start_x, segment->start_y));
+            const ImVec2 end = snap_to_pixel(tile_centre_to_screen(panel, area, segment->end_x, segment->end_y));
+            if (line_misses_area(area, start, end)) continue;
+            if (pass == 0 && selected) {
+                draw_dashed_line(draw_list, start, end, GOLD_FONT_COLOR, PATH_EDGE_THICKNESS + 2.0F);
+            } else if (pass == 1) {
+                draw_list->AddLine(start, end, PATH_EDGE_COLOUR, PATH_EDGE_THICKNESS);
+            } else if (pass == 2) {
+                draw_list->AddLine(start, end, colour, PATH_THICKNESS);
+                draw_chevrons(draw_list, start, end, colour);
+            }
+        }
     }
+
+    const AnnotationSegment *first = &annotation->segments[0];
+    const AnnotationSegment *last = &annotation->segments[annotation->segment_count - 1];
+    const ImVec2 start_mark = snap_to_pixel(tile_centre_to_screen(panel, area, first->start_x, first->start_y));
+    const ImVec2 end_mark = snap_to_pixel(tile_centre_to_screen(panel, area, last->end_x, last->end_y));
+    fill_square(draw_list, start_mark, 3, PATH_EDGE_COLOUR);
+    fill_square(draw_list, start_mark, 2, colour);
+    fill_square(draw_list, start_mark, 1, SHADOW_COLOUR);
+    fill_square(draw_list, end_mark, 3, PATH_EDGE_COLOUR);
+    fill_square(draw_list, end_mark, 2, colour);
 }
 
 static bool pin_label_shown(const WorldmapPanelState *panel, const AnnotationCategory *category,
@@ -427,14 +513,15 @@ static bool pin_label_shown(const WorldmapPanelState *panel, const AnnotationCat
 
 static void draw_pin(const WorldmapPanelState *panel, const MapArea *area, ImDrawList *draw_list,
                      const Annotation *annotation, ImU32 colour, bool selected, bool show_label) {
-    const ImVec2 centre = tile_centre_to_screen(panel, area, annotation->tile_x, annotation->tile_y);
-    if (selected) draw_list->AddCircle(centre, PIN_RADIUS + 3.0F, HIGHLIGHT_COLOUR, 0, 2.0F);
-    draw_list->AddCircleFilled(centre, PIN_RADIUS, colour);
-    draw_list->AddCircle(centre, PIN_RADIUS, OUTLINE_COLOUR);
+    const ImVec2 centre = snap_to_pixel(tile_centre_to_screen(panel, area, annotation->tile_x, annotation->tile_y));
+    if (selected) draw_dotted_diamond(draw_list, centre, PIN_SELECTION_RADIUS, GOLD_FONT_COLOR);
+    draw_diamond(draw_list, centre, PIN_DIAMOND_RADIUS + 1, OUTLINE_COLOUR);
+    draw_diamond(draw_list, centre, PIN_DIAMOND_RADIUS, colour);
     if (show_label) {
         const ImVec2 text_size = ImGui::CalcTextSize(annotation->label);
-        const ImVec2 position(floorf(centre.x + PIN_RADIUS + PIN_LABEL_GAP), floorf(centre.y - text_size.y / 2.0F));
-        draw_outlined_text(draw_list, position, PIN_LABEL_COLOUR, annotation->label);
+        const ImVec2 position(centre.x + (float) (PIN_DIAMOND_RADIUS + 1) + PIN_LABEL_GAP,
+                              floorf(centre.y - text_size.y / 2.0F));
+        draw_shadowed_text(draw_list, position, colour, annotation->label);
     }
 }
 
@@ -443,11 +530,12 @@ static void draw_text_label(const WorldmapPanelState *panel, const MapArea *area
     const ImVec2 anchor = tile_centre_to_screen(panel, area, annotation->tile_x, annotation->tile_y);
     const ImVec2 text_size = ImGui::CalcTextSize(annotation->label);
     const ImVec2 position(floorf(anchor.x - text_size.x / 2.0F), floorf(anchor.y - text_size.y / 2.0F));
-    if (selected) {
-        draw_list->AddRect(ImVec2(position.x - 3.0F, position.y - 2.0F),
-                           ImVec2(position.x + text_size.x + 3.0F, position.y + text_size.y + 2.0F), HIGHLIGHT_COLOUR);
-    }
-    draw_outlined_text(draw_list, position, colour, annotation->label);
+    const ImVec2 plate_min(position.x - TEXT_PLATE_PADDING_X, position.y - TEXT_PLATE_PADDING_Y);
+    const ImVec2 plate_max(position.x + floorf(text_size.x) + TEXT_PLATE_PADDING_X,
+                           position.y + floorf(text_size.y) + TEXT_PLATE_PADDING_Y);
+    draw_list->AddRectFilled(plate_min, plate_max, TEXT_PLATE_COLOUR);
+    if (selected) draw_dotted_rect(draw_list, plate_min, plate_max, GOLD_FONT_COLOR);
+    draw_shadowed_text(draw_list, position, colour, annotation->label);
 }
 
 static void draw_annotations(const WorldmapPanelState *panel, AnnotationSet *set, const MapArea *area,
@@ -480,7 +568,7 @@ static void draw_pending_path(const WorldmapPanelState *panel, AnnotationSet *se
         const ImVec2 start = tile_centre_to_screen(panel, area, segment->start_x, segment->start_y);
         const ImVec2 end = tile_centre_to_screen(panel, area, segment->end_x, segment->end_y);
         if (line_misses_area(area, start, end)) continue;
-        draw_dashed_line(draw_list, start, end, colour);
+        draw_dashed_line(draw_list, start, end, colour, PATH_THICKNESS);
     }
 }
 
@@ -503,7 +591,7 @@ static void draw_drag_preview(const WorldmapPanelState *panel, AnnotationSet *se
     mouse_tile(panel, area, &mouse_tile_x, &mouse_tile_y);
     draw_dashed_line(draw_list, tile_centre_to_screen(panel, area, panel->press_tile_x, panel->press_tile_y),
                      tile_centre_to_screen(panel, area, mouse_tile_x, mouse_tile_y),
-                     category_colour_by_id(set, category_id));
+                     category_colour_by_id(set, category_id), PATH_THICKNESS);
 }
 
 static void draw_world_texture(const WorldmapPanelState *panel, const MapArea *area, ImDrawList *draw_list) {
@@ -531,9 +619,12 @@ static void draw_world_texture(const WorldmapPanelState *panel, const MapArea *a
 static void draw_player_marker(const WorldmapPanelState *panel, const MapArea *area, ImDrawList *draw_list) {
     int player_tile_x, player_tile_y;
     engine_player_tile(&player_tile_x, &player_tile_y);
-    const ImVec2 centre = tile_centre_to_screen(panel, area, player_tile_x, player_tile_y);
-    draw_list->AddRectFilled(ImVec2(floorf(centre.x) - 1.0F, floorf(centre.y) - 1.0F),
-                             ImVec2(floorf(centre.x) + 2.0F, floorf(centre.y) + 2.0F), HIGHLIGHT_COLOUR);
+    const ImVec2 centre = snap_to_pixel(tile_centre_to_screen(panel, area, player_tile_x, player_tile_y));
+    if (panel->follow_player) {
+        draw_list->AddCircle(ImVec2(centre.x + 0.5F, centre.y + 0.5F), FOLLOW_RING_RADIUS, GOLD_FONT_COLOR, 16, 1.0F);
+    }
+    fill_square(draw_list, centre, 2, OUTLINE_COLOUR);
+    fill_square(draw_list, centre, 1, HIGHLIGHT_COLOUR);
 }
 
 static void move_view_to_player(WorldmapPanelState *panel) {
@@ -820,12 +911,16 @@ static void render_map_area(WorldmapPanelState *panel, AnnotationSet *set, float
         ImDrawList *draw_list = ImGui::GetWindowDrawList();
         const ImVec2 area_end(area.origin.x + area.size.x, area.origin.y + area.size.y);
         draw_list->PushClipRect(area.origin, area_end, true);
+        const ImDrawListFlags saved_flags = draw_list->Flags;
+        draw_list->Flags &= ~(ImDrawListFlags_AntiAliasedLines | ImDrawListFlags_AntiAliasedLinesUseTex |
+                              ImDrawListFlags_AntiAliasedFill);
         draw_list->AddRectFilled(area.origin, area_end, BACKGROUND_COLOUR);
         draw_world_texture(panel, &area, draw_list);
         draw_annotations(panel, set, &area, draw_list);
         draw_pending_path(panel, set, &area, draw_list);
         draw_drag_preview(panel, set, &area, draw_list);
         draw_player_marker(panel, &area, draw_list);
+        draw_list->Flags = saved_flags;
         draw_list->PopClipRect();
 
         show_pin_tooltip(panel, set, &area);
@@ -1299,10 +1394,6 @@ static void show_set_aside_notice(WorldmapPanelState *panel) {
     snprintf(message, sizeof(message), "Your saved annotations could not be read and were set aside as %s.bad.",
              file_name);
     set_status_for(panel, message, NOTICE_SECONDS);
-}
-
-static void draw_pixel(ImDrawList *draw_list, float left, float top, ImU32 colour) {
-    draw_list->AddRectFilled(ImVec2(left, top), ImVec2(left + 1.0F, top + 1.0F), colour);
 }
 
 static void draw_close_cross(ImU32 colour) {

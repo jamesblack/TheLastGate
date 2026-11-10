@@ -4,6 +4,7 @@
 
 #define DOT_SPACING 2
 #define PIN_HOVER_PIXELS 3
+#define PIN_DIAMOND_RADIUS 2
 
 typedef struct {
     unsigned int *pixels;
@@ -33,8 +34,11 @@ static void paint_pin(const OverlayCanvas *canvas, const int tile_x, const int t
     int offset_x;
     int offset_y;
 
-    for (offset_x = -1; offset_x <= 1; offset_x++) {
-        for (offset_y = -1; offset_y <= 1; offset_y++) put_pixel(canvas, centre_x + offset_x, centre_y + offset_y);
+    for (offset_x = -PIN_DIAMOND_RADIUS; offset_x <= PIN_DIAMOND_RADIUS; offset_x++) {
+        const int half_height = PIN_DIAMOND_RADIUS - abs(offset_x);
+        for (offset_y = -half_height; offset_y <= half_height; offset_y++) {
+            put_pixel(canvas, centre_x + offset_x, centre_y + offset_y);
+        }
     }
 }
 
