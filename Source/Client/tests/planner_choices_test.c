@@ -25,6 +25,7 @@ static PlannerChoices make_choices(const int weapon, const int offhand) {
     PlannerChoices choices;
     choices.weapon = weapon;
     choices.offhand = offhand;
+    choices.spell_toggles = 0;
     return choices;
 }
 
@@ -100,6 +101,46 @@ static void test_uncreated_character_is_not_saved(void) {
     CHECK(planner_choices_load(TEST_PATH, 0).weapon == PLANNER_CHOICE_NONE);
 }
 
+static void test_spell_toggles_round_trip(void) {
+    PlannerChoices saved = make_choices(COMBAT_WEAPON_SWORD, COMBAT_OFFHAND_SHIELD);
+    PlannerChoices loaded;
+
+    saved.spell_toggles = 0x5;
+    remove(TEST_PATH);
+    CHECK(planner_choices_save(TEST_PATH, 7, saved) == 1);
+    loaded = planner_choices_load(TEST_PATH, 7);
+    CHECK(loaded.weapon == COMBAT_WEAPON_SWORD);
+    CHECK(loaded.offhand == COMBAT_OFFHAND_SHIELD);
+    CHECK(loaded.spell_toggles == 0x5);
+}
+
+static void write_format_one_file(void) {
+    const uint32_t file_words[] = {1, 1, 7, (uint32_t) COMBAT_WEAPON_SWORD, (uint32_t) COMBAT_OFFHAND_SHIELD};
+
+    write_raw_file(file_words, sizeof(file_words));
+}
+
+static void test_format_one_file_keeps_weapon_and_offhand(void) {
+    PlannerChoices loaded;
+
+    write_format_one_file();
+    loaded = planner_choices_load(TEST_PATH, 7);
+    CHECK(loaded.weapon == COMBAT_WEAPON_SWORD);
+    CHECK(loaded.offhand == COMBAT_OFFHAND_SHIELD);
+    CHECK(loaded.spell_toggles == 0);
+}
+
+static void test_saving_over_format_one_upgrades(void) {
+    PlannerChoices loaded;
+
+    write_format_one_file();
+    CHECK(planner_choices_save(TEST_PATH, 9, make_choices(COMBAT_WEAPON_AXE, COMBAT_OFFHAND_NONE)) == 1);
+    loaded = planner_choices_load(TEST_PATH, 7);
+    CHECK(loaded.weapon == COMBAT_WEAPON_SWORD);
+    CHECK(loaded.offhand == COMBAT_OFFHAND_SHIELD);
+    CHECK(planner_choices_load(TEST_PATH, 9).weapon == COMBAT_WEAPON_AXE);
+}
+
 int main(void) {
     test_missing_file_has_no_choices();
     test_saved_choices_load_back();
@@ -107,6 +148,9 @@ int main(void) {
     test_out_of_range_values_are_ignored();
     test_damaged_file_is_replaced();
     test_uncreated_character_is_not_saved();
+    test_spell_toggles_round_trip();
+    test_format_one_file_keeps_weapon_and_offhand();
+    test_saving_over_format_one_upgrades();
     remove(TEST_PATH);
 
     if (failures == 0) printf("planner_choices: all tests passed\n");

@@ -5,18 +5,38 @@
 
 #include "planner/combat_model.h"
 
-/* File layout, all 32-bit little-endian words: format version, record count, then per record the character number,
- * weapon and off-hand. */
-#define PLANNER_CHOICES_FORMAT 1
+/* File layout, all 32-bit little-endian words: format version, record count, then the records. Format 1 records hold
+ * the character number, weapon and off-hand; format 2 adds the spell toggles. */
+#define PLANNER_CHOICES_FORMAT_FIRST 1
+#define PLANNER_CHOICES_FORMAT 2
 #define PLANNER_CHOICES_MAX_RECORDS 256
-#define CARD_WORD_BITS 32U
-#define CARD_WORD_MASK 0xFFFFFFFFU
 
 typedef struct {
     uint32_t character_number;
     int32_t weapon;
     int32_t offhand;
+} FirstFormatRecord;
+
+typedef struct {
+    uint32_t character_number;
+    int32_t weapon;
+    int32_t offhand;
+    uint32_t spell_toggles;
 } ChoiceRecord;
+
+static int read_first_format_records(FILE *file, ChoiceRecord *records, const int record_count) {
+    FirstFormatRecord old_record;
+    int record_index;
+
+    for (record_index = 0; record_index < record_count; record_index++) {
+        if (fread(&old_record, sizeof(old_record), 1, file) != 1) return 0;
+        records[record_index].character_number = old_record.character_number;
+        records[record_index].weapon = old_record.weapon;
+        records[record_index].offhand = old_record.offhand;
+        records[record_index].spell_toggles = 0;
+    }
+    return record_count;
+}
 
 /* Reads every record; returns how many were read, or 0 when the file is missing or damaged. */
 static int read_records(const char *path, ChoiceRecord records[PLANNER_CHOICES_MAX_RECORDS]) {
@@ -25,11 +45,13 @@ static int read_records(const char *path, ChoiceRecord records[PLANNER_CHOICES_M
     int record_count = 0;
 
     if (file == NULL) return 0;
-    if (fread(header, sizeof(header), 1, file) == 1 && header[0] == PLANNER_CHOICES_FORMAT &&
-        header[1] <= PLANNER_CHOICES_MAX_RECORDS) {
+    if (fread(header, sizeof(header), 1, file) == 1 && header[1] <= PLANNER_CHOICES_MAX_RECORDS) {
         record_count = (int) header[1];
-        if (record_count > 0 &&
-            fread(records, sizeof(ChoiceRecord), (size_t) record_count, file) != (size_t) record_count) {
+        if (header[0] == PLANNER_CHOICES_FORMAT_FIRST) {
+            record_count = read_first_format_records(file, records, record_count);
+        } else if (header[0] != PLANNER_CHOICES_FORMAT ||
+                   (record_count > 0 &&
+                    fread(records, sizeof(ChoiceRecord), (size_t) record_count, file) != (size_t) record_count)) {
             record_count = 0;
         }
     }
@@ -56,7 +78,7 @@ static int checked_choice(const int32_t value, const int choice_count) {
 
 PlannerChoices planner_choices_load(const char *path, const unsigned int character_number) {
     static ChoiceRecord records[PLANNER_CHOICES_MAX_RECORDS];
-    PlannerChoices choices = {PLANNER_CHOICE_NONE, PLANNER_CHOICE_NONE};
+    PlannerChoices choices = {PLANNER_CHOICE_NONE, PLANNER_CHOICE_NONE, 0};
     int record_count;
     int record_index;
 
@@ -66,6 +88,7 @@ PlannerChoices planner_choices_load(const char *path, const unsigned int charact
         if (records[record_index].character_number != character_number) continue;
         choices.weapon = checked_choice(records[record_index].weapon, COMBAT_WEAPON_COUNT);
         choices.offhand = checked_choice(records[record_index].offhand, COMBAT_OFFHAND_COUNT);
+        choices.spell_toggles = records[record_index].spell_toggles;
         break;
     }
     return choices;
@@ -95,5 +118,6 @@ int planner_choices_save(const char *path, const unsigned int character_number, 
     records[record_index].character_number = character_number;
     records[record_index].weapon = choices.weapon;
     records[record_index].offhand = choices.offhand;
+    records[record_index].spell_toggles = choices.spell_toggles;
     return write_records(path, records, record_count);
 }
