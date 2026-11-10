@@ -95,6 +95,11 @@ static const float DASH_LENGTH = 6.0F;
 static const float DASH_GAP = 4.0F;
 static const float SWATCH_SIZE = 12.0F;
 static const float TITLE_HEIGHT = 20.0F;
+static const int CLOSE_CROSS_SIZE = 7;
+static const ImU32 CLOSE_CROSS_HOVERED_COLOUR = IM_COL32(217, 191, 79, 255);
+static const int RESIZE_GRIP_SIZE = 9;
+static const ImU32 RESIZE_GRIP_COLOUR = IM_COL32(117, 106, 68, 255);
+static const ImU32 RESIZE_GRIP_HOVERED_COLOUR = IM_COL32(168, 147, 90, 255);
 static const float BUTTON_TEXT_PADDING = 8.0F;
 static const char *const WINDOW_TITLE = "World Map";
 static const float PICKER_SWATCH_SIZE = 20.0F;
@@ -1016,7 +1021,8 @@ static void render_bottom_bar(WorldmapPanelState *panel, AnnotationSet *set) {
         snprintf(coordinates, sizeof(coordinates), "%d, %d", panel->hovered_tile_x, panel->hovered_tile_y);
         const float text_width = ImGui::CalcTextSize(coordinates).x;
         ImGui::SameLine();
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - text_width);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - text_width -
+                             (float) RESIZE_GRIP_SIZE);
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted(coordinates);
     }
@@ -1290,6 +1296,22 @@ static void show_set_aside_notice(WorldmapPanelState *panel) {
     set_status_for(panel, message, NOTICE_SECONDS);
 }
 
+static void draw_pixel(ImDrawList *draw_list, float left, float top, ImU32 colour) {
+    draw_list->AddRectFilled(ImVec2(left, top), ImVec2(left + 1.0F, top + 1.0F), colour);
+}
+
+static void draw_close_cross(ImU32 colour) {
+    const ImVec2 item_min = ImGui::GetItemRectMin();
+    const ImVec2 item_max = ImGui::GetItemRectMax();
+    const float left = floorf((item_min.x + item_max.x - (float) CLOSE_CROSS_SIZE) / 2.0F);
+    const float top = floorf((item_min.y + item_max.y - (float) CLOSE_CROSS_SIZE) / 2.0F);
+    ImDrawList *draw_list = ImGui::GetWindowDrawList();
+    for (int step = 0; step < CLOSE_CROSS_SIZE; step++) {
+        draw_pixel(draw_list, left + (float) step, top + (float) step, colour);
+        draw_pixel(draw_list, left + (float) (CLOSE_CROSS_SIZE - 1 - step), top + (float) step, colour);
+    }
+}
+
 static void render_title_bar(bool *open) {
     const ImVec2 start = ImGui::GetCursorScreenPos();
     const float width = ImGui::GetContentRegionAvail().x;
@@ -1310,7 +1332,26 @@ static void render_title_bar(bool *open) {
 
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(ImVec2(start.x + width - close_size, start.y + (TITLE_HEIGHT - close_size) / 2.0F));
-    if (ui_game_button("##close", "x", close_size, close_size, true, false)) *open = false;
+    if (ui_game_button("##close", "", close_size, close_size, true, false)) *open = false;
+    draw_close_cross(ImGui::IsItemHovered() ? CLOSE_CROSS_HOVERED_COLOUR : GOLD_FONT_COLOR);
+}
+
+// ImGui draws its own grip with the window background, which the frame sprite then covers
+static void draw_resize_grip(void) {
+    const ImVec2 position = ImGui::GetWindowPos();
+    const ImVec2 size = ImGui::GetWindowSize();
+    const float right = floorf(position.x + size.x) - (float) WINDOW_SPRITE_BORDER_WIDTH - 1.0F;
+    const float bottom = floorf(position.y + size.y) - (float) WINDOW_SPRITE_BORDER_WIDTH - 1.0F;
+    const ImVec2 grip_min(right - (float) RESIZE_GRIP_SIZE, bottom - (float) RESIZE_GRIP_SIZE);
+    const bool hovered = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(grip_min, ImVec2(right, bottom), false);
+    const ImU32 colour = !hovered                                    ? RESIZE_GRIP_COLOUR
+                         : ImGui::IsMouseDown(ImGuiMouseButton_Left) ? GOLD_FONT_COLOR
+                                                                     : RESIZE_GRIP_HOVERED_COLOUR;
+    ImDrawList *draw_list = ImGui::GetWindowDrawList();
+    for (int row = 0; row < RESIZE_GRIP_SIZE; row++) {
+        const float row_top = bottom - (float) RESIZE_GRIP_SIZE + (float) row;
+        draw_list->AddRectFilled(ImVec2(right - (float) (row + 1), row_top), ImVec2(right, row_top + 1.0F), colour);
+    }
 }
 
 void worldmap_window_render(void) {
@@ -1347,6 +1388,7 @@ void worldmap_window_render(void) {
         render_map_area(panel, set, body_height);
         render_bottom_bar(panel, set);
         render_popups(panel, set);
+        draw_resize_grip();
     }
     ImGui::End();
     ui_pop_game_window_style();
