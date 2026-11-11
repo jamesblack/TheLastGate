@@ -120,35 +120,25 @@ static const LauncherLayout *get_layout() {
 }
 
 static const char *classes[] = {
-    "Templar",
-    "Mercenary",
-    "Harakim",
-    "Arch-Templar",
-    "Skald",
-    "Warrior",
-    "Seyan",
-    "Sorcerer",
-    "Summoner",
-    "Arch-Harakim",
-    "Braver",
-    "Lycanthrope"
+    "Templar", "Mercenary", "Harakim",  "Arch-Templar", "Skald",  "Warrior",
+    "Seyan",   "Sorcerer",  "Summoner", "Arch-Harakim", "Braver", "Lycanthrope",
 };
 
 static const char *genders[] = {
     "Masculine",
-    "Feminine"
+    "Feminine",
 };
 
 /* Roguelike is listed so existing characters display it, but is not yet selectable */
 static const char *game_modes[] = {
     "Normal",
     "Hard Mode",
-    "Roguelike"
+    "Roguelike",
 };
 
 static const char *seasons[] = {
     "Legacy",
-    "Current"
+    "Current",
 };
 
 /* Descriptions shown as hover tooltips; entries without one are left null */
@@ -158,35 +148,35 @@ static const char *class_descriptions[IM_ARRAYSIZE(classes)] = {
     "Jack of all trades, master of none. These fighters can do a bit of everything, "
     "and can become capable in any situation.",
     "Spellcaster extraordinare, these fighters can summon capable companions "
-    "and hit foes with a powerful long-range blast."
+    "and hit foes with a powerful long-range blast.",
 };
 
 static const char *game_mode_descriptions[IM_ARRAYSIZE(game_modes)] = {
     "The normal The Last Gate experience.",
     "Stricter gameplay experience. Good luck!",
-    "Progress through a series of trials with unique, randomized properties."
+    "Progress through a series of trials with unique, randomized properties.",
 };
 
 static const char *season_descriptions[IM_ARRAYSIZE(seasons)] = {
     "No seasonal effects will be applied and the game will behave as normal.",
     "Your character will play in the current 'season'. You may only group with other players "
-    "or interact with items found in the same 'season'."
+    "or interact with items found in the same 'season'.",
 };
 
 static const char *alphas[] = {
     "No Alpha",
     "Partial Alpha",
-    "Full Alpha"
+    "Full Alpha",
 };
 
 static const char *window_modes[] = {
     "Fullscreen",
-    "Windowed"
+    "Windowed",
 };
 
-static constexpr ImGuiWindowFlags window_flags =
-        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+static constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+                                                 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |
+                                                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
 static std::function<void()> create_button_style(const LauncherLayout *layout) {
     return ImGuiStyleBuilder()
@@ -227,11 +217,8 @@ static void start_new_switch_character_confirmation() {
 }
 
 static void load() {
-    char const *file_path = tinyfd_openFileDialog(
-        "Select your MOA",
-        "",
-        1,
-        filterPatterns, "Astonia Save File (.MOA)", 0);
+    char const *file_path =
+            tinyfd_openFileDialog("Select your MOA", "", 1, filterPatterns, "Astonia Save File (.MOA)", 0);
 
     if (file_path != nullptr) {
         log_info("Loading MOA from %s", file_path);
@@ -240,11 +227,8 @@ static void load() {
 }
 
 static void save() {
-    char const *file_path = tinyfd_saveFileDialog(
-        "Save your character",
-        "",
-        1,
-        filterPatterns, "Astonia Save File (.MOA)");
+    char const *file_path =
+            tinyfd_saveFileDialog("Save your character", "", 1, filterPatterns, "Astonia Save File (.MOA)");
 
     if (file_path != nullptr) {
         log_info("Saving MOA to %s", file_path);
@@ -275,7 +259,7 @@ static void render_confirmation_popover(const LauncherLayout *layout) {
 
     if (ImGui::BeginPopupModal("Are you sure?", nullptr,
                                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                               ImGuiWindowFlags_NoSavedSettings)) {
+                                       ImGuiWindowFlags_NoSavedSettings)) {
         imgui_center_next_item(layout->popover_inner_size.x);
         if (ImGui::BeginChild("text_container", layout->popover_inner_size, 0, ImGuiWindowFlags_NoScrollbar)) {
             if (launcher_state.switch_character_confirm_state.new_character) {
@@ -330,7 +314,7 @@ static void render_confirmation_popover(const LauncherLayout *layout) {
     ImGui::SetNextWindowSize(layout->popover_size);
     if (ImGui::BeginPopupModal("Are you really sure?", nullptr,
                                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                               ImGuiWindowFlags_NoSavedSettings)) {
+                                       ImGuiWindowFlags_NoSavedSettings)) {
         imgui_center_next_item(layout->popover_inner_size.x);
         if (ImGui::BeginChild("text_container", layout->popover_inner_size, 0, ImGuiWindowFlags_NoScrollbar)) {
             static const char *no_really_text = "No Really!";
@@ -393,7 +377,7 @@ static void render_fyi_popover(const LauncherLayout *layout) {
     const auto pop_popover_styles = create_popover_styles(layout);
     if (ImGui::BeginPopupModal("FYI", nullptr,
                                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                               ImGuiWindowFlags_NoSavedSettings)) {
+                                       ImGuiWindowFlags_NoSavedSettings)) {
         imgui_center_next_item(layout->popover_inner_size.x);
         if (ImGui::BeginChild("text_container", layout->popover_inner_size, 0, ImGuiWindowFlags_NoScrollbar)) {
             ImGui::TextWrapped("%s", launcher_state.simple_popover_state.text);
@@ -468,7 +452,7 @@ static void render_connection_popover(const LauncherLayout *layout) {
     const auto pop_popover_styles = create_popover_styles(layout);
     if (ImGui::BeginPopupModal("Connection", nullptr,
                                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                               ImGuiWindowFlags_NoSavedSettings)) {
+                                       ImGuiWindowFlags_NoSavedSettings)) {
         imgui_center_next_item(layout->popover_inner_size.x);
         if (ImGui::BeginChild("text_container", layout->popover_inner_size, 0, ImGuiWindowFlags_NoScrollbar)) {
             ImGui::TextWrapped("%s", launcher_state.connection_status_text);
@@ -480,9 +464,8 @@ static void render_connection_popover(const LauncherLayout *layout) {
         ImGui::Spacing();
 
         imgui_center_next_item(layout->popover_button_size.x);
-        ImGui::BeginDisabled(
-            launcher_state.connection_status.state != CONNECTION_STATE_CONNECTED && launcher_state.connection_status.
-            state != CONNECTION_STATE_ERROR);
+        ImGui::BeginDisabled(launcher_state.connection_status.state != CONNECTION_STATE_CONNECTED &&
+                             launcher_state.connection_status.state != CONNECTION_STATE_ERROR);
         const auto pop_button_styles = create_button_style(layout);
         if (ImGui::Button("Ok", layout->popover_button_size)) {
             ImGui::CloseCurrentPopup();
@@ -497,17 +480,17 @@ static void render_connection_popover(const LauncherLayout *layout) {
 
 static void render_previous_characters(const LauncherLayout *layout) {
     auto pop_previous_character_style = ImGuiStyleBuilder()
-            .Var(ImGuiStyleVar_WindowPadding, layout->popover_window_padding)
-            .Var(ImGuiStyleVar_ChildBorderSize, layout->popover_border_size)
-            .Color(ImGuiCol_ChildBg, layout->previous_characters_background_color)
-            .Color(ImGuiCol_Border, layout->border_color)
-            .Build();
+                                                .Var(ImGuiStyleVar_WindowPadding, layout->popover_window_padding)
+                                                .Var(ImGuiStyleVar_ChildBorderSize, layout->popover_border_size)
+                                                .Color(ImGuiCol_ChildBg, layout->previous_characters_background_color)
+                                                .Color(ImGuiCol_Border, layout->border_color)
+                                                .Build();
     if (ImGui::BeginChild("previous_characters", layout->previous_character_size, ImGuiChildFlags_Borders,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
         const auto pop_sub_header_style = ImGuiStyleBuilder()
-                .Font(static_cast<ImFont *>(font_sizes.subheader))
-                .Color(ImGuiCol_Text, layout->text_gold_color)
-                .Build();
+                                                  .Font(static_cast<ImFont *>(font_sizes.subheader))
+                                                  .Color(ImGuiCol_Text, layout->text_gold_color)
+                                                  .Build();
         static const char *previous_character_header = "Previous Characters";
         imgui_center_next_text(previous_character_header);
         ImGui::TextUnformatted(previous_character_header);
@@ -603,7 +586,8 @@ static void render_character_select(const LauncherLayout *layout) {
         ImGui::TableNextColumn();
         ImGui::PushItemWidth(-1);
         pop_input_styles = create_input_style(layout);
-        ImGui::InputText("##password", launcher_state.password, sizeof(launcher_state.password), ImGuiInputTextFlags_Password);
+        ImGui::InputText("##password", launcher_state.password, sizeof(launcher_state.password),
+                         ImGuiInputTextFlags_Password);
         pop_input_styles();
         ImGui::PopItemWidth();
 
@@ -669,9 +653,7 @@ static void render_options(const LauncherLayout *layout) {
     ImGui::Dummy(ImVec2(0, layout->section_header_spacing));
 
     imgui_center_next_item(layout->character_select_label_column_width + layout->character_select_input_column_width);
-    if (ImGui::BeginTable("Options", 2,
-                          ImGuiTableFlags_SizingFixedFit |
-                          ImGuiTableFlags_NoHostExtendX)) {
+    if (ImGui::BeginTable("Options", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX)) {
         ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, layout->character_select_label_column_width,
                                 0);
         ImGui::TableSetupColumn("input", ImGuiTableColumnFlags_WidthFixed, layout->character_select_input_column_width,
@@ -717,15 +699,15 @@ static void render_options(const LauncherLayout *layout) {
         ImGui::TextUnformatted("Volume Level");
         ImGui::TableNextColumn();
         auto pop_slider_styles = ImGuiStyleBuilder()
-                .Var(ImGuiStyleVar_FrameBorderSize, 2)
-                .Color(ImGuiCol_Border, layout->border_color)
-                .Color(ImGuiCol_Text, layout->previous_characters_background_color)
-                .Color(ImGuiCol_FrameBg, layout->input_background_color)
-                .Color(ImGuiCol_FrameBgHovered, layout->input_background_hovered_color)
-                .Color(ImGuiCol_FrameBgActive, layout->input_background_active_color)
-                .Color(ImGuiCol_SliderGrab, layout->dropdown_hovered_color)
-                .Color(ImGuiCol_SliderGrabActive, layout->dropdown_hovered_color)
-                .Build();
+                                         .Var(ImGuiStyleVar_FrameBorderSize, 2)
+                                         .Color(ImGuiCol_Border, layout->border_color)
+                                         .Color(ImGuiCol_Text, layout->previous_characters_background_color)
+                                         .Color(ImGuiCol_FrameBg, layout->input_background_color)
+                                         .Color(ImGuiCol_FrameBgHovered, layout->input_background_hovered_color)
+                                         .Color(ImGuiCol_FrameBgActive, layout->input_background_active_color)
+                                         .Color(ImGuiCol_SliderGrab, layout->dropdown_hovered_color)
+                                         .Color(ImGuiCol_SliderGrabActive, layout->dropdown_hovered_color)
+                                         .Build();
         ImGui::SliderInt("##volume_level", &g_config.audio.sound_volume, 0, MAX_VOLUME_LEVEL);
         pop_slider_styles();
 
@@ -758,10 +740,10 @@ void launcher_ui_render(void) {
     ImGui::SetNextWindowSize(layout->window_size);
     sdl_load_sprite(layout->background_sprite);
     auto pop_launcher_styles = ImGuiStyleBuilder()
-            .Var(ImGuiStyleVar_WindowPadding, layout->window_padding)
-            .Color(ImGuiCol_Text, layout->text_gold_color)
-            .Font(static_cast<ImFont *>(font_sizes.normal))
-            .Build();
+                                       .Var(ImGuiStyleVar_WindowPadding, layout->window_padding)
+                                       .Color(ImGuiCol_Text, layout->text_gold_color)
+                                       .Font(static_cast<ImFont *>(font_sizes.normal))
+                                       .Build();
     if (ImGui::Begin("Launcher", nullptr, window_flags)) {
         imgui_draw_sprite(ImGui::GetWindowDrawList(), &sprite_data[layout->background_sprite], ImVec2(0, 0));
 
@@ -783,8 +765,8 @@ void launcher_ui_render(void) {
     }
 
     static constexpr int BUTTON_COUNT = 5;
-    imgui_center_next_item(
-        (layout->main_button_size.x * BUTTON_COUNT) + (layout->main_button_spacing * BUTTON_COUNT - 1));
+    imgui_center_next_item((layout->main_button_size.x * BUTTON_COUNT) +
+                           (layout->main_button_spacing * BUTTON_COUNT - 1));
     const auto pop_button_styles = create_button_style(layout);
     if (ImGui::Button("Start", layout->main_button_size)) {
         ImGui::OpenPopup("Connection");
