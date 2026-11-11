@@ -11,8 +11,7 @@ typedef struct {
     int attribute_targets[5];
 } AttributeCostResult;
 
-#define ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(iv) \
-    { (iv)[0], (iv)[1], (iv)[2], (iv)[3], (iv)[4] }
+#define ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(iv) {(iv)[0], (iv)[1], (iv)[2], (iv)[3], (iv)[4]}
 
 static bool is_weapon_skill(int skill_id) {
     switch (skill_id) {
@@ -21,10 +20,8 @@ static bool is_weapon_skill(int skill_id) {
         case SK_DAGGER:
         case SK_STAFF:
         case SK_SWORD:
-        case SK_TWOHAND:
-            return true;
-        default:
-            return false;
+        case SK_TWOHAND: return true;
+        default: return false;
     }
 }
 
@@ -44,18 +41,16 @@ static bool is_spell(int skill_id) {
         case SK_PROTECT:
         case SK_PULSE:
         case SK_SHADOW:
-        case SK_SLOW:
-            return true;
-        default:
-            return false;
+        case SK_SLOW: return true;
+        default: return false;
     }
 }
 
 static AttributeCostResult cost_to_raise_attributes_by_5(const char attributes[3]) {
     int initial_values[5] = {pl.attrib[0][0], pl.attrib[1][0], pl.attrib[2][0], pl.attrib[3][0], pl.attrib[4][0]};
     int total_cost = 0;
-    int startingValue = (initial_values[attributes[0]] + initial_values[attributes[1]] + initial_values[attributes[2]])
-                        / 5;
+    int startingValue =
+            (initial_values[attributes[0]] + initial_values[attributes[1]] + initial_values[attributes[2]]) / 5;
     int attempts = 0;
 
     while (attempts < 10) {
@@ -76,22 +71,21 @@ static AttributeCostResult cost_to_raise_attributes_by_5(const char attributes[3
         }
         total_cost += cost;
         initial_values[current_attribute] += 1;
-        int current_value = (initial_values[attributes[0]] + initial_values[attributes[1]] + initial_values[attributes[
-                                 2]]) / 5;
+        int current_value =
+                (initial_values[attributes[0]] + initial_values[attributes[1]] + initial_values[attributes[2]]) / 5;
         if (current_value > startingValue)
-            return (AttributeCostResult){
-                total_cost, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)
-            };
+            return (AttributeCostResult) {total_cost, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)};
         attempts++;
     }
-    return (AttributeCostResult){HIGH_VAL, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)};
+    return (AttributeCostResult) {HIGH_VAL, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)};
 }
 
 static AttributeCostResult cost_to_raise_attributes_by_5_uber(const int attributes[4]) {
     int initial_values[5] = {pl.attrib[0][0], pl.attrib[1][0], pl.attrib[2][0], pl.attrib[3][0], pl.attrib[4][0]};
     int total_cost = 0;
-    int startingValue = ((initial_values[attributes[1]] + initial_values[attributes[2]]) / 2 + initial_values[attributes
-                             [0]] + initial_values[attributes[0]]) / 5;
+    int startingValue = ((initial_values[attributes[1]] + initial_values[attributes[2]]) / 2 +
+                         initial_values[attributes[0]] + initial_values[attributes[0]]) /
+                        5;
     int attempts = 0;
 
     while (attempts < 10) {
@@ -113,15 +107,14 @@ static AttributeCostResult cost_to_raise_attributes_by_5_uber(const int attribut
         total_cost += cost;
         initial_values[current_attribute] += 1;
 
-        int current_value = ((initial_values[attributes[1]] + initial_values[attributes[2]]) / 2 + initial_values[
-                                 attributes[0]] + initial_values[attributes[0]]) / 5;
+        int current_value = ((initial_values[attributes[1]] + initial_values[attributes[2]]) / 2 +
+                             initial_values[attributes[0]] + initial_values[attributes[0]]) /
+                            5;
         if (current_value > startingValue)
-            return (AttributeCostResult){
-                total_cost, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)
-            };
+            return (AttributeCostResult) {total_cost, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)};
         attempts++;
     }
-    return (AttributeCostResult){HIGH_VAL, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)};
+    return (AttributeCostResult) {HIGH_VAL, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)};
 }
 
 char get_raise_icon(int skill_id, int skill_tab_position) {
@@ -132,9 +125,9 @@ char get_raise_icon(int skill_id, int skill_tab_position) {
 
     AttributeCostResult result;
     if (is_weapon_skill(skilltab[skill_tab_position].nr) && T_BRAV_SK(9)) {
-        result = cost_to_raise_attributes_by_5_uber((int[4]){AT_BRV, AT_BRV, AT_AGL, AT_STR});
+        result = cost_to_raise_attributes_by_5_uber((int[4]) {AT_BRV, AT_BRV, AT_AGL, AT_STR});
     } else if (is_spell(skilltab[skill_tab_position].nr) && T_ARHR_SK(9)) {
-        result = cost_to_raise_attributes_by_5_uber((int[4]){AT_INT, AT_INT, AT_WIL, AT_BRV});
+        result = cost_to_raise_attributes_by_5_uber((int[4]) {AT_INT, AT_INT, AT_WIL, AT_BRV});
     } else {
         result = cost_to_raise_attributes_by_5(skilltab[skill_tab_position].attrib);
     }
@@ -148,6 +141,8 @@ char get_raise_icon(int skill_id, int skill_tab_position) {
         return '*';
     }
     // Cannot Raise
-    if (skill_needed(skill_id,pl.skill[skill_id][0]+stat_raised[skill_tab_position + 8])>pl.points-stat_points_used) return ' ';
+    if (skill_needed(skill_id, pl.skill[skill_id][0] + stat_raised[skill_tab_position + 8]) >
+        pl.points - stat_points_used)
+        return ' ';
     return '+';
 }
