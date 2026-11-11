@@ -64,6 +64,7 @@ add_executable(TheLastGate
         src/planner/planner_choices.c
         src/game/minimap.c
         src/game/minimap_store.c
+        src/planner/attribute_pool.c
         src/game/game_ui.c
         src/game/stat_display.c
         src/planner/skill_focus.c
@@ -213,6 +214,13 @@ if (TLG_BUILD_TESTS)
     )
     target_include_directories(skill_preview_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME skill_preview COMMAND skill_preview_test)
+
+    add_executable(attribute_pool_test
+            tests/attribute_pool_test.c
+            src/planner/attribute_pool.c
+    )
+    target_include_directories(attribute_pool_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME attribute_pool COMMAND attribute_pool_test)
 
     add_executable(skill_focus_test
             tests/skill_focus_test.c
