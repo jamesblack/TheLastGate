@@ -479,7 +479,6 @@ static const int COMBAT_SKILL_NUMBERS[COMBAT_SKILL_COUNT] = {
     SK_HAND, SK_DAGGER, SK_SWORD, SK_AXE, SK_STAFF, SK_TWOHAND, SK_DUAL, SK_SHIELD, SK_TACTICS, SK_GEARMAST, SK_FEROC,
 };
 
-#define LAST_GEAR_SLOT 12
 #define COMBO_LABEL_WIDTH 46
 #define COMBO_WIDTH 92
 #define OFFHAND_LABEL_LEFT 146
@@ -509,7 +508,7 @@ static int count_empty_gear_slots(void) {
     int empty_slots = 0;
     int slot;
 
-    for (slot = 0; slot <= LAST_GEAR_SLOT; slot++) {
+    for (slot = 0; slot <= WN_CHARM2; slot++) {
         if (slot == WN_CHARM || slot == WN_CHARM2 || slot == WN_LHAND) continue;
         if (pl.worn[slot] == 0) empty_slots++;
     }
@@ -667,7 +666,7 @@ static void combat_block_render(const EnhancedSkillLayout *layout) {
 }
 
 /* Skill numbers of the spells the Buffs section can toggle, in BuffKind order. */
-static const int SPELL_SKILL_NUMBERS[BUFF_KIND_COUNT] = {21, 18, 17};
+static const int SPELL_SKILL_NUMBERS[BUFF_KIND_COUNT] = {SK_BLESS, SK_ENHANCE, SK_PROTECT};
 
 static int spell_skill_position(const int kind) {
     return skill_position_for_number(SPELL_SKILL_NUMBERS[kind]);
