@@ -61,14 +61,12 @@ static int value_with_points(const BuffFocusInput *input, const int points[BUFF_
     return buff_model_skill_value(&model, &focused, result.attributes);
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static int beats(const SearchBest *best, const int cost, const int point_total) {
     if (!best->found) return 1;
     if (cost != best->cost) return cost < best->cost;
     return point_total < best->point_total;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void keep(SearchBest *best, const int cost, const int point_total, const int points[BUFF_FOCUS_MAX_CANDIDATES]) {
     best->found = 1;
     best->cost = cost;
@@ -120,7 +118,6 @@ static int next_mix(const BuffFocusInput *input, int points[BUFF_FOCUS_MAX_CANDI
     return 0;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 BuffFocusResult buff_focus_search(const BuffFocusInput *input) {
     BuffFocusResult result;
     CostTable table;

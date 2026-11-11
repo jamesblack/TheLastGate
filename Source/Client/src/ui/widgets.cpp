@@ -231,7 +231,6 @@ static constexpr ImVec2 DROPDOWN_ITEM_SPACING = ImVec2(8, 4);
 
 static void dropdown_description_render(const char *description) {
     if (description == nullptr) return;
-    // NOLINTNEXTLINE(bugprone-signed-bitwise)
     if (!ImGui::IsItemHovered(ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayNormal |
                               ImGuiHoveredFlags_AllowWhenDisabled)) {
         return;

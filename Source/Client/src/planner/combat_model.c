@@ -102,7 +102,6 @@ static int parry_term(const CombatModelInput *input, const int skills[COMBAT_SKI
     return term;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static int gear_mastery_divisor(const CombatGearClass gear_class, const int for_armor) {
     switch (gear_class) {
         case COMBAT_GEAR_TEMPLAR_OR_BRAVER: return GEAR_MASTERY_DIVISOR_TEMPLAR_OR_BRAVER;

@@ -55,7 +55,6 @@ static int prefix_cost(const int *step_costs, const int point_count) {
     return total;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static SkillFocusRoute cheapest_attribute_route(const SkillFocusInput *input) {
     DistinctAttribute distinct[ATTRIBUTES_PER_SKILL];
     const int distinct_count = collect_distinct_attributes(input, distinct);

@@ -87,7 +87,6 @@ int buff_list_parser_feed(BuffListParser *parser, const char *text) {
     return 1;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 int buff_list_slot_needs_fetch(const int old_sprite, const int old_active, const int new_sprite, const int new_active) {
     if (buff_list_sprite_kind(old_sprite) == BUFF_KIND_NONE && buff_list_sprite_kind(new_sprite) == BUFF_KIND_NONE) {
         return 0;

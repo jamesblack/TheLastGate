@@ -49,7 +49,6 @@ typedef struct {
     unsigned int background_color;
 } EnhancedSkillLayout;
 
-// NOLINTBEGIN(readability-magic-numbers)
 static const EnhancedSkillLayout LAYOUT_LIGHT = {
     .window_position = {326, 25},
     .window_size = {628, 670},
@@ -101,7 +100,6 @@ static constexpr unsigned int RAISED_ROW_HIGHLIGHT_COLOR = color_rgba(243, 219, 
 static const float ATTRIBUTE_MARKER_WIDTH = 2;
 static constexpr unsigned int COST_TEXT_COLOR = color_rgb(168, 176, 176);
 static constexpr unsigned int GLYPH_HOVER_COLOR = color_rgb(255, 255, 255);
-// NOLINTEND(readability-magic-numbers)
 
 #define VALUE_TEXT_SIZE 32
 #define LABEL_TEXT_SIZE 64
@@ -145,7 +143,6 @@ typedef struct {
 
 static PlannerBuffState buff_state;
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static BuffModelSkill model_skill_for(const int skill_position, const int planned) {
     const struct skilltab *skill_entry = &skilltab[skill_position];
     BuffModelSkill skill;
@@ -155,7 +152,6 @@ static BuffModelSkill model_skill_for(const int skill_position, const int planne
     skill.planned = planned;
     for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
         /* attrib is a signed char where -1 marks an unused slot. */
-        // NOLINTNEXTLINE(bugprone-signed-char-misuse)
         const int attribute_id = (int) skill_entry->attrib[attribute_slot];
         skill.attribute_ids[attribute_slot] = attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT ? attribute_id : -1;
     }
@@ -205,8 +201,7 @@ static void fill_raise_state(StatRowView *row_view, const int raise_index) {
     row_view->skill_position = raise_index >= STAT_RAISE_SKILL_BASE ? raise_index - STAT_RAISE_SKILL_BASE : -1;
     row_view->direct_raise = stat_raised[raise_index];
     row_view->cost = stat_raise_cost(raise_index);
-    row_view->can_raise = row_view->cost != HIGH_VAL && // NOLINT(bugprone-signed-bitwise)
-                          row_view->cost <= pl.points - stat_points_used;
+    row_view->can_raise = row_view->cost != HIGH_VAL && row_view->cost <= pl.points - stat_points_used;
     row_view->can_lower = stat_raised[raise_index] > 0;
 }
 
@@ -224,7 +219,6 @@ static StatRowView build_attribute_row(const int attribute_id) {
     return row_view;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static StatRowView build_vital_row(const char *name, const int current, const int raise_index) {
     StatRowView row_view = {0};
 
@@ -234,7 +228,6 @@ static StatRowView build_vital_row(const char *name, const int current, const in
     return row_view;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static StatRowView build_skill_row(const int skill_position, const int attribute_divisor) {
     const struct skilltab *skill_entry = &skilltab[skill_position];
     const int raise_index = STAT_RAISE_SKILL_BASE + skill_position;
@@ -245,7 +238,6 @@ static StatRowView build_skill_row(const int skill_position, const int attribute
 
     for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
         /* attrib is a signed char where -1 marks an unused slot. */
-        // NOLINTNEXTLINE(bugprone-signed-char-misuse)
         const int attribute_id = (int) skill_entry->attrib[attribute_slot];
         const bool valid_attribute = attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT;
 
@@ -278,7 +270,6 @@ static float text_width(const char *text) {
 }
 
 /* Draws text at a row-relative position, vertically centred in the row. */
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void row_text(const EnhancedSkillLayout *layout, const float row_left, const float row_top, const float offset,
                      const unsigned int color, const char *text) {
     imgui_set_cursor_pos(row_left + offset, row_top + ((layout->row_height - imgui_get_text_line_height()) / 2));
@@ -309,8 +300,8 @@ static bool glyph_button(const EnhancedSkillLayout *layout, const float row_left
 
 static int click_multiplier(void) {
     const int key_mods = imgui_get_key_mods();
-    const int shift_held = (key_mods & KMOD_SHIFT) != 0 ? 1 : 0; // NOLINT(bugprone-signed-bitwise)
-    const int ctrl_or_alt_held = (key_mods & (KMOD_CTRL | KMOD_ALT)) != 0 ? 1 : 0; // NOLINT(bugprone-signed-bitwise)
+    const int shift_held = (key_mods & KMOD_SHIFT) != 0 ? 1 : 0;
+    const int ctrl_or_alt_held = (key_mods & (KMOD_CTRL | KMOD_ALT)) != 0 ? 1 : 0;
     return stat_raise_click_multiplier(shift_held, ctrl_or_alt_held);
 }
 
@@ -391,7 +382,7 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
         row_text(layout, row_left, row_top, preview_offset, ATTRIBUTE_GAIN_COLOR, value_text);
     }
 
-    if (row_view->cost == HIGH_VAL) { // NOLINT(bugprone-signed-bitwise)
+    if (row_view->cost == HIGH_VAL) {
         snprintf(value_text, sizeof(value_text), "-");
     } else {
         snprintf(value_text, sizeof(value_text), "%d", row_view->cost);
@@ -414,7 +405,6 @@ static void section_label_render(const EnhancedSkillLayout *layout, const char *
     imgui_dummy(layout->column_width, layout->row_height);
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void value_row_render(const EnhancedSkillLayout *layout, const char *label, const char *value) {
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
@@ -435,8 +425,14 @@ static MetaLookup meta_lookups[] = {
     {"Hit Score", -1}, {"Parry Score", -1}, {"Spell Multiplier", -1}, {"Spell Aptitude", -1}, {"Spell Bonus", -1},
 };
 
-// NOLINTNEXTLINE(performance-enum-size)
-enum { META_HIT, META_PARRY, META_SPELL_MULTIPLIER, META_SPELL_APTITUDE, META_SPELL_BONUS, META_LOOKUP_COUNT };
+enum : unsigned char {
+    META_HIT,
+    META_PARRY,
+    META_SPELL_MULTIPLIER,
+    META_SPELL_APTITUDE,
+    META_SPELL_BONUS,
+    META_LOOKUP_COUNT,
+};
 
 static const struct MetaStat *find_meta(const int lookup_id) {
     MetaLookup *lookup = &meta_lookups[lookup_id];
@@ -522,9 +518,9 @@ static int count_empty_gear_slots(void) {
 }
 
 static CombatGearClass combat_gear_class(void) {
-    if (IS_SKALD) return COMBAT_GEAR_SKALD; // NOLINT(bugprone-signed-bitwise)
-    if (IS_ARCHTEMPLAR) return COMBAT_GEAR_ARCHTEMPLAR; // NOLINT(bugprone-signed-bitwise)
-    if (IS_TEMPLAR || IS_BRAVER) return COMBAT_GEAR_TEMPLAR_OR_BRAVER; // NOLINT(bugprone-signed-bitwise)
+    if (IS_SKALD) return COMBAT_GEAR_SKALD;
+    if (IS_ARCHTEMPLAR) return COMBAT_GEAR_ARCHTEMPLAR;
+    if (IS_TEMPLAR || IS_BRAVER) return COMBAT_GEAR_TEMPLAR_OR_BRAVER;
     return COMBAT_GEAR_OTHER;
 }
 
@@ -563,8 +559,8 @@ static bool build_combat_model_input(CombatModelInput *input) {
     input->weapon = (CombatWeapon) chosen.weapon;
     input->offhand = (CombatOffhand) chosen.offhand;
     input->gear_class = combat_gear_class();
-    input->rampart = IS_ARCHTEMPLAR && T_ARTM_SK(10); // NOLINT(bugprone-signed-bitwise)
-    input->lycan = IS_LYCANTH ? 1 : 0; // NOLINT(bugprone-signed-bitwise)
+    input->rampart = IS_ARCHTEMPLAR && T_ARTM_SK(10);
+    input->lycan = IS_LYCANTH ? 1 : 0;
     input->empty_slots = count_empty_gear_slots();
     input->base_weapon = buff_state.planned.weapon;
     input->base_armor = buff_state.planned.armor;
@@ -572,7 +568,6 @@ static bool build_combat_model_input(CombatModelInput *input) {
 }
 
 /* A dropdown over `names`; returns the picked index, or -1 when nothing was picked this frame. */
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static int choice_combo_render(const char *combo_id, const char *const *names, const int name_count,
                                const int selected) {
     int current = selected;
@@ -688,7 +683,6 @@ static bool buff_reading_ready(const int kind) {
 }
 
 /* How strongly the class turns Willpower and Intuition into spell aptitude, in percent. */
-// NOLINTBEGIN(readability-magic-numbers, bugprone-signed-bitwise)
 static int spell_race_modifier(void) {
     if (IS_TEMPLAR) return 75;
     if (IS_MERCENARY) return 100;
@@ -704,7 +698,6 @@ static int spell_race_modifier(void) {
     if (IS_LYCANTH) return 100;
     return 100;
 }
-// NOLINTEND(readability-magic-numbers, bugprone-signed-bitwise)
 
 static bool build_buff_model_input(BuffModelInput *input) {
     int multiplier;
@@ -727,7 +720,7 @@ static bool build_buff_model_input(BuffModelInput *input) {
     input->spell_bonus = bonus;
     input->spell_aptitude = aptitude;
     input->race_modifier = spell_race_modifier();
-    input->reduced_item_buffs = IS_SEYAN_DU || IS_BRAVER; // NOLINT(bugprone-signed-bitwise)
+    input->reduced_item_buffs = IS_SEYAN_DU || IS_BRAVER;
     input->server_weapon = pl.weapon;
     input->server_armor = pl.armor;
 
@@ -850,7 +843,7 @@ static void legend_render(const EnhancedSkillLayout *layout) {
 }
 
 static int to_focus_cost(const int stat_cost) {
-    return stat_cost == HIGH_VAL ? SKILL_FOCUS_NO_COST : stat_cost; // NOLINT(bugprone-signed-bitwise)
+    return stat_cost == HIGH_VAL ? SKILL_FOCUS_NO_COST : stat_cost;
 }
 
 static SkillFocusInput build_focus_input(const int skill_position) {
@@ -861,7 +854,6 @@ static SkillFocusInput build_focus_input(const int skill_position) {
 
     for (slot_index = 0; slot_index < ATTRIBUTES_PER_SKILL; slot_index++) {
         /* attrib is a signed char where -1 marks an unused slot. */
-        // NOLINTNEXTLINE(bugprone-signed-char-misuse)
         const int attribute_id = (int) skill_entry->attrib[slot_index];
         const bool valid_attribute = attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT;
 
@@ -876,7 +868,6 @@ static SkillFocusInput build_focus_input(const int skill_position) {
         input.attribute_values[slot_index] = shown_value;
         for (step_index = 0; step_index < SKILL_FOCUS_MAX_STEPS; step_index++) {
             input.attribute_step_costs[slot_index][step_index] =
-                    // NOLINTNEXTLINE(readability-suspicious-call-argument)
                     valid_attribute ? to_focus_cost(stat_raise_cost_after(attribute_id, step_index))
                                     : SKILL_FOCUS_NO_COST;
         }
@@ -887,10 +878,8 @@ static SkillFocusInput build_focus_input(const int skill_position) {
 }
 
 /* A panel row with a label at an offset and an optional right-aligned value. */
-// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 static void panel_row_render(const EnhancedSkillLayout *layout, const float label_offset, const unsigned int color,
                              const char *label, const char *value) {
-    // NOLINTEND(bugprone-easily-swappable-parameters)
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
 
@@ -977,7 +966,6 @@ static const BuffFocusResult *cached_buff_focus(const int skill_position) {
 
     build_buff_focus_input(&input, skill_position);
     /* The input is memset before it is filled, so its padding is always zero and a byte compare is exact. */
-    // NOLINTNEXTLINE(bugprone-suspicious-memory-comparison)
     if (!has_cached || memcmp(&input, &cached_input, sizeof(input)) != 0) {
         cached_input = input;
         cached_result = buff_focus_search(&input);
@@ -1019,7 +1007,7 @@ static void plan_buff_route(const BuffFocusRoute *route) {
     stat_raise_try_raise_bundle(raise_indices, point_counts, route->raise_count);
 }
 
-typedef enum { ROUTE_DIRECT, ROUTE_ATTRIBUTES, ROUTE_BLESS } RouteKind; // NOLINT(performance-enum-size)
+typedef enum : unsigned char { ROUTE_DIRECT, ROUTE_ATTRIBUTES, ROUTE_BLESS } RouteKind;
 
 static bool focused_is_bless(void) {
     return focused_skill_position == spell_skill_position(BUFF_KIND_BLESS);
@@ -1259,7 +1247,6 @@ static void frame_render(const EnhancedSkillLayout *layout) {
 
     sdl_load_sprite(WINDOW_SPRITE_ID);
     frame = &sprite_data[WINDOW_SPRITE_ID];
-    // NOLINTNEXTLINE(performance-no-int-to-ptr)
     imgui_draw_list_add_image_9_slice(draw_list, (void *) (intptr_t) frame->gl_texture, left, top, right, bottom,
                                       layout->frame_border, layout->frame_border, layout->frame_border,
                                       layout->frame_border, (float) frame->pixel_width, (float) frame->pixel_height,
@@ -1282,11 +1269,9 @@ void enhanced_skill_window_render(void) {
     imgui_push_style_var_vec2(IMGUI_STYLE_VAR_ITEM_SPACING, 0, 0);
     imgui_push_style_var_vec2(IMGUI_STYLE_VAR_ITEM_INNER_SPACING, 0, 0);
 
-    // NOLINTBEGIN(bugprone-signed-bitwise)
     const int window_flags = IMGUI_WINDOW_FLAG_NO_TITLE_BAR | IMGUI_WINDOW_FLAG_NO_RESIZE | IMGUI_WINDOW_FLAG_NO_MOVE |
                              IMGUI_WINDOW_FLAG_NO_BACKGROUND | IMGUI_WINDOW_FLAG_NO_SCROLLBAR |
                              IMGUI_WINDOW_FLAG_NO_SCROLL_WITH_MOUSE | IMGUI_WINDOW_FLAG_NO_COLLAPSE;
-    // NOLINTEND(bugprone-signed-bitwise)
     if (imgui_begin("Skill Planner", NULL, window_flags)) {
         frame_render(layout);
 

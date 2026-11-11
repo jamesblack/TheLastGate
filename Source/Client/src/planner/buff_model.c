@@ -15,7 +15,6 @@ int buff_model_bless_bonus(const int power, const int attribute_id) {
     return min(ITEM_BONUS_CAP, (((power * 2 / 3) - attribute_id) / BLESS_BONUS_DIVISOR) + 3);
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 int buff_model_item_bonus(const int power, const int reduced) {
     if (power <= 0) return 0;
     if (reduced) return min(ITEM_BONUS_CAP, (power / REDUCED_ITEM_BONUS_DIVISOR) + 3);
@@ -64,7 +63,6 @@ static int active_bless_bonus(const BuffReading *active, const int attribute_id)
     return buff_model_bless_bonus(active->power, attribute_id);
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static int active_item_bonus(const BuffReading *active, const int exact_bonus, const int reduced) {
     if (!active->known) return 0;
     if (active->has_exact) return exact_bonus;

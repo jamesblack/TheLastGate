@@ -60,7 +60,6 @@ static void finish_capture(void) {
     retries_left = BUFF_WATCH_RETRY_LIMIT;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void buff_watch_spell_packet(const int slot, const int old_sprite, const int old_active, const int new_sprite,
                              const int new_active) {
     const int unchanged = old_sprite == new_sprite && old_active == new_active;
