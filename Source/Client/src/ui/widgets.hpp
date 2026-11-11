@@ -16,7 +16,7 @@ bool ui_button(const char *label, float width, float height);
 
 /* Same as ui_button, but drawn dimmed and never clicked when enabled is false. */
 bool ui_button_enabled(const char *label, float width, float height, bool enabled);
-bool tab_button(const char* label, bool is_active, float width);
+bool tab_button(const char *label, bool is_active, float width);
 void ui_tooltip(const char *tooltip_text);
 
 /*
