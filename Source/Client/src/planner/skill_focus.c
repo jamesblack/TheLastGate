@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "util/math_util.h"
+
 /* One attribute the skill uses, with how many of its slots name it. */
 typedef struct {
     int attribute_id;
@@ -58,7 +60,7 @@ static int prefix_cost(const int *step_costs, const int point_count) {
 static SkillFocusRoute cheapest_attribute_route(const SkillFocusInput *input) {
     DistinctAttribute distinct[SKILL_FOCUS_SLOT_COUNT];
     const int distinct_count = collect_distinct_attributes(input, distinct);
-    const int max_points = input->divisor < SKILL_FOCUS_MAX_STEPS ? input->divisor : SKILL_FOCUS_MAX_STEPS;
+    const int max_points = min(input->divisor, SKILL_FOCUS_MAX_STEPS);
     int point_counts[SKILL_FOCUS_SLOT_COUNT] = {0, 0, 0};
     int best_counts[SKILL_FOCUS_SLOT_COUNT] = {0, 0, 0};
     int best_cost = SKILL_FOCUS_NO_COST;

@@ -1,5 +1,7 @@
 #include "buff_model.h"
 
+#include "util/math_util.h"
+
 #define ATTRIBUTE_WILLPOWER 1
 #define ATTRIBUTE_INTUITION 2
 #define ITEM_BONUS_CAP 127
@@ -9,24 +11,16 @@
 #define REDUCED_ITEM_BONUS_DIVISOR 6
 #define APTITUDE_ATTRIBUTE_FACTOR 5
 
-static int smaller(const int first, const int second) {
-    return first < second ? first : second;
-}
-
-static int larger(const int first, const int second) {
-    return first > second ? first : second;
-}
-
 int buff_model_bless_bonus(const int power, const int attribute_id) {
     if (power <= 0) return 0;
-    return smaller(ITEM_BONUS_CAP, (((power * 2 / 3) - attribute_id) / BLESS_BONUS_DIVISOR) + 3);
+    return min(ITEM_BONUS_CAP, (((power * 2 / 3) - attribute_id) / BLESS_BONUS_DIVISOR) + 3);
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 int buff_model_item_bonus(const int power, const int reduced) {
     if (power <= 0) return 0;
-    if (reduced) return smaller(ITEM_BONUS_CAP, (power / REDUCED_ITEM_BONUS_DIVISOR) + 3);
-    return smaller(ITEM_BONUS_CAP, (power / ITEM_BONUS_DIVISOR) + 4);
+    if (reduced) return min(ITEM_BONUS_CAP, (power / REDUCED_ITEM_BONUS_DIVISOR) + 3);
+    return min(ITEM_BONUS_CAP, (power / ITEM_BONUS_DIVISOR) + 4);
 }
 
 static int attribute_sum(const BuffModelSkill *skill, const int attributes[BUFF_ATTRIBUTE_COUNT]) {
@@ -61,8 +55,8 @@ static int planned_aptitude(const BuffModelInput *input) {
 }
 
 static int cast_power(const BuffModelInput *input, const int skill_value, const int aptitude) {
-    const int power = smaller((skill_value + input->spell_bonus) * input->spell_multiplier / 100, 2 * aptitude);
-    return larger(0, power);
+    const int power = min((skill_value + input->spell_bonus) * input->spell_multiplier / 100, 2 * aptitude);
+    return max(0, power);
 }
 
 static int active_bless_bonus(const BuffReading *active, const int attribute_id) {
@@ -82,7 +76,7 @@ static int shown_power(const BuffModelInput *input, const BuffModelResult *resul
     const int active_power = input->active[kind].known ? input->active[kind].power : 0;
 
     if (!input->show_buffed[kind]) return 0;
-    return larger(result->cast_power[kind], active_power);
+    return max(result->cast_power[kind], active_power);
 }
 
 static void compute_bless(const BuffModelInput *input, BuffModelResult *result,

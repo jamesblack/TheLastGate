@@ -1,6 +1,7 @@
 #include "combat_model.h"
 
 #include "util/array_util.h"
+#include "util/math_util.h"
 
 #define COMBAT_WEAPON_SKILL_CAP 300
 #define COMBAT_STAT_MAX 999
@@ -51,24 +52,10 @@ CombatOffhand combat_model_default_offhand(const int known[COMBAT_SKILL_COUNT], 
     return COMBAT_OFFHAND_NONE;
 }
 
-static int larger(const int first, const int second) {
-    return first > second ? first : second;
-}
-
-static int clamp_stat(const int value) {
-    if (value < 0) return 0;
-    if (value > COMBAT_STAT_MAX) return COMBAT_STAT_MAX;
-    return value;
-}
-
 /* A skill's value on one side (current or shown); 0 when the character doesn't have it. */
 static int skill_value(const CombatModelInput *input, const int skills[COMBAT_SKILL_COUNT],
                        const CombatSkill skill_id) {
     return input->known[skill_id] ? skills[skill_id] : 0;
-}
-
-static int capped_skill(const int value) {
-    return value < COMBAT_WEAPON_SKILL_CAP ? value : COMBAT_WEAPON_SKILL_CAP;
 }
 
 /* What the weapon's skill adds to both Hit and Parry. */
@@ -82,23 +69,24 @@ static int weapon_term(const CombatModelInput *input, const int skills[COMBAT_SK
         case COMBAT_WEAPON_STAFF: value = skill_value(input, skills, COMBAT_SKILL_STAFF); break;
         case COMBAT_WEAPON_TWOHAND: value = skill_value(input, skills, COMBAT_SKILL_TWOHAND); break;
         case COMBAT_WEAPON_SPEAR:
-            value = larger(skill_value(input, skills, COMBAT_SKILL_DAGGER),
-                           skill_value(input, skills, COMBAT_SKILL_STAFF));
+            value = max(skill_value(input, skills, COMBAT_SKILL_DAGGER),
+                        skill_value(input, skills, COMBAT_SKILL_STAFF));
             break;
         case COMBAT_WEAPON_GREATAXE:
-            value = larger(skill_value(input, skills, COMBAT_SKILL_AXE),
-                           skill_value(input, skills, COMBAT_SKILL_TWOHAND));
+            value = max(skill_value(input, skills, COMBAT_SKILL_AXE), skill_value(input, skills, COMBAT_SKILL_TWOHAND));
             break;
         default: value = skill_value(input, skills, COMBAT_SKILL_HAND); break;
     }
-    return capped_skill(value);
+    return min(value, COMBAT_WEAPON_SKILL_CAP);
 }
 
 static int hit_term(const CombatModelInput *input, const int skills[COMBAT_SKILL_COUNT]) {
     int term =
             weapon_term(input, skills) + (skill_value(input, skills, COMBAT_SKILL_TACTICS) / TACTICS_HIT_PARRY_DIVISOR);
 
-    if (input->offhand == COMBAT_OFFHAND_DUAL) term += capped_skill(skill_value(input, skills, COMBAT_SKILL_DUAL)) / 4;
+    if (input->offhand == COMBAT_OFFHAND_DUAL) {
+        term += min(skill_value(input, skills, COMBAT_SKILL_DUAL), COMBAT_WEAPON_SKILL_CAP) / 4;
+    }
     return term;
 }
 
@@ -107,7 +95,7 @@ static int parry_term(const CombatModelInput *input, const int skills[COMBAT_SKI
             weapon_term(input, skills) + (skill_value(input, skills, COMBAT_SKILL_TACTICS) / TACTICS_HIT_PARRY_DIVISOR);
 
     if (input->offhand == COMBAT_OFFHAND_SHIELD) {
-        const int shield = capped_skill(skill_value(input, skills, COMBAT_SKILL_SHIELD));
+        const int shield = min(skill_value(input, skills, COMBAT_SKILL_SHIELD), COMBAT_WEAPON_SKILL_CAP);
 
         term += input->rampart ? (shield / 4) + (shield / RAMPART_SHIELD_DIVISOR) : shield / 4;
     }
@@ -145,11 +133,15 @@ static int armor_value_term(const CombatModelInput *input, const int skills[COMB
 }
 
 void combat_model_compute(const CombatModelInput *input, CombatModelResult *result) {
-    result->hit = clamp_stat(input->server_hit + hit_term(input, input->shown) - hit_term(input, input->current));
-    result->parry =
-            clamp_stat(input->server_parry + parry_term(input, input->shown) - parry_term(input, input->current));
-    result->weapon = clamp_stat(input->base_weapon + weapon_value_term(input, input->shown) -
-                                weapon_value_term(input, input->current));
-    result->armor = clamp_stat(input->base_armor + armor_value_term(input, input->shown) -
-                               armor_value_term(input, input->current));
+    const int hit = input->server_hit + hit_term(input, input->shown) - hit_term(input, input->current);
+    const int parry = input->server_parry + parry_term(input, input->shown) - parry_term(input, input->current);
+    const int weapon =
+            input->base_weapon + weapon_value_term(input, input->shown) - weapon_value_term(input, input->current);
+    const int armor =
+            input->base_armor + armor_value_term(input, input->shown) - armor_value_term(input, input->current);
+
+    result->hit = clamp(hit, 0, COMBAT_STAT_MAX);
+    result->parry = clamp(parry, 0, COMBAT_STAT_MAX);
+    result->weapon = clamp(weapon, 0, COMBAT_STAT_MAX);
+    result->armor = clamp(armor, 0, COMBAT_STAT_MAX);
 }

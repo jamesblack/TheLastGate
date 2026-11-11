@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "planner/skill_focus.h"
+#include "util/math_util.h"
 
 /* Cost of the first `points` extra points of every candidate, or -1 once a capped point is included. */
 typedef struct {
@@ -17,11 +18,6 @@ typedef struct {
     int points[BUFF_FOCUS_MAX_CANDIDATES];
 } SearchBest;
 
-static int clamp_bound(const int max_points) {
-    if (max_points < 0) return 0;
-    return max_points > BUFF_FOCUS_MAX_POINTS ? BUFF_FOCUS_MAX_POINTS : max_points;
-}
-
 static void build_cost_table(const BuffFocusInput *input, CostTable *table) {
     int candidate_index;
     int step_index;
@@ -31,7 +27,7 @@ static void build_cost_table(const BuffFocusInput *input, CostTable *table) {
         int running = 0;
 
         table->prefix_costs[candidate_index][0] = 0;
-        for (step_index = 0; step_index < clamp_bound(candidate->max_points); step_index++) {
+        for (step_index = 0; step_index < clamp(candidate->max_points, 0, BUFF_FOCUS_MAX_POINTS); step_index++) {
             const int step_cost = candidate->step_costs[step_index];
             if (running < 0 || step_cost == SKILL_FOCUS_NO_COST) {
                 running = -1;
@@ -115,7 +111,7 @@ static int next_mix(const BuffFocusInput *input, int points[BUFF_FOCUS_MAX_CANDI
     int candidate_index;
 
     for (candidate_index = 0; candidate_index < input->candidate_count; candidate_index++) {
-        if (points[candidate_index] < clamp_bound(input->candidates[candidate_index].max_points)) {
+        if (points[candidate_index] < clamp(input->candidates[candidate_index].max_points, 0, BUFF_FOCUS_MAX_POINTS)) {
             points[candidate_index]++;
             return 1;
         }
