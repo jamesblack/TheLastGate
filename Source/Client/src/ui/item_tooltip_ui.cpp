@@ -79,7 +79,7 @@ static const char *condition_labels[] = {
 static ImU32 chat_font_color(const int font) {
     switch (font) {
         case CHAT_FONT_RED: return IM_COL32(230, 70, 70, 255);
-        case CHAT_FONT_YELLOW: return GOLD_FONT_COLOR_32;
+        case CHAT_FONT_YELLOW: return GOLD_FONT_COLOR;
         case CHAT_FONT_GREEN: return IM_COL32(100, 210, 90, 255);
         case CHAT_FONT_BLUE: return IM_COL32(90, 130, 255, 255);
         case CHAT_FONT_PINK: return IM_COL32(240, 130, 200, 255);
@@ -88,7 +88,7 @@ static ImU32 chat_font_color(const int font) {
         case CHAT_FONT_SKYBLUE: return IM_COL32(73, 188, 226, 255);
         case CHAT_FONT_VIOLET: return IM_COL32(170, 120, 240, 255);
         case CHAT_FONT_WHITE: return IM_COL32(235, 235, 235, 255);
-        default: return GOLD_FONT_COLOR_32;
+        default: return GOLD_FONT_COLOR;
     }
 }
 

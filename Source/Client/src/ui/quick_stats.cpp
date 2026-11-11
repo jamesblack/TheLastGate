@@ -68,7 +68,7 @@ static void push_inventory_styles(const QuickStatsLayout *layout) {
     imgui_push_style_var_vec2(IMGUI_STYLE_VAR_ITEM_SPACING, 0, 0);
     imgui_push_style_var_vec2(IMGUI_STYLE_VAR_ITEM_INNER_SPACING, 0, 0);
     imgui_push_style_var_vec2(IMGUI_STYLE_VAR_WINDOW_PADDING, layout->window_padding.x, layout->window_padding.y);
-    imgui_push_style_color_32(IMGUI_COL_TEXT, GOLD_FONT_COLOR_32);
+    imgui_push_style_color_32(IMGUI_COL_TEXT, GOLD_FONT_COLOR);
 }
 
 static void pop_inventory_styles() {

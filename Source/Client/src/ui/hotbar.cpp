@@ -137,11 +137,11 @@ void spell_hud() {
         float window_x = ImGui::GetWindowPos().x;
         float window_y = ImGui::GetWindowPos().y;
         auto pop_button_styles = ImGuiStyleBuilder()
-                .Color(ImGuiCol_Text, GOLD_FONT_COLOR_32)
-                .Color(ImGuiCol_Button, TRANSPARENT_COLOR_32)
-                .Color(ImGuiCol_ButtonHovered, TRANSPARENT_COLOR_32)
-                .Color(ImGuiCol_ButtonActive, TRANSPARENT_COLOR_32)
-                .Build();
+                                         .Color(ImGuiCol_Text, GOLD_FONT_COLOR)
+                                         .Color(ImGuiCol_Button, TRANSPARENT_COLOR)
+                                         .Color(ImGuiCol_ButtonHovered, TRANSPARENT_COLOR)
+                                         .Color(ImGuiCol_ButtonActive, TRANSPARENT_COLOR)
+                                         .Build();
         for (int i = 0; i < 20; i++) {
             if (i > 0 && i % 5 != 0) {
                 ImGui::SameLine();
@@ -177,8 +177,8 @@ void spell_hud() {
             float text_x = x + (46 - keybind_width);
             float text_y = y + (13 - keybind_height) / 2.0f;
 
-            draw_list->AddText(ImVec2(text_x - 2, text_y + 1), HINT_GREY_FONT_COLOR_32, binding_text);
-            draw_list->AddText(ImVec2(x + 2, text_y + 1), GOLD_FONT_COLOR_32, spell_text);
+            draw_list->AddText(ImVec2(text_x - 2, text_y + 1), HINT_GREY_FONT_COLOR, binding_text);
+            draw_list->AddText(ImVec2(x + 2, text_y + 1), GOLD_FONT_COLOR, spell_text);
 
             if (ImGui::InvisibleButton(spell_key_id, ImVec2(46, 13))) {
                 button_command(16 + i);

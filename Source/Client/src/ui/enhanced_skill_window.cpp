@@ -295,10 +295,10 @@ static bool glyph_button(const EnhancedSkillLayout *layout, const float row_left
     clicked = imgui_invisible_button(glyph, layout->glyph_width, layout->row_height);
     hovered = imgui_is_item_hovered();
     if (!enabled) {
-        row_text(layout, row_left, row_top, offset + 2, HINT_GREY_FONT_COLOR_32, glyph);
+        row_text(layout, row_left, row_top, offset + 2, HINT_GREY_FONT_COLOR, glyph);
         return false;
     }
-    row_text(layout, row_left, row_top, offset + 2, hovered ? GLYPH_HOVER_COLOR_32 : GOLD_FONT_COLOR_32, glyph);
+    row_text(layout, row_left, row_top, offset + 2, hovered ? GLYPH_HOVER_COLOR_32 : GOLD_FONT_COLOR, glyph);
     return clicked;
 }
 
@@ -341,7 +341,7 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
 
     if (row_view->skill_position >= 0 && row_view->skill_position == focused_skill_position) {
         imgui_draw_list_add_rect(draw_list, screen_left, screen_top, screen_left + layout->column_width,
-                                 screen_top + layout->row_height, GOLD_FONT_COLOR_32, 0, 0, 1);
+                                 screen_top + layout->row_height, GOLD_FONT_COLOR, 0, 0, 1);
     }
 
     imgui_push_id_int(row_view->raise_index);
@@ -359,10 +359,10 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
         }
     }
 
-    row_text(layout, row_left, row_top, 2, GOLD_FONT_COLOR_32, row_view->name);
+    row_text(layout, row_left, row_top, 2, GOLD_FONT_COLOR, row_view->name);
 
     snprintf(value_text, sizeof(value_text), "%d", row_view->current);
-    row_text_right(layout, row_left, row_top, layout->current_right, GOLD_FONT_COLOR_32, value_text);
+    row_text_right(layout, row_left, row_top, layout->current_right, GOLD_FONT_COLOR, value_text);
 
     if (glyph_button(layout, row_left, row_top, layout->lower_left, "-", row_view->can_lower)) {
         apply_clicks(row_view->raise_index, false);
@@ -374,7 +374,7 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
     /* Preview reads "total +bought +from attributes", each part in its own colour. */
     float preview_offset = layout->preview_left;
     snprintf(value_text, sizeof(value_text), "%d", preview);
-    row_text(layout, row_left, row_top, preview_offset, changed ? PREVIEW_CHANGED_COLOR_32 : GOLD_FONT_COLOR_32,
+    row_text(layout, row_left, row_top, preview_offset, changed ? PREVIEW_CHANGED_COLOR_32 : GOLD_FONT_COLOR,
              value_text);
     preview_offset += text_width(value_text);
     if (row_view->direct_raise != 0) {
@@ -415,8 +415,8 @@ static void value_row_render(const EnhancedSkillLayout *layout, const char *labe
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
 
-    row_text(layout, row_left, row_top, 2, GOLD_FONT_COLOR_32, label);
-    row_text_right(layout, row_left, row_top, layout->current_right, GOLD_FONT_COLOR_32, value);
+    row_text(layout, row_left, row_top, 2, GOLD_FONT_COLOR, label);
+    row_text_right(layout, row_left, row_top, layout->current_right, GOLD_FONT_COLOR, value);
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
 }
@@ -587,7 +587,7 @@ static void equipment_row_render(const EnhancedSkillLayout *layout, const Combat
     const float row_top = imgui_get_cursor_pos_y();
     int picked;
 
-    row_text(layout, row_left, row_top, 2, GOLD_FONT_COLOR_32, "Weapon");
+    row_text(layout, row_left, row_top, 2, GOLD_FONT_COLOR, "Weapon");
     imgui_set_cursor_pos(row_left + COMBO_LABEL_WIDTH, row_top);
     picked = choice_combo_render("##combat_weapon", COMBAT_WEAPON_NAMES, COMBAT_WEAPON_COUNT, input->weapon);
     if (picked >= 0 && picked != chosen.weapon) {
@@ -595,7 +595,7 @@ static void equipment_row_render(const EnhancedSkillLayout *layout, const Combat
         save_choices();
     }
 
-    row_text(layout, row_left, row_top, OFFHAND_LABEL_LEFT, GOLD_FONT_COLOR_32, "Off-hand");
+    row_text(layout, row_left, row_top, OFFHAND_LABEL_LEFT, GOLD_FONT_COLOR, "Off-hand");
     imgui_set_cursor_pos(row_left + OFFHAND_LABEL_LEFT + COMBO_LABEL_WIDTH + OFFHAND_COMBO_GAP, row_top);
     picked = choice_combo_render("##combat_offhand", COMBAT_OFFHAND_NAMES, COMBAT_OFFHAND_COUNT, input->offhand);
     if (picked >= 0 && picked != chosen.offhand) {
@@ -780,7 +780,7 @@ static void buff_row_render(const EnhancedSkillLayout *layout, const int kind) {
 
     snprintf(label_text, sizeof(label_text), ready ? "%s" : "%s (reading buffs...)", spell_name);
     imgui_set_cursor_pos(row_left + 2, row_top);
-    imgui_text_colored_32(ready ? GOLD_FONT_COLOR_32 : HINT_GREY_FONT_COLOR_32, label_text);
+    imgui_text_colored_32(ready ? GOLD_FONT_COLOR : HINT_GREY_FONT_COLOR, label_text);
 
     imgui_push_id_int(kind);
     imgui_set_cursor_pos(row_left + layout->cost_right - layout->plan_button_width, row_top);
@@ -798,7 +798,7 @@ static void buff_row_render(const EnhancedSkillLayout *layout, const int kind) {
         snprintf(label_text, sizeof(label_text), "Your %s (%d) won't replace the active one (%d)", spell_name,
                  buff_state.planned.cast_power[kind], reading->power);
         imgui_set_cursor_pos(row_left + layout->raise_line_indent, imgui_get_cursor_pos_y());
-        imgui_text_colored_32(HINT_GREY_FONT_COLOR_32, label_text);
+        imgui_text_colored_32(HINT_GREY_FONT_COLOR, label_text);
         imgui_set_cursor_pos(row_left, imgui_get_cursor_pos_y());
     }
 }
@@ -832,7 +832,7 @@ static void legend_render(const EnhancedSkillLayout *layout) {
                                     screen_top + layout->row_height, RAISED_ROW_HIGHLIGHT_32, 0, 0);
     row_top = imgui_get_cursor_pos_y();
     row_text(layout, row_left, row_top, 2, DIRECT_RAISE_COLOR_32, "+N");
-    row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR_32, "points you bought for it");
+    row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR, "points you bought for it");
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
 
@@ -841,7 +841,7 @@ static void legend_render(const EnhancedSkillLayout *layout) {
                                     ATTRIBUTE_GAIN_COLOR_32, 0, 0);
     row_top = imgui_get_cursor_pos_y();
     row_text(layout, row_left, row_top, 2, ATTRIBUTE_GAIN_COLOR_32, "+N");
-    row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR_32, "from raised attributes");
+    row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR, "from raised attributes");
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
 }
@@ -1065,12 +1065,12 @@ static void buff_focus_panel_render(const EnhancedSkillLayout *layout, const cha
 
     if (result->best.available == 0) {
         snprintf(label_text, sizeof(label_text), "%s can't be raised further", skill_name);
-        panel_row_render(layout, 2, GOLD_FONT_COLOR_32, label_text, NULL);
+        panel_row_render(layout, 2, GOLD_FONT_COLOR, label_text, NULL);
         return;
     }
 
     snprintf(value_text, sizeof(value_text), "%d exp", result->best.total_cost);
-    panel_row_render(layout, 2, GOLD_FONT_COLOR_32, "Cheapest +1", value_text);
+    panel_row_render(layout, 2, GOLD_FONT_COLOR, "Cheapest +1", value_text);
     buff_route_lines_render(layout, &result->best);
 
     /* One line for each kind of route that didn't win. */
@@ -1108,7 +1108,7 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
 
     if (focused_skill_position >= 0 && !is_focusable(focused_skill_position)) enhanced_skill_window_clear_focus();
     if (focused_skill_position < 0) {
-        panel_row_render(layout, 2, GOLD_FONT_COLOR_32, "Click a skill to focus it", NULL);
+        panel_row_render(layout, 2, GOLD_FONT_COLOR, "Click a skill to focus it", NULL);
         return;
     }
 
@@ -1129,7 +1129,7 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
 
     if (suggestion.any_available == 0) {
         snprintf(label_text, sizeof(label_text), "%s can't be raised further", skill_name);
-        panel_row_render(layout, 2, GOLD_FONT_COLOR_32, label_text, NULL);
+        panel_row_render(layout, 2, GOLD_FONT_COLOR, label_text, NULL);
         return;
     }
 
@@ -1137,7 +1137,7 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     other_route = suggestion.use_direct != 0 ? &suggestion.attributes : &suggestion.direct;
 
     snprintf(value_text, sizeof(value_text), "%d exp", winning_route->total_cost);
-    panel_row_render(layout, 2, GOLD_FONT_COLOR_32, "Cheapest +1", value_text);
+    panel_row_render(layout, 2, GOLD_FONT_COLOR, "Cheapest +1", value_text);
     if (suggestion.use_direct != 0) {
         snprintf(label_text, sizeof(label_text), "+1 %s", skill_name);
         snprintf(value_text, sizeof(value_text), "%d", winning_route->total_cost);
@@ -1236,7 +1236,7 @@ static void header_render(const EnhancedSkillLayout *layout) {
              stat_points_used);
     imgui_set_cursor_pos(layout->window_padding + 2,
                          header_top + ((layout->header_height - imgui_get_text_line_height()) / 2));
-    imgui_text_colored_32(GOLD_FONT_COLOR_32, header_text);
+    imgui_text_colored_32(GOLD_FONT_COLOR, header_text);
 
     imgui_set_cursor_pos(content_right - (layout->command_button_width * 3) - (COMMAND_BUTTON_GAP * 2), button_top);
     if (ui_button("Commit", layout->command_button_width, BUTTON_SPRITE_HEIGHT)) {
