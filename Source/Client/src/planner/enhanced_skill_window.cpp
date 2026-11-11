@@ -18,6 +18,7 @@
 #include "planner/combat_model.h"
 #include "game/game_ui.h"
 #include "planner/planner_choices.h"
+#include "planner/planner_ui.hpp"
 #include "planner/skill_focus.h"
 #include "planner/skill_preview.h"
 #include "game/stat_raise.h"
@@ -104,7 +105,6 @@ static constexpr unsigned int COST_TEXT_COLOR = color_rgb(168, 176, 176);
 static constexpr unsigned int GLYPH_HOVER_COLOR = color_rgb(255, 255, 255);
 
 #define VALUE_TEXT_SIZE 32
-#define LABEL_TEXT_SIZE 64
 
 /* skilltab position of the skill the suggestion panel works on, or -1. */
 static int focused_skill_position = -1;
@@ -280,8 +280,7 @@ static float text_width(const char *text) {
 /* Draws text at a row-relative position, vertically centred in the row. */
 static void row_text(const EnhancedSkillLayout *layout, const float row_left, const float row_top, const float offset,
                      const unsigned int color, const char *text) {
-    imgui_set_cursor_pos(row_left + offset, row_top + ((layout->row_height - imgui_get_text_line_height()) / 2));
-    imgui_text_colored_32(color, text);
+    text_in_row(row_left + offset, row_top, layout->row_height, color, text);
 }
 
 static void row_text_right(const EnhancedSkillLayout *layout, const float row_left, const float row_top,
