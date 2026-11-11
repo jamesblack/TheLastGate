@@ -40,8 +40,8 @@ static void set_skill(CombatModelInput *input, const CombatSkill skill_id, const
     input->shown[skill_id] = shown;
 }
 
-static CombatModelResult compute(const CombatModelInput *input) {
-    CombatModelResult result;
+static CombatValues compute(const CombatModelInput *input) {
+    CombatValues result;
 
     combat_model_compute(input, &result);
     return result;
@@ -90,7 +90,7 @@ static void test_default_offhand(void) {
 
 static void test_weapon_skill_moves_hit_parry(void) {
     CombatModelInput input = fixture();
-    CombatModelResult result;
+    CombatValues result;
 
     set_skill(&input, COMBAT_SKILL_SWORD, 80, 90);
     result = compute(&input);
@@ -120,7 +120,7 @@ static void test_spear_best_of_two(void) {
 
 static void test_dual_wield_adds_hit(void) {
     CombatModelInput input = fixture();
-    CombatModelResult result;
+    CombatValues result;
 
     input.offhand = COMBAT_OFFHAND_DUAL;
     set_skill(&input, COMBAT_SKILL_DUAL, 40, 48);
@@ -153,7 +153,7 @@ static void test_offhand_skills_capped(void) {
 
 static void test_tactics_both(void) {
     CombatModelInput input = fixture();
-    CombatModelResult result;
+    CombatValues result;
 
     set_skill(&input, COMBAT_SKILL_TACTICS, 60, 66);
     result = compute(&input);
@@ -163,7 +163,7 @@ static void test_tactics_both(void) {
 
 static void test_unknown_skill_adds_nothing(void) {
     CombatModelInput input = fixture();
-    CombatModelResult result;
+    CombatValues result;
 
     input.known[COMBAT_SKILL_TACTICS] = 0;
     set_skill(&input, COMBAT_SKILL_TACTICS, 60, 66);
@@ -175,7 +175,7 @@ static void test_unknown_skill_adds_nothing(void) {
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void check_gear_mastery(const CombatGearClass gear_class, const int weapon, const int armor) {
     CombatModelInput input = fixture();
-    CombatModelResult result;
+    CombatValues result;
 
     input.gear_class = gear_class;
     set_skill(&input, COMBAT_SKILL_GEARMAST, 100, 150);
@@ -193,7 +193,7 @@ static void test_gear_mastery_divisors(void) {
 
 static void test_hand_unarmed_weapon_value(void) {
     CombatModelInput input = fixture();
-    CombatModelResult result;
+    CombatValues result;
 
     input.weapon = COMBAT_WEAPON_UNARMED;
     set_skill(&input, COMBAT_SKILL_HAND, 80, 100);
@@ -208,7 +208,7 @@ static void test_hand_unarmed_weapon_value(void) {
 
 static void test_ferocity(void) {
     CombatModelInput input = fixture();
-    CombatModelResult result;
+    CombatValues result;
 
     input.lycan = 1;
     input.empty_slots = 4;

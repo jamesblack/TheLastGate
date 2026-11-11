@@ -632,7 +632,7 @@ static void planned_value_row_render(const EnhancedSkillLayout *layout, const ch
 
 static void combat_block_render(const EnhancedSkillLayout *layout) {
     CombatModelInput input;
-    CombatModelResult result;
+    CombatValues result;
     char value_text[VALUE_TEXT_SIZE];
     int server_aptitude = 0;
 

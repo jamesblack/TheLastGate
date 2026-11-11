@@ -131,7 +131,7 @@ static int armor_value_term(const CombatModelInput *input, const int skills[COMB
            ferocity_term(input, skills);
 }
 
-void combat_model_compute(const CombatModelInput *input, CombatModelResult *result) {
+void combat_model_compute(const CombatModelInput *input, CombatValues *result) {
     const int hit = input->server_hit + hit_term(input, input->shown) - hit_term(input, input->current);
     const int parry = input->server_parry + parry_term(input, input->shown) - parry_term(input, input->current);
     const int weapon =

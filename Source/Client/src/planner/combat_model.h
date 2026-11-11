@@ -73,7 +73,7 @@ typedef struct {
     int parry;
     int weapon;
     int armor;
-} CombatModelResult;
+} CombatValues;
 
 extern const char *const COMBAT_WEAPON_NAMES[COMBAT_WEAPON_COUNT];
 extern const char *const COMBAT_OFFHAND_NAMES[COMBAT_OFFHAND_COUNT];
@@ -84,7 +84,7 @@ CombatWeapon combat_model_default_weapon(const int known[COMBAT_SKILL_COUNT], co
 /* The higher known of Shield and Dual Wield; None when neither is known. */
 CombatOffhand combat_model_default_offhand(const int known[COMBAT_SKILL_COUNT], const int current[COMBAT_SKILL_COUNT]);
 
-void combat_model_compute(const CombatModelInput *input, CombatModelResult *result);
+void combat_model_compute(const CombatModelInput *input, CombatValues *result);
 
 #ifdef __cplusplus
 }
