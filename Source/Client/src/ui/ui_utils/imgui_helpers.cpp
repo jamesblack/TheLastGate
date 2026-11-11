@@ -4,7 +4,7 @@
 
 #include "imgui_helpers.hpp"
 
-static constexpr ImColor WHITE_TINT = 0xFFFFFFFF;
+#include "ui/ui_common.hpp"
 
 void imgui_draw_sprite(ImDrawList *draw_list, const SpriteData *data, const ImVec2 position) {
     if (!data->loaded_in_atlas) return;
