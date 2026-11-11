@@ -96,13 +96,13 @@ bool tab_button(const char *label, bool is_active, float width) {
     unsigned int tint;
     if (is_active) {
         /* Active tab - brighter */
-        tint = imgui_color_convert_float4_to_u32(1.0f, 1.0f, 1.0f, 1.0f);
+        tint = WHITE_TINT;
     } else if (imgui_is_item_hovered()) {
         /* Hovered inactive tab */
-        tint = imgui_color_convert_float4_to_u32(0.85f, 0.85f, 0.85f, 1.0f);
+        tint = BUTTON_ACTIVE_TINT;
     } else {
         /* Inactive tab - darker */
-        tint = imgui_color_convert_float4_to_u32(0.7f, 0.7f, 0.7f, 1.0f);
+        tint = BUTTON_HOVER_TINT;
     }
 
     /* Draw the 9-slice button background */
