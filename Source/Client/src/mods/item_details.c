@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "util/array_util.h"
 #include "util/string_util.h"
 
 #define TENTHS_PER_PERCENT 10.0F
@@ -47,8 +48,6 @@ static const char *condition_lines[] = {
     "It's in perfect condition.",   "It's showing signs of age.", "It's fairly old.", "It is old.",
     "It is very old and battered.",
 };
-
-#define COUNT_OF(array) ((int) (sizeof(array) / sizeof((array)[0])))
 
 /* Matches `literal` at the cursor, ignoring spaces in front of either, and moves past it. */
 static int expect(const char **cursor, const char *literal) {
@@ -207,7 +206,7 @@ static int parse_appraisal(const char *text, ItemDetails *details) {
 }
 
 static int match_condition(const char *text, ItemDetails *details) {
-    for (int condition = 0; condition < COUNT_OF(condition_lines); condition++) {
+    for (int condition = 0; condition < ARRAY_SIZE(condition_lines); condition++) {
         if (strcmp(text, condition_lines[condition]) == 0) {
             details->condition = condition;
             return 1;
@@ -276,8 +275,8 @@ static int parse_table_line(ParseState *state, const TooltipLine *line, ItemDeta
 }
 
 static int parse_known_line(const char *text, ItemDetails *details) {
-    return match_flag(text, applied_lines, COUNT_OF(applied_lines), &details->mods_applied) ||
-           match_flag(text, possible_lines, COUNT_OF(possible_lines), &details->mods_possible) ||
+    return match_flag(text, applied_lines, ARRAY_SIZE(applied_lines), &details->mods_applied) ||
+           match_flag(text, possible_lines, ARRAY_SIZE(possible_lines), &details->mods_possible) ||
            match_condition(text, details) || parse_level(text, details) || parse_blessings(text, details) ||
            parse_appraisal(text, details);
 }

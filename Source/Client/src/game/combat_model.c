@@ -1,5 +1,7 @@
 #include "combat_model.h"
 
+#include "util/array_util.h"
+
 #define COMBAT_WEAPON_SKILL_CAP 300
 #define COMBAT_STAT_MAX 999
 #define TACTICS_HIT_PARRY_DIVISOR 6
@@ -27,9 +29,9 @@ static const struct {
 CombatWeapon combat_model_default_weapon(const int known[COMBAT_SKILL_COUNT], const int current[COMBAT_SKILL_COUNT]) {
     CombatWeapon best_weapon = COMBAT_WEAPON_UNARMED;
     int best_value = -1;
-    unsigned int entry;
+    int entry;
 
-    for (entry = 0; entry < sizeof(DEFAULT_WEAPONS) / sizeof(DEFAULT_WEAPONS[0]); entry++) {
+    for (entry = 0; entry < ARRAY_SIZE(DEFAULT_WEAPONS); entry++) {
         const CombatSkill skill_id = DEFAULT_WEAPONS[entry].skill_id;
 
         if (known[skill_id] && current[skill_id] > best_value) {

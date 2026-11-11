@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "config.h"
+#include "util/array_util.h"
 
 /* One entry per row keeps the table readable; clang-format would pack them instead. */
 /* clang-format off */
@@ -152,7 +153,7 @@ void keybindings_init(void) {
     // Only initialize the registry once
     if (g_config.keybind.num_bindings == 0) {
         g_config.keybind.bindings = binding_registry;
-        g_config.keybind.num_bindings = sizeof(binding_registry) / sizeof(binding_registry[0]);
+        g_config.keybind.num_bindings = ARRAY_SIZE(binding_registry);
     }
     for (int i = 0; i < g_config.keybind.num_bindings; i++) {
         g_config.keybind.bindings[i].keybinding = binding_registry[i].default_keybinding;
