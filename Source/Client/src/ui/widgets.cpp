@@ -14,6 +14,17 @@
 #include "config/config.h"
 #include "ui_utils/imgui_style_builder.hpp"
 
+static void button_sprite_render(void *draw_list, const float min_x, const float min_y, const float max_x,
+                                 const float max_y, const unsigned int tint) {
+    sdl_load_sprite(BUTTON_SPRITE_ID);
+    const SpriteData *button = &sprite_data[BUTTON_SPRITE_ID];
+
+    imgui_draw_list_add_image_9_slice(
+            draw_list, (void *) (intptr_t) button->gl_texture, min_x, min_y, max_x, max_y, BUTTON_SPRITE_BORDER_WIDTH,
+            BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH, button->pixel_width,
+            button->pixel_height, button->uv0.u, button->uv0.v, button->uv1.u, button->uv1.v, tint);
+}
+
 bool ui_button(const char *label, float width, float height) {
     return ui_button_enabled(label, width, height, true);
 }
@@ -21,9 +32,6 @@ bool ui_button(const char *label, float width, float height) {
 bool ui_button_enabled(const char *label, float width, float height, bool enabled) {
     if (width < 52) width = 52;
     if (height < 19) height = 19;
-    sdl_load_sprite(BUTTON_SPRITE_ID);
-    GLuint button_texture = sprite_data[BUTTON_SPRITE_ID].gl_texture;
-
     /* Get draw list BEFORE creating widgets */
     void *draw_list = imgui_get_window_draw_list();
 
@@ -58,12 +66,7 @@ bool ui_button_enabled(const char *label, float width, float height, bool enable
     }
 
     /* Draw the 9-slice button background */
-    imgui_draw_list_add_image_9_slice(
-            draw_list, (void *) (intptr_t) button_texture, min_x, min_y, max_x, max_y, BUTTON_SPRITE_BORDER_WIDTH,
-            BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH,
-            sprite_data[BUTTON_SPRITE_ID].pixel_width, sprite_data[BUTTON_SPRITE_ID].pixel_height,
-            sprite_data[BUTTON_SPRITE_ID].uv0.u, sprite_data[BUTTON_SPRITE_ID].uv0.v,
-            sprite_data[BUTTON_SPRITE_ID].uv1.u, sprite_data[BUTTON_SPRITE_ID].uv1.v, tint);
+    button_sprite_render(draw_list, min_x, min_y, max_x, max_y, tint);
 
     /* Draw centered text */
     const char *button_text = label;
@@ -89,10 +92,6 @@ bool tab_button(const char *label, bool is_active, float width) {
     imgui_get_item_rect_min(&min_x, &min_y);
     imgui_get_item_rect_max(&max_x, &max_y);
 
-    /* Load button sprite */
-    sdl_load_sprite(BUTTON_SPRITE_ID);
-    GLuint button_texture = sprite_data[BUTTON_SPRITE_ID].gl_texture;
-
     /* Determine button state and tint color */
     unsigned int tint;
     if (is_active) {
@@ -107,12 +106,7 @@ bool tab_button(const char *label, bool is_active, float width) {
     }
 
     /* Draw the 9-slice button background */
-    imgui_draw_list_add_image_9_slice(
-            draw_list, (void *) (intptr_t) button_texture, min_x, min_y, max_x, max_y, BUTTON_SPRITE_BORDER_WIDTH,
-            BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH,
-            sprite_data[BUTTON_SPRITE_ID].pixel_width, sprite_data[BUTTON_SPRITE_ID].pixel_height,
-            sprite_data[BUTTON_SPRITE_ID].uv0.u, sprite_data[BUTTON_SPRITE_ID].uv0.v,
-            sprite_data[BUTTON_SPRITE_ID].uv1.u, sprite_data[BUTTON_SPRITE_ID].uv1.v, tint);
+    button_sprite_render(draw_list, min_x, min_y, max_x, max_y, tint);
 
     /* Draw centered text */
     float text_width, text_height;
@@ -156,17 +150,10 @@ void ui_tooltip(const char *tooltip_text) {
     float max_x = win_x + text_width + padding * 2;
     float max_y = win_y + text_height + padding * 2;
 
-    /* Load and draw 9-slice background behind everything */
-    sdl_load_sprite(BUTTON_SPRITE_ID);
-    GLuint button_texture = sprite_data[BUTTON_SPRITE_ID].gl_texture;
+    /* Draw 9-slice background behind everything */
     void *draw_list = imgui_get_window_draw_list();
 
-    imgui_draw_list_add_image_9_slice(
-            draw_list, (void *) (intptr_t) button_texture, min_x, min_y, max_x, max_y, BUTTON_SPRITE_BORDER_WIDTH,
-            BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH,
-            sprite_data[BUTTON_SPRITE_ID].pixel_width, sprite_data[BUTTON_SPRITE_ID].pixel_height,
-            sprite_data[BUTTON_SPRITE_ID].uv0.u, sprite_data[BUTTON_SPRITE_ID].uv0.v,
-            sprite_data[BUTTON_SPRITE_ID].uv1.u, sprite_data[BUTTON_SPRITE_ID].uv1.v, WHITE_TINT);
+    button_sprite_render(draw_list, min_x, min_y, max_x, max_y, WHITE_TINT);
 
     /* Draw text with natural ImGui layout */
     imgui_push_text_wrap_pos(imgui_get_cursor_pos_x() + max_width - padding * 2);
