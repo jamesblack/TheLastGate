@@ -13,7 +13,7 @@
 
 void get_attribute_display_info(const int attrib_id, StatDisplayInfo *out) {
     if (out == NULL) return;
-    out->name = at_name[attrib_id];
+    out->name = attribute_names[attrib_id];
     out->base_value = pl.attrib[attrib_id][0] + stat_raised[attrib_id];
     out->current_value = at_score(attrib_id) + stat_raised[attrib_id];
     out->raised_amount = stat_raised[attrib_id];

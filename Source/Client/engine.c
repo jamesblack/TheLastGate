@@ -10,6 +10,7 @@
 #include "inter.h"
 #include "main.h"
 #include "config/config.h"
+#include "game/attributes.h"
 #include "game/game_ui.h"
 #include "game/minimap.h"
 #include "game/stat_display.h"
@@ -347,20 +348,6 @@ int tutorial_image[6][3] = {
     {18025, 18026, 18027}
 };
 //
-
-char *at_name[5] = {
-    "Braveness",
-    "Willpower",
-    "Intuition",
-    "Agility",
-    "Strength"
-};
-
-#define AT_BRV		0
-#define AT_WIL		1
-#define AT_INT		2
-#define AT_AGL		3
-#define AT_STR		4
 
 struct skilltab *raw_skilltab;
 struct skilltab *skilltab;
@@ -968,17 +955,22 @@ void init_meta_stats(void) {
     sk_poiso = (sk_score(42) * pl_spmod / 100 + 5) * DAM_MULT_POISON / 300;
     sk_blast = sk_score(24) * pl_spmod / 100 * 2 * DAM_MULT_BLAST / 1000;
     sk_scorc = 1000 + sk_score(24) * pl_spmod / 100;
-    sk_pulse = (sk_score(43) + (sk_score(43) * (T_ARHR_SK(7) ? at_score(AT_INT) / 1000 : 0))) * pl_spmod / 100 * 2 *
-               DAM_MULT_PULSE / 1000;
+    sk_pulse = (sk_score(43) + (sk_score(43) * (T_ARHR_SK(7) ? at_score(ATTRIBUTE_INTUITION) / 1000 : 0))) * pl_spmod /
+               100 * 2 * DAM_MULT_PULSE / 1000;
     sk_pucnt = (60 * 2 * 100 / (3 * pl_cdrate));
     sk_water = 25 * TICKS;
-    sk_cleav = ((sk_score(40) + (sk_score(40) * (T_WARR_SK(9) ? at_score(AT_STR) / 1000 : 0))) * pl_skmod / 100 + pl.
-                weapon / 4 + pl_topdm / 4 + (T_ARTM_SK(4) ? pl_reflc : 0)) * 2 * DAM_MULT_CLEAVE / 1000;
-    sk_warcr = -(2 + ((sk_score(35) + (sk_score(35) * (T_ARTM_SK(7) ? at_score(AT_STR) / 2000 : 0))) * pl_skmod / 100 /
-                      (10 / 3)) / 5);
+    sk_cleav = ((sk_score(40) + (sk_score(40) * (T_WARR_SK(9) ? at_score(ATTRIBUTE_STRENGTH) / 1000 : 0))) * pl_skmod /
+                        100 +
+                pl.weapon / 4 + pl_topdm / 4 + (T_ARTM_SK(4) ? pl_reflc : 0)) *
+               2 * DAM_MULT_CLEAVE / 1000;
+    sk_warcr = -(2 + ((sk_score(35) + (sk_score(35) * (T_ARTM_SK(7) ? at_score(ATTRIBUTE_STRENGTH) / 2000 : 0))) *
+                      pl_skmod / 100 / (10 / 3)) /
+                             5);
     sk_rally = sk_score(35) * pl_skmod / 100 / 10;
-    sk_shado = (sk_score(46) + (sk_score(46) * (T_SUMM_SK(9) ? at_score(AT_WIL) / 1000 : 0))) * pl_spmod / 100 * 5 / 11;
-    sk_shadd = 15 + (sk_score(46) + (sk_score(46) * (T_SUMM_SK(9) ? at_score(AT_WIL) / 1000 : 0))) * pl_spmod / 500;
+    sk_shado = (sk_score(46) + (sk_score(46) * (T_SUMM_SK(9) ? at_score(ATTRIBUTE_WILLPOWER) / 1000 : 0))) * pl_spmod /
+               100 * 5 / 11;
+    sk_shadd = 15 + (sk_score(46) + (sk_score(46) * (T_SUMM_SK(9) ? at_score(ATTRIBUTE_WILLPOWER) / 1000 : 0))) *
+                            pl_spmod / 500;
     sk_weake = -(sk_score(41) * pl_skmod / 100 / 4 + 2);
 
     sk_bleed = (sk_cleav + 5) * DAM_MULT_BLEED / 150;
@@ -995,8 +987,8 @@ void init_meta_stats(void) {
     sk_calm2 = 10000 * (1000 - (IS_SEYAN_DU ? (sk_calm * 2 / 3) : (sk_calm))) / 1000;
     sk_calm = min(127, IS_SEYAN_DU ? (sk_calm / 6 + 5) : (sk_calm / 4 + 5)) * -1;
 
-    sk_letha = (sk_score(15) + (sk_score(15) * (T_SORC_SK(7) ? at_score(AT_WIL) / 2000 : 0))) * pl_spmod / 100 / (
-                   IS_SEYAN_DU ? 4 : 3);
+    sk_letha = (sk_score(15) + (sk_score(15) * (T_SORC_SK(7) ? at_score(ATTRIBUTE_WILLPOWER) / 2000 : 0))) * pl_spmod /
+               100 / (IS_SEYAN_DU ? 4 : 3);
     sk_bless = min(127, (sk_score(21) * pl_spmod / 100 * 2 / 3) / 5 + 3);
     sk_enhan = min(
         127, (IS_SEYAN_DU ? (sk_score(18) * pl_spmod / 100 / 6 + 3) : (sk_score(18) * pl_spmod / 100 / 4 + 4)));
@@ -1022,8 +1014,9 @@ void init_meta_stats(void) {
 
 
     if (IS_MERCENARY || IS_WARRIOR || IS_SORCERER) {
-        sk_blind = -((sk_score(37) + (sk_score(37) * (T_WARR_SK(7) ? at_score(AT_AGL) / 2000 : 0))) * pl_skmod / 100 / 6
-                     + 2);
+        sk_blind = -((sk_score(37) + (sk_score(37) * (T_WARR_SK(7) ? at_score(ATTRIBUTE_AGILITY) / 2000 : 0))) *
+                             pl_skmod / 100 / 6 +
+                     2);
     } else {
         sk_blind = -(sk_score(37) * pl_skmod / 100 / 8 + 1);
     }
@@ -1065,20 +1058,26 @@ void init_meta_stats(void) {
 
     // Tarot - Emperor (slow bonus)
     if (pl_flags & (1 << 5)) {
-        sk_slowv = -(30 + ((sk_score(19) + (sk_score(19) * (T_SORC_SK(9) ? at_score(AT_INT) / 2500 : 0))) * pl_spmod /
-                           100) / 4);
+        sk_slowv = -(30 + ((sk_score(19) + (sk_score(19) * (T_SORC_SK(9) ? at_score(ATTRIBUTE_INTUITION) / 2500 : 0))) *
+                           pl_spmod / 100) /
+                                  4);
     } else {
-        sk_slowv = -(30 + ((sk_score(19) + (sk_score(19) * (T_SORC_SK(9) ? at_score(AT_INT) / 2500 : 0))) * pl_spmod /
-                           100) / 3);
+        sk_slowv = -(30 + ((sk_score(19) + (sk_score(19) * (T_SORC_SK(9) ? at_score(ATTRIBUTE_INTUITION) / 2500 : 0))) *
+                           pl_spmod / 100) /
+                                  3);
     }
 
     // Tarot - Tower (curse bonus)
     if (pl_flags & (1 << 6)) {
-        sk_curse = -(2 + ((((sk_score(20) + (sk_score(20) * (T_SORC_SK(9) ? at_score(AT_INT) / 2500 : 0))) * pl_spmod /
-                            100) * 5 / 4) - 4) / 5);
+        sk_curse =
+                -(2 + ((((sk_score(20) + (sk_score(20) * (T_SORC_SK(9) ? at_score(ATTRIBUTE_INTUITION) / 2500 : 0))) *
+                         pl_spmod / 100) *
+                        5 / 4) -
+                       4) / 5);
     } else {
-        sk_curse = -(2 + (((sk_score(20) + (sk_score(20) * (T_SORC_SK(9) ? at_score(AT_INT) / 2500 : 0))) * pl_spmod /
-                           100) - 4) / 5);
+        sk_curse = -(2 + (((sk_score(20) + (sk_score(20) * (T_SORC_SK(9) ? at_score(ATTRIBUTE_INTUITION) / 2500 : 0))) *
+                           pl_spmod / 100) -
+                          4) / 5);
     }
 
     sk_metab = 0;

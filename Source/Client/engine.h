@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "common.h"
+#include "game/attributes.h"
 EXTERN_C_BEGIN
 
 extern int noshop;
@@ -10,7 +11,6 @@ extern int st_learned_skill(int st_val, int v);
 
 extern int stat_points_used;
 extern struct cplayer pl;
-extern char *at_name[5];
 extern struct skilltab *skilltab;
 extern struct skilltab *raw_skilltab;
 extern int skill_needed(int n, int v);
@@ -25,12 +25,6 @@ void xlog(char font, char *format, ...);
 int at_score(int n);
 int sk_score(int n);
 int points2rank(int v);
-
-#define AT_BRV 0
-#define AT_WIL 1
-#define AT_INT 2
-#define AT_AGL 3
-#define AT_STR 4
 
 #ifndef GUI_SHOP_X
 #define GUI_SHOP_X ((1280 / 2) - (320 / 2))

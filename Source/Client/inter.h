@@ -5,6 +5,7 @@
 #pragma once
 
 #include "common.h"
+#include "game/attributes.h"
 EXTERN_C_BEGIN
 
 #define MAXSPRITE 2000+(128*1024)
@@ -265,7 +266,6 @@ struct skilltab
 };
 
 extern struct skilltab *skilltab;
-extern char *at_name[];
 
 struct wpslist
 {

@@ -208,7 +208,7 @@ static void fill_raise_state(StatRowView *row_view, const int raise_index) {
 static StatRowView build_attribute_row(const int attribute_id) {
     StatRowView row_view = {0};
 
-    row_view.name = at_name[attribute_id];
+    row_view.name = attribute_names[attribute_id];
     row_view.current = at_score(attribute_id);
     fill_raise_state(&row_view, attribute_id);
     if (buff_state.available) {
@@ -988,7 +988,7 @@ static const BuffFocusResult *cached_buff_focus(const int skill_position) {
 }
 
 static const char *raise_name(const int raise_index) {
-    if (raise_index < STAT_RAISE_ATTRIBUTE_COUNT) return at_name[raise_index];
+    if (raise_index < STAT_RAISE_ATTRIBUTE_COUNT) return attribute_names[raise_index];
     return skilltab[raise_index - STAT_RAISE_SKILL_BASE].name;
 }
 
@@ -1145,7 +1145,7 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     } else {
         for (raise_number = 0; raise_number < winning_route->raise_count; raise_number++) {
             const SkillFocusRaise *raise = &winning_route->raises[raise_number];
-            snprintf(label_text, sizeof(label_text), "+%d %s", raise->points, at_name[raise->attribute_id]);
+            snprintf(label_text, sizeof(label_text), "+%d %s", raise->points, attribute_names[raise->attribute_id]);
             snprintf(value_text, sizeof(value_text), "%d", raise->cost);
             panel_row_render(layout, layout->raise_line_indent, ATTRIBUTE_GAIN_COLOR_32, label_text, value_text);
         }

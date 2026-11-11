@@ -56,6 +56,7 @@ add_executable(TheLastGate
         src/audio/sound.c
         src/config/config.c
         src/config/keybindings.c
+        src/game/attributes.c
         src/game/buff_focus.c
         src/game/buff_model.c
         src/game/combat_model.c

@@ -125,9 +125,11 @@ char get_raise_icon(int skill_id, int skill_tab_position) {
 
     AttributeCostResult result;
     if (is_weapon_skill(skilltab[skill_tab_position].nr) && T_BRAV_SK(9)) {
-        result = cost_to_raise_attributes_by_5_uber((int[4]) {AT_BRV, AT_BRV, AT_AGL, AT_STR});
+        result = cost_to_raise_attributes_by_5_uber(
+                (int[4]) {ATTRIBUTE_BRAVENESS, ATTRIBUTE_BRAVENESS, ATTRIBUTE_AGILITY, ATTRIBUTE_STRENGTH});
     } else if (is_spell(skilltab[skill_tab_position].nr) && T_ARHR_SK(9)) {
-        result = cost_to_raise_attributes_by_5_uber((int[4]) {AT_INT, AT_INT, AT_WIL, AT_BRV});
+        result = cost_to_raise_attributes_by_5_uber(
+                (int[4]) {ATTRIBUTE_INTUITION, ATTRIBUTE_INTUITION, ATTRIBUTE_WILLPOWER, ATTRIBUTE_BRAVENESS});
     } else {
         result = cost_to_raise_attributes_by_5(skilltab[skill_tab_position].attrib);
     }

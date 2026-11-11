@@ -794,7 +794,7 @@ int _mouse_statbox(int x,int y,int state)
 
 	if (x<172) { // raise
 		if (state==MS_RB_UP) {
-			if (n<5 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) xlog(1,"Raise %s.",at_name[n]);
+			if (n<5 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) xlog(1,"Raise %s.",attribute_names[n]);
 			else if (n==5 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) xlog(1,"Raise Hitpoints.");
 			else if (n==6 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) xlog(1,"Raise Mana."); 	// xlog(1,"Raise Endurance.");
 			else if (n==7) return 1; 				// xlog(1,"Raise Mana.");
@@ -812,7 +812,7 @@ int _mouse_statbox(int x,int y,int state)
 	else 
 	{ // lower
 		if (state==MS_RB_UP) {
-			if (n<5 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) xlog(1,"Lower %s.",at_name[n]);
+			if (n<5 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) xlog(1,"Lower %s.",attribute_names[n]);
 			else if (n==5 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) xlog(1,"Lower Hitpoints.");
 			else if (n==6 && game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS) xlog(1,"Lower Mana."); 	// xlog(1,"Lower Endurance.");
 			else if (n==7) return 1; 				// xlog(1,"Lower Mana.");
@@ -898,7 +898,7 @@ int mouse_statbox2(int x,int y,int state)
 		n=0; if ( x>xt && y>yt+shf*n && x<xb && y<yb+shf*n ) // Braveness
 		{
 			if (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS)
-				xlog(1,"%s improves most skills and spells. It also improves your critical hit rate.",at_name[n]);
+				xlog(1,"%s improves most skills and spells. It also improves your critical hit rate.",attribute_names[n]);
 			else
 				meta_stat_descs(n);
 			return 1;
@@ -906,7 +906,7 @@ int mouse_statbox2(int x,int y,int state)
 		n=1; if ( x>xt && y>yt+shf*n && x<xb && y<yb+shf*n ) // Willpower
 		{
 			if (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS)
-				xlog(1,"%s improves most support spells. It also improves the speed of casting spells and using skills, and helps overwhelm spell suppression.",at_name[n]);
+				xlog(1,"%s improves most support spells. It also improves the speed of casting spells and using skills, and helps overwhelm spell suppression.",attribute_names[n]);
 			else
 				meta_stat_descs(n);
 			return 1;
@@ -914,7 +914,7 @@ int mouse_statbox2(int x,int y,int state)
 		n=2; if ( x>xt && y>yt+shf*n && x<xb && y<yb+shf*n ) // Intuition
 		{
 			if (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS)
-				xlog(1,"%s improves most offensive spells. It also reduces the duration of skill exhaustion.",at_name[n]);
+				xlog(1,"%s improves most offensive spells. It also reduces the duration of skill exhaustion.",attribute_names[n]);
 			else
 				meta_stat_descs(n);
 			return 1;
@@ -922,7 +922,7 @@ int mouse_statbox2(int x,int y,int state)
 		n=3; if ( x>xt && y>yt+shf*n && x<xb && y<yb+shf*n ) // Agility
 		{
 			if (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS)
-				xlog(1,"%s improves most combat skills. It also improves your movement speed and your attack speed.",at_name[n]);
+				xlog(1,"%s improves most combat skills. It also improves your movement speed and your attack speed.",attribute_names[n]);
 			else
 				meta_stat_descs(n);
 			return 1;
@@ -930,7 +930,7 @@ int mouse_statbox2(int x,int y,int state)
 		n=4; if ( x>xt && y>yt+shf*n && x<xb && y<yb+shf*n ) // Strength
 		{
 			if (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS)
-				xlog(1,"%s improves most combat skills. It also improves your movement speed and the damage dealt by your attacks.",at_name[n]);
+				xlog(1,"%s improves most combat skills. It also improves your movement speed and the damage dealt by your attacks.",attribute_names[n]);
 			else
 				meta_stat_descs(n);
 			return 1;
@@ -975,9 +975,9 @@ int mouse_statbox2(int x,int y,int state)
 				xlog(5, skilltab[n+game_ui_state.skill_scroll].name);
 				xlog(1,skilltab[n+game_ui_state.skill_scroll].desc);
 				xlog(5, "Affected by: %s, %s, %s",
-				     at_name[skilltab[n + game_ui_state.skill_scroll].attrib[0]],
-				     at_name[skilltab[n + game_ui_state.skill_scroll].attrib[1]],
-				     at_name[skilltab[n + game_ui_state.skill_scroll].attrib[2]]
+				     attribute_names[skilltab[n + game_ui_state.skill_scroll].attrib[0]],
+				     attribute_names[skilltab[n + game_ui_state.skill_scroll].attrib[1]],
+				     attribute_names[skilltab[n + game_ui_state.skill_scroll].attrib[2]]
 				);
 
 				if (last_skill == n+game_ui_state.skill_scroll)
