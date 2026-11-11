@@ -2,15 +2,15 @@
 #include <stdbool.h>
 
 #include "config/keybindings.h"
+#include "ui_common.hpp"
 
-#define BUTTON_TEXT_COLOR imgui_color_convert_float4_to_u32(0.95f, 0.85f, 0.41f, 1.0f)
-#define BUTTON_TEXT_HOVER_COLOR imgui_color_convert_float4_to_u32(0.85f, 0.75f, 0.31f, 1.0f)
-#define BUTTON_TEXT_ACTIVE_COLOR imgui_color_convert_float4_to_u32(0.75f, 0.65f, 0.21f, 1.0f)
+static constexpr unsigned int BUTTON_TEXT_COLOR = color_rgb(242, 217, 105);
+static constexpr unsigned int BUTTON_TEXT_HOVER_COLOR = color_rgb(217, 191, 79);
+static constexpr unsigned int BUTTON_TEXT_ACTIVE_COLOR = color_rgb(191, 166, 54);
 
-#define BUTTON_TINT imgui_color_convert_float4_to_u32(1.0f, 1.0f, 1.0f, 1.0f)
-#define BUTTON_HOVER_TINT imgui_color_convert_float4_to_u32(0.7f, 0.7f, 0.7f, 1.0f)
-#define BUTTON_DISABLED_TINT imgui_color_convert_float4_to_u32(0.45f, 0.45f, 0.45f, 1.0f)
-#define BUTTON_ACTIVE_TINT imgui_color_convert_float4_to_u32(0.85f, 0.85f, 0.85f, 1.0f);
+static constexpr unsigned int BUTTON_HOVER_TINT = color_rgb(179, 179, 179);
+static constexpr unsigned int BUTTON_DISABLED_TINT = color_rgb(115, 115, 115);
+static constexpr unsigned int BUTTON_ACTIVE_TINT = color_rgb(217, 217, 217);
 
 bool ui_button(const char *label, float width, float height);
 

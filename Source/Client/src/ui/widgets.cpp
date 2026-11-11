@@ -52,7 +52,7 @@ bool ui_button_enabled(const char *label, float width, float height, bool enable
         text_color = BUTTON_TEXT_HOVER_COLOR;
     } else {
         /* Normal state - full brightness */
-        tint = BUTTON_TINT;
+        tint = WHITE_TINT;
         text_color = BUTTON_TEXT_COLOR;
     }
 
@@ -165,7 +165,7 @@ void ui_tooltip(const char *tooltip_text) {
             BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH,
             sprite_data[BUTTON_SPRITE_ID].pixel_width, sprite_data[BUTTON_SPRITE_ID].pixel_height,
             sprite_data[BUTTON_SPRITE_ID].uv0.u, sprite_data[BUTTON_SPRITE_ID].uv0.v,
-            sprite_data[BUTTON_SPRITE_ID].uv1.u, sprite_data[BUTTON_SPRITE_ID].uv1.v, BUTTON_TINT);
+            sprite_data[BUTTON_SPRITE_ID].uv1.u, sprite_data[BUTTON_SPRITE_ID].uv1.v, WHITE_TINT);
 
     /* Draw text with natural ImGui layout */
     imgui_push_text_wrap_pos(imgui_get_cursor_pos_x() + max_width - padding * 2);
