@@ -58,21 +58,11 @@ bool ui_button_enabled(const char *label, float width, float height, bool enable
 
     /* Draw the 9-slice button background */
     imgui_draw_list_add_image_9_slice(
-        draw_list,
-        (void *) (intptr_t) button_texture,
-        min_x, min_y, max_x, max_y,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        sprite_data[BUTTON_SPRITE_ID].pixel_width,
-        sprite_data[BUTTON_SPRITE_ID].pixel_height,
-        sprite_data[BUTTON_SPRITE_ID].uv0.u,
-        sprite_data[BUTTON_SPRITE_ID].uv0.v,
-        sprite_data[BUTTON_SPRITE_ID].uv1.u,
-        sprite_data[BUTTON_SPRITE_ID].uv1.v,
-        tint
-    );
+            draw_list, (void *) (intptr_t) button_texture, min_x, min_y, max_x, max_y, BUTTON_SPRITE_BORDER_WIDTH,
+            BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH,
+            sprite_data[BUTTON_SPRITE_ID].pixel_width, sprite_data[BUTTON_SPRITE_ID].pixel_height,
+            sprite_data[BUTTON_SPRITE_ID].uv0.u, sprite_data[BUTTON_SPRITE_ID].uv0.v,
+            sprite_data[BUTTON_SPRITE_ID].uv1.u, sprite_data[BUTTON_SPRITE_ID].uv1.v, tint);
 
     /* Draw centered text */
     const char *button_text = label;
@@ -117,21 +107,11 @@ bool tab_button(const char *label, bool is_active, float width) {
 
     /* Draw the 9-slice button background */
     imgui_draw_list_add_image_9_slice(
-        draw_list,
-        (void *) (intptr_t) button_texture,
-        min_x, min_y, max_x, max_y,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        sprite_data[BUTTON_SPRITE_ID].pixel_width,
-        sprite_data[BUTTON_SPRITE_ID].pixel_height,
-        sprite_data[BUTTON_SPRITE_ID].uv0.u,
-        sprite_data[BUTTON_SPRITE_ID].uv0.v,
-        sprite_data[BUTTON_SPRITE_ID].uv1.u,
-        sprite_data[BUTTON_SPRITE_ID].uv1.v,
-        tint
-    );
+            draw_list, (void *) (intptr_t) button_texture, min_x, min_y, max_x, max_y, BUTTON_SPRITE_BORDER_WIDTH,
+            BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH,
+            sprite_data[BUTTON_SPRITE_ID].pixel_width, sprite_data[BUTTON_SPRITE_ID].pixel_height,
+            sprite_data[BUTTON_SPRITE_ID].uv0.u, sprite_data[BUTTON_SPRITE_ID].uv0.v,
+            sprite_data[BUTTON_SPRITE_ID].uv1.u, sprite_data[BUTTON_SPRITE_ID].uv1.v, tint);
 
     /* Draw centered text */
     float text_width, text_height;
@@ -181,21 +161,11 @@ void ui_tooltip(const char *tooltip_text) {
     void *draw_list = imgui_get_window_draw_list();
 
     imgui_draw_list_add_image_9_slice(
-        draw_list,
-        (void *) (intptr_t) button_texture,
-        min_x, min_y, max_x, max_y,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        BUTTON_SPRITE_BORDER_WIDTH,
-        sprite_data[BUTTON_SPRITE_ID].pixel_width,
-        sprite_data[BUTTON_SPRITE_ID].pixel_height,
-        sprite_data[BUTTON_SPRITE_ID].uv0.u,
-        sprite_data[BUTTON_SPRITE_ID].uv0.v,
-        sprite_data[BUTTON_SPRITE_ID].uv1.u,
-        sprite_data[BUTTON_SPRITE_ID].uv1.v,
-        BUTTON_TINT
-    );
+            draw_list, (void *) (intptr_t) button_texture, min_x, min_y, max_x, max_y, BUTTON_SPRITE_BORDER_WIDTH,
+            BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH, BUTTON_SPRITE_BORDER_WIDTH,
+            sprite_data[BUTTON_SPRITE_ID].pixel_width, sprite_data[BUTTON_SPRITE_ID].pixel_height,
+            sprite_data[BUTTON_SPRITE_ID].uv0.u, sprite_data[BUTTON_SPRITE_ID].uv0.v,
+            sprite_data[BUTTON_SPRITE_ID].uv1.u, sprite_data[BUTTON_SPRITE_ID].uv1.v, BUTTON_TINT);
 
     /* Draw text with natural ImGui layout */
     imgui_push_text_wrap_pos(imgui_get_cursor_pos_x() + max_width - padding * 2);
