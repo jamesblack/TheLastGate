@@ -39,6 +39,7 @@ typedef struct {
     float column_width;
     float column_gap;
     /* Offsets inside a stat row, measured from the row's left edge. */
+    float base_right;
     float current_right;
     float lower_left;
     float raise_left;
@@ -62,6 +63,7 @@ static const EnhancedSkillLayout LAYOUT_LIGHT = {
     .row_height = 14,
     .column_width = 290,
     .column_gap = 14,
+    .base_right = 122,
     .current_right = 148,
     .lower_left = 154,
     .raise_left = 166,
@@ -84,6 +86,7 @@ static const EnhancedSkillLayout LAYOUT_DARK = {
     .row_height = 14,
     .column_width = 290,
     .column_gap = 14,
+    .base_right = 122,
     .current_right = 148,
     .lower_left = 154,
     .raise_left = 166,
@@ -98,6 +101,7 @@ static const EnhancedSkillLayout LAYOUT_DARK = {
 };
 
 static constexpr unsigned int PREVIEW_CHANGED_COLOR = color_rgb(255, 255, 255);
+static constexpr unsigned int BASE_VALUE_COLOR = color_rgb(160, 160, 160);
 static constexpr unsigned int DIRECT_RAISE_COLOR = color_rgb(125, 220, 106);
 static constexpr unsigned int ATTRIBUTE_GAIN_COLOR = color_rgb(90, 180, 255);
 static constexpr unsigned int RAISED_ROW_HIGHLIGHT_COLOR = color_rgba(243, 219, 106, 56);
@@ -186,6 +190,7 @@ static int attribute_divisor_for_player(void) {
 
 typedef struct {
     const char *name;
+    int base;
     int current;
     int direct_raise;   /* points bought for this stat itself */
     int attribute_gain; /* points the planned attribute raises add */
@@ -216,6 +221,7 @@ static StatRowView build_attribute_row(const int attribute_id) {
     StatRowView row_view = {0};
 
     row_view.name = attribute_names[attribute_id];
+    row_view.base = pl.attrib[attribute_id][0];
     row_view.current = at_score(attribute_id);
     fill_raise_state(&row_view, attribute_id);
     if (buff_state.available) {
@@ -226,10 +232,11 @@ static StatRowView build_attribute_row(const int attribute_id) {
     return row_view;
 }
 
-static StatRowView build_vital_row(const char *name, const int current, const int raise_index) {
+static StatRowView build_vital_row(const char *name, const int base, const int current, const int raise_index) {
     StatRowView row_view = {0};
 
     row_view.name = name;
+    row_view.base = base;
     row_view.current = current;
     fill_raise_state(&row_view, raise_index);
     return row_view;
@@ -252,6 +259,7 @@ static StatRowView build_skill_row(const int skill_position, const int attribute
     }
 
     row_view.name = skill_entry->name;
+    row_view.base = pl.skill[skill_entry->nr][0];
     row_view.current = sk_score(skill_entry->nr);
     row_view.attribute_gain = skill_preview_attribute_gain(attribute_values, attribute_raises, attribute_divisor);
     row_view.uses_raised_attribute = skill_preview_uses_raised_attribute(attribute_raises) != 0;
@@ -361,6 +369,9 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
     }
 
     row_text(layout, row_left, row_top, 2, GOLD_FONT_COLOR, row_view->name);
+
+    snprintf(value_text, sizeof(value_text), "%d", row_view->base);
+    row_text_right(layout, row_left, row_top, layout->base_right, BASE_VALUE_COLOR, value_text);
 
     snprintf(value_text, sizeof(value_text), "%d", row_view->current);
     row_text_right(layout, row_left, row_top, layout->current_right, GOLD_FONT_COLOR, value_text);
@@ -890,6 +901,12 @@ static void legend_render(const EnhancedSkillLayout *layout) {
     row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR, "from raised attributes");
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
+
+    row_top = imgui_get_cursor_pos_y();
+    row_text(layout, row_left, row_top, 2, BASE_VALUE_COLOR, "N");
+    row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR, "base, before gear and buffs");
+    imgui_set_cursor_pos(row_left, row_top);
+    imgui_dummy(layout->column_width, layout->row_height);
 }
 
 static int to_focus_cost(const int stat_cost) {
@@ -1304,9 +1321,9 @@ static void left_column_render(const EnhancedSkillLayout *layout) {
         stat_row_render(layout, &row_view);
     }
 
-    row_view = build_vital_row("Hitpoints", pl.hp[VITAL_TOTAL_INDEX], STAT_RAISE_HITPOINTS);
+    row_view = build_vital_row("Hitpoints", pl.hp[0], pl.hp[VITAL_TOTAL_INDEX], STAT_RAISE_HITPOINTS);
     stat_row_render(layout, &row_view);
-    row_view = build_vital_row("Mana", pl.mana[VITAL_TOTAL_INDEX], STAT_RAISE_MANA);
+    row_view = build_vital_row("Mana", pl.mana[0], pl.mana[VITAL_TOTAL_INDEX], STAT_RAISE_MANA);
     stat_row_render(layout, &row_view);
 
     imgui_dummy(layout->column_width, layout->row_height);
