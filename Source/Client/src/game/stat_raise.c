@@ -13,7 +13,7 @@ static int is_valid_index(const int raise_index) {
 }
 
 static int cost_at_planned(const int raise_index, const int planned) {
-    if (raise_index < STAT_RAISE_ATTRIBUTE_COUNT) {
+    if (raise_index < ATTRIBUTE_COUNT) {
         return attrib_needed(raise_index, pl.attrib[raise_index][0] + planned);
     }
     if (raise_index == STAT_RAISE_HITPOINTS) return hp_needed(pl.hp[0] + planned);

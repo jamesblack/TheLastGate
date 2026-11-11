@@ -152,6 +152,7 @@ if (TLG_BUILD_TESTS)
     add_executable(buff_list_test
             tests/buff_list_test.c
             src/mods/buff_list.c
+            src/game/attributes.c
     )
     target_include_directories(buff_list_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME buff_list COMMAND buff_list_test)
@@ -160,6 +161,7 @@ if (TLG_BUILD_TESTS)
             tests/buff_watch_test.c
             src/mods/buff_watch.c
             src/mods/buff_list.c
+            src/game/attributes.c
     )
     target_include_directories(buff_watch_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/ ${CMAKE_CURRENT_SOURCE_DIR}/)
     target_precompile_headers(buff_watch_test PRIVATE src/ui/ui_ffi.h)

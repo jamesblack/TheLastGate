@@ -34,7 +34,7 @@ static void set_skill(BuffModelSkill *skill, const int server_total, const int f
 static void set_model(BuffModelInput *model) {
     int attribute_id;
 
-    for (attribute_id = 0; attribute_id < BUFF_ATTRIBUTE_COUNT; attribute_id++) {
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
         model->server_attributes[attribute_id] = 50;
         model->base_attributes[attribute_id] = 40;
     }

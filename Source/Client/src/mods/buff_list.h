@@ -10,11 +10,12 @@
  * kept. Self-contained (no game headers) so it can be built into the unit tests.
  */
 
+#include "game/attributes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define BUFF_ATTRIBUTE_COUNT 5
 #define BUFF_LIST_HEADER "Your active buffs and debuffs:"
 #define BUFF_SPRITE_PROTECT 86
 #define BUFF_SPRITE_ENHANCE 87
@@ -32,7 +33,7 @@ typedef struct {
     int known; /* a power line for this buff was read */
     int power;
     int has_exact; /* bonus lines followed the power line */
-    int attribute_bonus[BUFF_ATTRIBUTE_COUNT]; /* Brv, Wil, Int, Agi, Str */
+    int attribute_bonus[ATTRIBUTE_COUNT]; /* Brv, Wil, Int, Agi, Str */
     int weapon_bonus;
     int armor_bonus;
 } BuffReading;

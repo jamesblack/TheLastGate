@@ -159,8 +159,7 @@ static BuffModelSkill model_skill_for(const int skill_position, const int planne
         /* attrib is a signed char where -1 marks an unused slot. */
         // NOLINTNEXTLINE(bugprone-signed-char-misuse)
         const int attribute_id = (int) skill_entry->attrib[attribute_slot];
-        skill.attribute_ids[attribute_slot] =
-                attribute_id >= 0 && attribute_id < STAT_RAISE_ATTRIBUTE_COUNT ? attribute_id : -1;
+        skill.attribute_ids[attribute_slot] = attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT ? attribute_id : -1;
     }
     return skill;
 }
@@ -242,7 +241,7 @@ static StatRowView build_skill_row(const int skill_position, const int attribute
         /* attrib is a signed char where -1 marks an unused slot. */
         // NOLINTNEXTLINE(bugprone-signed-char-misuse)
         const int attribute_id = (int) skill_entry->attrib[attribute_slot];
-        const bool valid_attribute = attribute_id >= 0 && attribute_id < STAT_RAISE_ATTRIBUTE_COUNT;
+        const bool valid_attribute = attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT;
 
         attribute_values[attribute_slot] = valid_attribute ? at_score(attribute_id) : 0;
         attribute_raises[attribute_slot] = valid_attribute ? stat_raised[attribute_id] : 0;
@@ -713,7 +712,7 @@ static bool build_buff_model_input(BuffModelInput *input) {
     if (!meta_value(META_SPELL_MULTIPLIER, &multiplier) || !meta_value(META_SPELL_APTITUDE, &aptitude)) return false;
     meta_value(META_SPELL_BONUS, &bonus);
 
-    for (attribute_id = 0; attribute_id < STAT_RAISE_ATTRIBUTE_COUNT; attribute_id++) {
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
         input->server_attributes[attribute_id] = at_score(attribute_id);
         input->base_attributes[attribute_id] = pl.attrib[attribute_id][0];
         input->planned_attributes[attribute_id] = stat_raised[attribute_id];
@@ -759,7 +758,7 @@ static void refresh_buff_state(void) {
     if (!buff_state.available) return;
 
     buff_state.unplanned_input = buff_state.planned_input;
-    for (attribute_id = 0; attribute_id < STAT_RAISE_ATTRIBUTE_COUNT; attribute_id++) {
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
         buff_state.unplanned_input.planned_attributes[attribute_id] = 0;
     }
     for (kind = 0; kind < BUFF_KIND_COUNT; kind++) buff_state.unplanned_input.spell_skills[kind].planned = 0;
@@ -863,7 +862,7 @@ static SkillFocusInput build_focus_input(const int skill_position) {
         /* attrib is a signed char where -1 marks an unused slot. */
         // NOLINTNEXTLINE(bugprone-signed-char-misuse)
         const int attribute_id = (int) skill_entry->attrib[slot_index];
-        const bool valid_attribute = attribute_id >= 0 && attribute_id < STAT_RAISE_ATTRIBUTE_COUNT;
+        const bool valid_attribute = attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT;
 
         input.attribute_ids[slot_index] = valid_attribute ? attribute_id : -1;
         /* The values the rows show, so the suggested +1 is a +1 in the preview. */
@@ -963,8 +962,8 @@ static void build_buff_focus_input(BuffFocusInput *input, const int skill_positi
     add_buff_candidate(input, input->focused_raise_index, 1);
     add_skill_attribute_candidates(input, &input->focused);
     add_skill_attribute_candidates(input, &input->model.spell_skills[BUFF_KIND_BLESS]);
-    add_buff_candidate(input, 1, SKILL_FOCUS_MAX_STEPS);
-    add_buff_candidate(input, 2, SKILL_FOCUS_MAX_STEPS);
+    add_buff_candidate(input, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
+    add_buff_candidate(input, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
     add_buff_candidate(input, STAT_RAISE_SKILL_BASE + bless_position, BUFF_FOCUS_MAX_POINTS);
 }
 
@@ -987,7 +986,7 @@ static const BuffFocusResult *cached_buff_focus(const int skill_position) {
 }
 
 static const char *raise_name(const int raise_index) {
-    if (raise_index < STAT_RAISE_ATTRIBUTE_COUNT) return attribute_names[raise_index];
+    if (raise_index < ATTRIBUTE_COUNT) return attribute_names[raise_index];
     return skilltab[raise_index - STAT_RAISE_SKILL_BASE].name;
 }
 
@@ -1180,7 +1179,7 @@ static void left_column_render(const EnhancedSkillLayout *layout) {
     int attribute_id;
 
     section_label_render(layout, "Attributes");
-    for (attribute_id = 0; attribute_id < STAT_RAISE_ATTRIBUTE_COUNT; attribute_id++) {
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
         row_view = build_attribute_row(attribute_id);
         stat_row_render(layout, &row_view);
     }

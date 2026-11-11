@@ -8,9 +8,6 @@
 #define DECIMAL_BASE 10
 
 static const char *const BUFF_NAMES[BUFF_KIND_COUNT] = {"Bless", "Enhance", "Protect"};
-static const char *const ATTRIBUTE_NAMES[BUFF_ATTRIBUTE_COUNT] = {
-    "Braveness", "Willpower", "Intuition", "Agility", "Strength",
-};
 
 BuffKind buff_list_sprite_kind(const int sprite) {
     if (sprite == BUFF_SPRITE_BLESS) return BUFF_KIND_BLESS;
@@ -67,8 +64,8 @@ static void read_bonus_line(BuffListParser *parser, const char *text) {
     stat_name++;
 
     reading = &parser->readings[parser->current_kind];
-    for (attribute_id = 0; attribute_id < BUFF_ATTRIBUTE_COUNT; attribute_id++) {
-        if (strcmp(stat_name, ATTRIBUTE_NAMES[attribute_id]) == 0) {
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        if (strcmp(stat_name, attribute_names[attribute_id]) == 0) {
             reading->attribute_bonus[attribute_id] = amount;
             reading->has_exact = 1;
             return;

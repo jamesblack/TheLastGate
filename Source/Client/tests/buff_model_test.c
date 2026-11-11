@@ -28,10 +28,10 @@ static void set_skill(BuffModelSkill *skill, const int server_total, const int f
     skill->attribute_ids[2] = third_id;
 }
 
-static void set_all_attributes(int attributes[BUFF_ATTRIBUTE_COUNT], const int value) {
+static void set_all_attributes(int attributes[ATTRIBUTE_COUNT], const int value) {
     int attribute_id;
 
-    for (attribute_id = 0; attribute_id < BUFF_ATTRIBUTE_COUNT; attribute_id++) attributes[attribute_id] = value;
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) attributes[attribute_id] = value;
 }
 
 static BuffModelInput fixture(void) {

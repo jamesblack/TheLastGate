@@ -28,9 +28,9 @@ typedef struct {
 } BuffModelSkill;
 
 typedef struct {
-    int server_attributes[BUFF_ATTRIBUTE_COUNT]; /* totals as the server sends them */
-    int base_attributes[BUFF_ATTRIBUTE_COUNT]; /* bare values, without gear or buffs */
-    int planned_attributes[BUFF_ATTRIBUTE_COUNT];
+    int server_attributes[ATTRIBUTE_COUNT]; /* totals as the server sends them */
+    int base_attributes[ATTRIBUTE_COUNT]; /* bare values, without gear or buffs */
+    int planned_attributes[ATTRIBUTE_COUNT];
     int divisor; /* 5, or 6 in hard mode */
     int spell_multiplier; /* hundredths, 100 = 1.00x */
     int spell_bonus;
@@ -46,7 +46,7 @@ typedef struct {
 } BuffModelInput;
 
 typedef struct {
-    int attributes[BUFF_ATTRIBUTE_COUNT]; /* the values the planner shows, plan included */
+    int attributes[ATTRIBUTE_COUNT]; /* the values the planner shows, plan included */
     int spell_aptitude; /* aptitude with the planned base Willpower and Intuition */
     int cast_power[BUFF_KIND_COUNT]; /* your own planned cast (the second one for Bless); 0 if unknown */
     int effective_power[BUFF_KIND_COUNT]; /* power shown: the stronger of cast and active when shown, else 0 */
@@ -62,7 +62,7 @@ int buff_model_item_bonus(int power, int reduced);
 
 /* The skill's value with these attribute values, its own planned points included. */
 int buff_model_skill_value(const BuffModelInput *input, const BuffModelSkill *skill,
-                           const int attributes[BUFF_ATTRIBUTE_COUNT]);
+                           const int attributes[ATTRIBUTE_COUNT]);
 
 void buff_model_compute(const BuffModelInput *input, BuffModelResult *result);
 

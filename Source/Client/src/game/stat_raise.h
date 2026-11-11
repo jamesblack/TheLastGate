@@ -8,11 +8,12 @@
  * (Endurance) cannot be raised. stat_points_used holds the exp the plan costs.
  */
 
+#include "game/attributes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define STAT_RAISE_ATTRIBUTE_COUNT 5
 #define STAT_RAISE_HITPOINTS 5
 #define STAT_RAISE_MANA 7
 #define STAT_RAISE_SKILL_BASE 8

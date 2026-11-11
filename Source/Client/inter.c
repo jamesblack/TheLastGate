@@ -746,7 +746,7 @@ int mouse_buttonbox(int x,int y,int state)
 static int statbox_raise_index(int row)
 {
 	if (row<STATBOX_ROW_BLANK && game_ui_state.hud_mode != HUD_MODE_LIST_SKILLS) return -1;
-	if (row<STAT_RAISE_ATTRIBUTE_COUNT) return row;
+	if (row<ATTRIBUTE_COUNT) return row;
 	if (row==STATBOX_ROW_HITPOINTS) return STAT_RAISE_HITPOINTS;
 	if (row==STATBOX_ROW_MANA) return STAT_RAISE_MANA;
 	if (row==STATBOX_ROW_BLANK) return -1;
