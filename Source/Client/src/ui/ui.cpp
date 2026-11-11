@@ -6,7 +6,7 @@
 
 #include <imgui_freetype.h>
 
-#include "enhanced_skill_window.hpp"
+#include "planner/enhanced_skill_window.hpp"
 #include "hotbar.hpp"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"

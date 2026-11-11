@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "game/combat_model.h"
+#include "planner/combat_model.h"
 
 /* File layout, all 32-bit little-endian words: format version, record count, then per record the character number,
  * weapon and off-hand. */

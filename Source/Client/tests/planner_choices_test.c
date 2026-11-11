@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "game/combat_model.h"
-#include "game/planner_choices.h"
+#include "planner/combat_model.h"
+#include "planner/planner_choices.h"
 
 static int failures = 0;
 

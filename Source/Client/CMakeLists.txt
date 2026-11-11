@@ -57,17 +57,17 @@ add_executable(TheLastGate
         src/config/config.c
         src/config/keybindings.c
         src/game/attributes.c
-        src/game/buff_focus.c
-        src/game/buff_model.c
-        src/game/combat_model.c
+        src/planner/buff_focus.c
+        src/planner/buff_model.c
+        src/planner/combat_model.c
         src/game/game_input.c
-        src/game/planner_choices.c
+        src/planner/planner_choices.c
         src/game/minimap.c
         src/game/minimap_store.c
         src/game/game_ui.c
         src/game/stat_display.c
-        src/game/skill_focus.c
-        src/game/skill_preview.c
+        src/planner/skill_focus.c
+        src/planner/skill_preview.c
         src/game/stat_raise.c
         src/graphics/atlas.c
         src/graphics/item_display.c
@@ -100,7 +100,7 @@ add_executable(TheLastGate
         src/security/single_instance.c
         src/security/unique_id.c
         src/ui/hotbar.cpp
-        src/ui/enhanced_skill_window.cpp
+        src/planner/enhanced_skill_window.cpp
         src/ui/inventory.cpp
         src/ui/item_tooltip_ui.cpp
         src/ui/launcher_ui.cpp
@@ -167,21 +167,21 @@ if (TLG_BUILD_TESTS)
 
     add_executable(buff_model_test
             tests/buff_model_test.c
-            src/game/buff_model.c
+            src/planner/buff_model.c
     )
     target_include_directories(buff_model_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME buff_model COMMAND buff_model_test)
 
     add_executable(combat_model_test
             tests/combat_model_test.c
-            src/game/combat_model.c
+            src/planner/combat_model.c
     )
     target_include_directories(combat_model_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME combat_model COMMAND combat_model_test)
 
     add_executable(planner_choices_test
             tests/planner_choices_test.c
-            src/game/planner_choices.c
+            src/planner/planner_choices.c
     )
     target_include_directories(planner_choices_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME planner_choices COMMAND planner_choices_test)
@@ -197,22 +197,22 @@ if (TLG_BUILD_TESTS)
 
     add_executable(buff_focus_test
             tests/buff_focus_test.c
-            src/game/buff_focus.c
-            src/game/buff_model.c
+            src/planner/buff_focus.c
+            src/planner/buff_model.c
     )
     target_include_directories(buff_focus_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME buff_focus COMMAND buff_focus_test)
 
     add_executable(skill_preview_test
             tests/skill_preview_test.c
-            src/game/skill_preview.c
+            src/planner/skill_preview.c
     )
     target_include_directories(skill_preview_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME skill_preview COMMAND skill_preview_test)
 
     add_executable(skill_focus_test
             tests/skill_focus_test.c
-            src/game/skill_focus.c
+            src/planner/skill_focus.c
     )
     target_include_directories(skill_focus_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME skill_focus COMMAND skill_focus_test)

@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "game/buff_focus.h"
-#include "game/skill_focus.h"
+#include "planner/buff_focus.h"
+#include "planner/skill_focus.h"
 
 static int failures = 0;
 

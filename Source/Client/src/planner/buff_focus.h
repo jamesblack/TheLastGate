@@ -10,7 +10,7 @@
  * unit tests; the caller supplies every value and cost.
  */
 
-#include "game/buff_model.h"
+#include "planner/buff_model.h"
 
 #ifdef __cplusplus
 extern "C" {

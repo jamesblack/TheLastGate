@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-#include "game/skill_focus.h"
+#include "planner/skill_focus.h"
 
 static int failures = 0;
 

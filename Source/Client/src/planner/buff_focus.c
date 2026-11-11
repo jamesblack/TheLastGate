@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "game/skill_focus.h"
+#include "planner/skill_focus.h"
 
 /* Cost of the first `points` extra points of every candidate, or -1 once a capped point is included. */
 typedef struct {

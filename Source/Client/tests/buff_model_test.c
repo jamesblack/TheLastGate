@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "game/buff_model.h"
+#include "planner/buff_model.h"
 
 static int failures = 0;
 

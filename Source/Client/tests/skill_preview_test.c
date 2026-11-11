@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-#include "game/skill_preview.h"
+#include "planner/skill_preview.h"
 
 static int failures = 0;
 

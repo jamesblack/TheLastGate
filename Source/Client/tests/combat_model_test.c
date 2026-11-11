@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "game/combat_model.h"
+#include "planner/combat_model.h"
 
 static int failures = 0;
 
