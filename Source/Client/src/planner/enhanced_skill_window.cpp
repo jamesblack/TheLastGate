@@ -177,6 +177,10 @@ static const EnhancedSkillLayout *get_layout(void) {
     return &LAYOUT_LIGHT;
 }
 
+static int attribute_divisor_for_player(void) {
+    return skill_preview_attribute_divisor(race_gamemode(okey.race) == 1 ? 1 : 0);
+}
+
 typedef struct {
     const char *name;
     int current;
@@ -190,6 +194,10 @@ typedef struct {
     bool can_lower;
     bool uses_raised_attribute;
 } StatRowView;
+
+static int row_preview(const StatRowView *row_view) {
+    return row_view->current + row_view->buff_shift + row_view->direct_raise + row_view->attribute_gain;
+}
 
 /* Fills the parts of a row that depend only on its stat_raised slot. */
 static void fill_raise_state(StatRowView *row_view, const int raise_index) {
@@ -319,7 +327,7 @@ static void apply_clicks(const int raise_index, const bool raise) {
 static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView *row_view) {
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
-    const int preview = row_view->current + row_view->buff_shift + row_view->direct_raise + row_view->attribute_gain;
+    const int preview = row_preview(row_view);
     const bool changed = preview != row_view->current;
     void *draw_list = imgui_get_window_draw_list();
     const float screen_left = imgui_get_window_pos_x() + row_left - imgui_get_scroll_x();
@@ -714,7 +722,7 @@ static bool build_buff_model_input(BuffModelInput *input) {
         input->base_attributes[attribute_id] = pl.attrib[attribute_id][0];
         input->planned_attributes[attribute_id] = stat_raised[attribute_id];
     }
-    input->divisor = skill_preview_attribute_divisor(race_gamemode(okey.race) == 1 ? 1 : 0);
+    input->divisor = attribute_divisor_for_player();
     input->spell_multiplier = multiplier;
     input->spell_bonus = bonus;
     input->spell_aptitude = aptitude;
@@ -839,10 +847,6 @@ static void legend_render(const EnhancedSkillLayout *layout) {
     row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR, "from raised attributes");
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
-}
-
-static int attribute_divisor_for_player(void) {
-    return skill_preview_attribute_divisor(race_gamemode(okey.race) == 1 ? 1 : 0);
 }
 
 static int to_focus_cost(const int stat_cost) {
@@ -1117,8 +1121,7 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     input = build_focus_input(focused_skill_position);
     suggestion = skill_focus_suggest(&input);
 
-    const int preview =
-            focused_row.current + focused_row.buff_shift + focused_row.direct_raise + focused_row.attribute_gain;
+    const int preview = row_preview(&focused_row);
     snprintf(label_text, sizeof(label_text), "%s  %d -> %d", skill_name, preview, preview + 1);
     panel_row_render(layout, 2, PREVIEW_CHANGED_COLOR, label_text, NULL);
 
@@ -1195,7 +1198,7 @@ static void left_column_render(const EnhancedSkillLayout *layout) {
 }
 
 static void skill_column_render(const EnhancedSkillLayout *layout, const float column_height) {
-    const int attribute_divisor = skill_preview_attribute_divisor(race_gamemode(okey.race) == 1 ? 1 : 0);
+    const int attribute_divisor = attribute_divisor_for_player();
     int skill_position;
 
     const float column_top = imgui_get_cursor_pos_y();
