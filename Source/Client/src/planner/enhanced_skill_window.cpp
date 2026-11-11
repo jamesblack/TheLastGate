@@ -1039,17 +1039,27 @@ static RouteKind route_kind(const BuffFocusRoute *route) {
     return has_focused ? ROUTE_DIRECT : ROUTE_ATTRIBUTES;
 }
 
-static void other_route_render(const EnhancedSkillLayout *layout, const char *label, const BuffFocusRoute *route) {
+static void other_route_render(const EnhancedSkillLayout *layout, const char *label, const int available,
+                               const int total_cost) {
     char label_text[LABEL_TEXT_SIZE];
     char value_text[VALUE_TEXT_SIZE];
 
-    if (route->available != 0) {
-        snprintf(value_text, sizeof(value_text), "%d exp", route->total_cost);
+    if (available != 0) {
+        snprintf(value_text, sizeof(value_text), "%d exp", total_cost);
         panel_row_render(layout, 2, COST_TEXT_COLOR, label, value_text);
     } else {
         snprintf(label_text, sizeof(label_text), "%s not available", label);
         panel_row_render(layout, 2, COST_TEXT_COLOR, label_text, NULL);
     }
+}
+
+static bool plan_button_render(const EnhancedSkillLayout *layout, const int total_cost) {
+    const float row_left = imgui_get_cursor_pos_x();
+    const float row_top = imgui_get_cursor_pos_y();
+    const bool affordable = total_cost <= pl.points - stat_points_used;
+
+    imgui_set_cursor_pos(row_left + layout->cost_right - layout->plan_button_width, row_top + 2);
+    return ui_button_enabled("Plan it", layout->plan_button_width, BUTTON_SPRITE_HEIGHT, affordable);
 }
 
 /* Focus panel body while Bless is shown: the search may spend points on Bless and what feeds it. */
@@ -1076,20 +1086,18 @@ static void buff_focus_panel_render(const EnhancedSkillLayout *layout, const cha
     const RouteKind winning_kind = route_kind(&result->best);
     char direct_label[LABEL_TEXT_SIZE];
     snprintf(direct_label, sizeof(direct_label), "Direct (+1 %s)", skill_name);
-    if (winning_kind != ROUTE_DIRECT) other_route_render(layout, direct_label, &result->direct);
-    if (winning_kind != ROUTE_ATTRIBUTES) other_route_render(layout, "Through attributes", &result->through_attributes);
+    if (winning_kind != ROUTE_DIRECT) {
+        other_route_render(layout, direct_label, result->direct.available, result->direct.total_cost);
+    }
+    if (winning_kind != ROUTE_ATTRIBUTES) {
+        other_route_render(layout, "Through attributes", result->through_attributes.available,
+                           result->through_attributes.total_cost);
+    }
     if (winning_kind != ROUTE_BLESS && !focused_is_bless()) {
-        other_route_render(layout, "Through Bless", &result->through_bless);
+        other_route_render(layout, "Through Bless", result->through_bless.available, result->through_bless.total_cost);
     }
 
-    const float row_left = imgui_get_cursor_pos_x();
-    const float row_top = imgui_get_cursor_pos_y();
-    const bool affordable = result->best.total_cost <= pl.points - stat_points_used;
-
-    imgui_set_cursor_pos(row_left + layout->cost_right - layout->plan_button_width, row_top + 2);
-    if (ui_button_enabled("Plan it", layout->plan_button_width, BUTTON_SPRITE_HEIGHT, affordable)) {
-        plan_buff_route(&result->best);
-    }
+    if (plan_button_render(layout, result->best.total_cost)) plan_buff_route(&result->best);
 }
 
 static void focus_panel_render(const EnhancedSkillLayout *layout) {
@@ -1154,22 +1162,9 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     } else {
         snprintf(label_text, sizeof(label_text), "Direct (+1 %s)", skill_name);
     }
-    if (other_route->available != 0) {
-        snprintf(value_text, sizeof(value_text), "%d exp", other_route->total_cost);
-        panel_row_render(layout, 2, COST_TEXT_COLOR, label_text, value_text);
-    } else {
-        snprintf(label_text + strlen(label_text), sizeof(label_text) - strlen(label_text), " not available");
-        panel_row_render(layout, 2, COST_TEXT_COLOR, label_text, NULL);
-    }
+    other_route_render(layout, label_text, other_route->available, other_route->total_cost);
 
-    const float row_left = imgui_get_cursor_pos_x();
-    const float row_top = imgui_get_cursor_pos_y();
-    const bool affordable = winning_route->total_cost <= pl.points - stat_points_used;
-
-    imgui_set_cursor_pos(row_left + layout->cost_right - layout->plan_button_width, row_top + 2);
-    if (ui_button_enabled("Plan it", layout->plan_button_width, BUTTON_SPRITE_HEIGHT, affordable)) {
-        plan_suggestion(&suggestion, focused_skill_position);
-    }
+    if (plan_button_render(layout, winning_route->total_cost)) plan_suggestion(&suggestion, focused_skill_position);
 }
 
 #define VITAL_TOTAL_INDEX 5
