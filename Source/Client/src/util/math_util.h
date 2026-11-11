@@ -17,9 +17,9 @@ static IVec2 ivec2(int x, int y) {
     return (IVec2) {x, y};
 }
 
-static int min(int a, int b) {
-    return a < b ? a : b;
+static int min(int first, int second) {
+    return first < second ? first : second;
 }
-static int max(int a, int b) {
-    return a > b ? a : b;
+static int max(int first, int second) {
+    return first > second ? first : second;
 }
