@@ -4,6 +4,7 @@
 
 #include "option_window.hpp"
 
+#include <iterator>
 #include <stdbool.h>
 
 #include "imgui/imgui_wrapper.h"
@@ -190,7 +191,7 @@ static bool keybind_label(const OptionWindowLayout *layout, const char *label, B
                 SDL_Keycode special_keys[] = {SDLK_TAB,  SDLK_BACKSPACE, SDLK_INSERT,   SDLK_HOME,
                                               SDLK_END,  SDLK_PAGEUP,    SDLK_PAGEDOWN, SDLK_UP,
                                               SDLK_DOWN, SDLK_LEFT,      SDLK_RIGHT};
-                int num_special_keys = sizeof(special_keys) / sizeof(special_keys[0]);
+                int num_special_keys = std::size(special_keys);
                 for (i = 0; i < num_special_keys; i++) {
                     if (imgui_is_key_pressed(special_keys[i])) {
                         pressed_key = special_keys[i];
@@ -375,7 +376,7 @@ static void keybind_settings_tab(const OptionWindowLayout *layout) {
         "Spell Hotkeys", "Speed Hotkeys", "World Hotkeys", "Window Hotkeys", "General Hotkeys", "GC Commands",
     };
 
-    int num_categories = sizeof(categories) / sizeof(categories[0]);
+    int num_categories = std::size(categories);
     int spell_slot_index = 0; // Used for hinting spell bindings
     for (int i = 0; i < num_categories; i++) {
         BindingCategory category = categories[i];

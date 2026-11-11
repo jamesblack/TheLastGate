@@ -1,6 +1,7 @@
 #include "item_tooltip_ui.hpp"
 
 #include <imgui.h>
+#include <iterator>
 #include <stdio.h>
 #include <string.h>
 
@@ -73,8 +74,6 @@ static const ModBadge impossible_badges[] = {
 static const char *condition_labels[] = {
     "Perfect condition", "Showing signs of age", "Fairly old", "Old", "Very old and battered",
 };
-
-#define COUNT_OF(array) ((int) (sizeof(array) / sizeof((array)[0])))
 
 /* Approximate colours of the chat fonts, so tooltip lines match the chat box. */
 static ImU32 chat_font_color(const int font) {
@@ -363,7 +362,7 @@ static void draw_footer(const ItemDetails *details) {
                  details->blessings == 1 ? "" : "s", details->kills_to_blessing);
         text_colored(chat_font_color(CHAT_FONT_GREEN), footer_text);
     }
-    if (details->condition >= 0 && details->condition < COUNT_OF(condition_labels)) {
+    if (details->condition >= 0 && details->condition < std::size(condition_labels)) {
         const int font = details->condition >= WORST_CONDITION ? CHAT_FONT_RED : CHAT_FONT_YELLOW;
         text_colored(chat_font_color(font), condition_labels[details->condition]);
     }
@@ -394,9 +393,9 @@ static void draw_tooltip_body(const TooltipBlock *block, const ItemDetails *deta
 
     if (details->mods_applied != 0 || details->mods_possible != 0) {
         ImGui::Separator();
-        draw_badges("Has:", details->mods_applied, applied_badges, COUNT_OF(applied_badges));
-        draw_badges("Can:", details->mods_possible, possible_badges, COUNT_OF(possible_badges));
-        draw_badges("Cannot:", details->mods_possible, impossible_badges, COUNT_OF(impossible_badges));
+        draw_badges("Has:", details->mods_applied, applied_badges, std::size(applied_badges));
+        draw_badges("Can:", details->mods_possible, possible_badges, std::size(possible_badges));
+        draw_badges("Cannot:", details->mods_possible, impossible_badges, std::size(impossible_badges));
     }
 
     if (has_footer(details)) {
