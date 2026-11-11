@@ -11,7 +11,7 @@
 #define BUFF_WATCH_RETRY_LIMIT 2 /* extra attempts after a lost or rejected request */
 #define BUFF_WATCH_COMMAND "#buffs"
 #define BUFF_WATCH_FLOOD_REPLY "Oops, you're a bit too fast for me!"
-#define SAY_BUFFER_SIZE 100
+#define SAY_BUFFER_SIZE 128
 
 static BuffListParser parser;
 static BuffListParser stored;
