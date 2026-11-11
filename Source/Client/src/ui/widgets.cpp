@@ -141,11 +141,7 @@ bool tab_button(const char *label, bool is_active, float width) {
     float text_y = min_y + ((max_y - min_y) - text_height) / 2.0f;
 
     /* Text color: blue if active, gold if inactive */
-    unsigned int text_color = is_active
-                                  ? imgui_color_convert_float4_to_u32(BLUE_FONT_COLOR[0], BLUE_FONT_COLOR[1],
-                                                                      BLUE_FONT_COLOR[2], 1.0f)
-                                  : imgui_color_convert_float4_to_u32(GOLD_FONT_COLOR[0], GOLD_FONT_COLOR[1],
-                                                                      GOLD_FONT_COLOR[2], 1.0f);
+    unsigned int text_color = is_active ? BLUE_FONT_COLOR_32 : GOLD_FONT_COLOR_32;
 
     imgui_draw_list_add_text(draw_list, text_x, text_y, text_color, label);
 
@@ -203,7 +199,7 @@ void ui_tooltip(const char *tooltip_text) {
 
     /* Draw text with natural ImGui layout */
     imgui_push_text_wrap_pos(imgui_get_cursor_pos_x() + max_width - padding * 2);
-    imgui_push_style_color(IMGUI_COL_TEXT, GOLD_FONT_COLOR[0], GOLD_FONT_COLOR[1], GOLD_FONT_COLOR[2], 1.0f);
+    imgui_push_style_color_32(IMGUI_COL_TEXT, GOLD_FONT_COLOR_32);
     imgui_text_wrapped(tooltip_text);
     imgui_pop_style_color(1);
     imgui_pop_text_wrap_pos();

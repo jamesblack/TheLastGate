@@ -25,9 +25,9 @@ static constexpr unsigned int color_rgb(const unsigned int red, const unsigned i
 }
 
 static constexpr unsigned int BACKGROUND_COLOR_DARK_MODE = color_rgb(23, 0, 5);
-static const float GOLD_FONT_COLOR[3] = {243.0f / 255.0f, 219.0f / 255.0f, 106.0f / 255.0f};
 static constexpr unsigned int GOLD_FONT_COLOR_32 = color_rgb(243, 219, 106);
-static const float BLUE_FONT_COLOR[3] = {73.0f / 255.0f, 188.0f / 255.0f, 226.0f / 255.0f};
+static constexpr unsigned int GOLD_FONT_COLOR_DARK_32 = color_rgb(194, 175, 85);
+static constexpr unsigned int BLUE_FONT_COLOR_32 = color_rgb(73, 188, 226);
 static constexpr unsigned int TRANSPARENT_COLOR_32 = color_rgba(255, 255, 255, 0);
 
 static constexpr unsigned int HINT_GREY_FONT_COLOR_32 = color_rgb(72, 81, 81);

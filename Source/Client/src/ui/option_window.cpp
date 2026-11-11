@@ -98,7 +98,7 @@ static bool keybind_label(const OptionWindowLayout *layout, const char *label, B
     float text_offset_x = layout->keybind_label_width - text_width;
 
     /* Render label */
-    imgui_push_style_color(IMGUI_COL_TEXT, GOLD_FONT_COLOR[0], GOLD_FONT_COLOR[1], GOLD_FONT_COLOR[2], 1.0f);
+    imgui_push_style_color_32(IMGUI_COL_TEXT, GOLD_FONT_COLOR_32);
 
     imgui_set_cursor_pos_y(start_y + text_offset_y);
     imgui_set_cursor_pos_x(text_offset_x);
@@ -277,7 +277,7 @@ static void togglable_option(const char *checkbox_label, bool *value, const char
     /* Render text at top position */
     imgui_set_cursor_pos(text_x, start_y);
     imgui_push_text_wrap_pos(imgui_get_cursor_pos_x() + text_wrap_width);
-    imgui_push_style_color(IMGUI_COL_TEXT, GOLD_FONT_COLOR[0], GOLD_FONT_COLOR[1], GOLD_FONT_COLOR[2], 1.0f);
+    imgui_push_style_color_32(IMGUI_COL_TEXT, GOLD_FONT_COLOR_32);
     imgui_text_wrapped(label);
     imgui_pop_style_color(1);
     imgui_pop_text_wrap_pos();
@@ -287,7 +287,7 @@ static void push_checkbox_style(void) {
     imgui_push_style_color(IMGUI_COL_FRAME_BG, 0.2f, 0.2f, 0.2f, 1.0f); /* Background */
     imgui_push_style_color(IMGUI_COL_FRAME_BG_HOVERED, 0.3f, 0.3f, 0.3f, 1.0f); /* Hover */
     imgui_push_style_color(IMGUI_COL_FRAME_BG_ACTIVE, 0.4f, 0.4f, 0.4f, 1.0f); /* Active */
-    imgui_push_style_color(IMGUI_COL_CHECK_MARK, GOLD_FONT_COLOR[0], GOLD_FONT_COLOR[1], GOLD_FONT_COLOR[2], 1.0f);
+    imgui_push_style_color_32(IMGUI_COL_CHECK_MARK, GOLD_FONT_COLOR_32);
 }
 
 static void pop_checkbox_style(void) {
@@ -316,12 +316,12 @@ static void general_settings_tab() {
 
     imgui_spacing();
     imgui_push_font(font_sizes.normal);
-    imgui_push_style_color(IMGUI_COL_TEXT, BLUE_FONT_COLOR[0], BLUE_FONT_COLOR[1], BLUE_FONT_COLOR[2], 1.0f);
+    imgui_push_style_color_32(IMGUI_COL_TEXT, BLUE_FONT_COLOR_32);
     imgui_text("Stubborn Actions");
     imgui_same_line_gap();
     imgui_pop_font();
     imgui_pop_style_color(1);
-    imgui_push_style_color(IMGUI_COL_TEXT, GOLD_FONT_COLOR[0], GOLD_FONT_COLOR[1], GOLD_FONT_COLOR[2], 1.0f);
+    imgui_push_style_color_32(IMGUI_COL_TEXT, GOLD_FONT_COLOR_32);
     imgui_text("?");
     imgui_pop_style_color(1);
     if (imgui_is_item_hovered()) {
@@ -340,7 +340,7 @@ static void general_settings_tab() {
 }
 
 static void audio_settings_tab() {
-    imgui_push_style_color(IMGUI_COL_TEXT, GOLD_FONT_COLOR[0], GOLD_FONT_COLOR[1], GOLD_FONT_COLOR[2], 1.0f);
+    imgui_push_style_color_32(IMGUI_COL_TEXT, GOLD_FONT_COLOR_32);
 
 
     push_checkbox_style();
@@ -353,10 +353,9 @@ static void audio_settings_tab() {
     imgui_push_style_color(IMGUI_COL_FRAME_BG, 0.2f, 0.2f, 0.2f, 1.0f); /* Background */
     imgui_push_style_color(IMGUI_COL_FRAME_BG_HOVERED, 0.3f, 0.3f, 0.3f, 1.0f); /* Hover */
     imgui_push_style_color(IMGUI_COL_FRAME_BG_ACTIVE, 0.4f, 0.4f, 0.4f, 1.0f); /* Active */
-    imgui_push_style_color(IMGUI_COL_SLIDER_GRAB, GOLD_FONT_COLOR[0], GOLD_FONT_COLOR[1], GOLD_FONT_COLOR[2], 1.0f);
+    imgui_push_style_color_32(IMGUI_COL_SLIDER_GRAB, GOLD_FONT_COLOR_32);
     /* Slider knob */
-    imgui_push_style_color(IMGUI_COL_SLIDER_GRAB_ACTIVE, GOLD_FONT_COLOR[0] * 0.8f, GOLD_FONT_COLOR[1] * 0.8f,
-                           GOLD_FONT_COLOR[2] * 0.8f, 1.0f); /* Knob when dragging */
+    imgui_push_style_color_32(IMGUI_COL_SLIDER_GRAB_ACTIVE, GOLD_FONT_COLOR_DARK_32); /* Knob when dragging */
 
     imgui_slider_int("Audio Volume", &g_config.audio.sound_volume, 0, 10);
 
@@ -389,7 +388,7 @@ static void keybind_settings_tab(const OptionWindowLayout *layout) {
         }
 
         imgui_calc_text_size_simple(&text_width, NULL, category_names[i]);
-        imgui_push_style_color(IMGUI_COL_TEXT, BLUE_FONT_COLOR[0], BLUE_FONT_COLOR[1], BLUE_FONT_COLOR[2], 1.0f);
+        imgui_push_style_color_32(IMGUI_COL_TEXT, BLUE_FONT_COLOR_32);
         imgui_center_next_item(text_width);
         imgui_text(category_names[i]);
         imgui_pop_style_color(1);
