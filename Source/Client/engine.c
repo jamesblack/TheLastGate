@@ -3088,9 +3088,6 @@ int eng_char(int n) {
         case 165:
         case 166:
         case 167:
-            if (is_player(map[n].ch_id)) {
-                mod_stubborn_actions_on_misc_action(map[n].ch_stat_off);
-            }
             map[n].obj_xoff = 0;
             map[n].obj_yoff = 0;
             tmp = (map[n].ch_status - 160) + SPF_MISC_UP + ((int) (stattab[map[n].ch_stat_off]) << 5);
@@ -3109,9 +3106,6 @@ int eng_char(int n) {
         case 173:
         case 174:
         case 175:
-            if (is_player(map[n].ch_id)) {
-                mod_stubborn_actions_on_misc_action(map[n].ch_stat_off);
-            }
             map[n].obj_xoff = 0;
             map[n].obj_yoff = 0;
             tmp = (map[n].ch_status - 168) + SPF_MISC_DOWN + ((int) (stattab[map[n].ch_stat_off]) << 5);
@@ -3130,9 +3124,6 @@ int eng_char(int n) {
         case 181:
         case 182:
         case 183:
-            if (is_player(map[n].ch_id)) {
-                mod_stubborn_actions_on_misc_action(map[n].ch_stat_off);
-            }
             map[n].obj_xoff = 0;
             map[n].obj_yoff = 0;
             tmp = (map[n].ch_status - 176) + SPF_MISC_LEFT + ((int) (stattab[map[n].ch_stat_off]) << 5);
@@ -3151,9 +3142,6 @@ int eng_char(int n) {
         case 189:
         case 190:
         case 191:
-            if (is_player(map[n].ch_id)) {
-                mod_stubborn_actions_on_misc_action(map[n].ch_stat_off);
-            }
             map[n].obj_xoff = 0;
             map[n].obj_yoff = 0;
             tmp = (map[n].ch_status - 184) + SPF_MISC_RIGHT + ((int) (stattab[map[n].ch_stat_off]) << 5);

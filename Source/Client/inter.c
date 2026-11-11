@@ -1287,7 +1287,7 @@ void mouse_mapbox(int x,int y,int state)
 					if (map[m].flags&ISUSABLE && (map[m].flags&INVIS) == 0) {
 						xmove=xxtimer=0;
 						add_cmd_to_queue(CL_CMD_USE, map[m].x, map[m].y);
-						if (pl.misc_action != DR_USE) {
+						if (pl.misc_action != DR_USE && has_cmd_been_queued(CL_CMD_USE, map[m].x, map[m].y) == 1) {
 							mod_stubborn_actions_on_cmd(CL_CMD_USE, m);
 						}
 						noshop=0;
