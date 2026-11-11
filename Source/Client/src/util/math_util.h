@@ -1,5 +1,7 @@
 #pragma once
 
+#define PERCENT_BASE 100
+
 typedef struct {
     float x;
     float y;

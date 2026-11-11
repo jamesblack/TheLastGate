@@ -4,7 +4,6 @@
 #include "util/math_util.h"
 
 #define ITEM_BONUS_CAP 127
-#define PERCENT_BASE 100
 #define BLESS_BONUS_DIVISOR 5
 #define ITEM_BONUS_DIVISOR 4
 #define REDUCED_ITEM_BONUS_DIVISOR 6
