@@ -143,6 +143,12 @@ typedef struct {
 
 static PlannerBuffState buff_state;
 
+/* attrib is a signed char where -1 marks an unused slot. */
+static int skill_attribute_id(const struct skilltab *skill_entry, const int attribute_slot) {
+    const int attribute_id = (int) skill_entry->attrib[attribute_slot];
+    return attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT ? attribute_id : -1;
+}
+
 static BuffModelSkill model_skill_for(const int skill_position, const int planned) {
     const struct skilltab *skill_entry = &skilltab[skill_position];
     BuffModelSkill skill;
@@ -151,9 +157,7 @@ static BuffModelSkill model_skill_for(const int skill_position, const int planne
     skill.server_total = sk_score(skill_entry->nr);
     skill.planned = planned;
     for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
-        /* attrib is a signed char where -1 marks an unused slot. */
-        const int attribute_id = (int) skill_entry->attrib[attribute_slot];
-        skill.attribute_ids[attribute_slot] = attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT ? attribute_id : -1;
+        skill.attribute_ids[attribute_slot] = skill_attribute_id(skill_entry, attribute_slot);
     }
     return skill;
 }
@@ -237,9 +241,8 @@ static StatRowView build_skill_row(const int skill_position, const int attribute
     int attribute_slot;
 
     for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
-        /* attrib is a signed char where -1 marks an unused slot. */
-        const int attribute_id = (int) skill_entry->attrib[attribute_slot];
-        const bool valid_attribute = attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT;
+        const int attribute_id = skill_attribute_id(skill_entry, attribute_slot);
+        const bool valid_attribute = attribute_id >= 0;
 
         attribute_values[attribute_slot] = valid_attribute ? at_score(attribute_id) : 0;
         attribute_raises[attribute_slot] = valid_attribute ? stat_raised[attribute_id] : 0;
@@ -853,11 +856,10 @@ static SkillFocusInput build_focus_input(const int skill_position) {
     int step_index;
 
     for (slot_index = 0; slot_index < ATTRIBUTES_PER_SKILL; slot_index++) {
-        /* attrib is a signed char where -1 marks an unused slot. */
-        const int attribute_id = (int) skill_entry->attrib[slot_index];
-        const bool valid_attribute = attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT;
+        const int attribute_id = skill_attribute_id(skill_entry, slot_index);
+        const bool valid_attribute = attribute_id >= 0;
 
-        input.attribute_ids[slot_index] = valid_attribute ? attribute_id : -1;
+        input.attribute_ids[slot_index] = attribute_id;
         /* The values the rows show, so the suggested +1 is a +1 in the preview. */
         int shown_value = 0;
         if (valid_attribute && buff_state.available) {
