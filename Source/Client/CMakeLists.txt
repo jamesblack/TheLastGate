@@ -113,6 +113,7 @@ add_executable(TheLastGate
         src/ui/widgets.cpp
         src/util/perf.c
         src/util/nearest_to_mouse.c
+        src/util/string_util.c
 )
 
 target_precompile_headers(TheLastGate PRIVATE
@@ -143,6 +144,7 @@ if (TLG_BUILD_TESTS)
     add_executable(item_details_test
             tests/item_details_test.c
             src/mods/item_details.c
+            src/util/string_util.c
     )
     target_include_directories(item_details_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME item_details COMMAND item_details_test)

@@ -1,12 +1,12 @@
 #include "item_details.h"
 
 #include <errno.h>
-#include <limits.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define DECIMAL_BASE 10
+#include "util/string_util.h"
+
 #define TENTHS_PER_PERCENT 10.0F
 #define SILVER_PER_GOLD 100
 #define COMPARE_SECTION_LINES 2 /* lines that follow "You compare it with ..." */
@@ -50,19 +50,6 @@ static const char *condition_lines[] = {
 
 #define COUNT_OF(array) ((int) (sizeof(array) / sizeof((array)[0])))
 
-static const char *skip_spaces(const char *text) {
-    while (*text == ' ') text++;
-    return text;
-}
-
-static int is_blank(const char *text) {
-    return *skip_spaces(text) == 0;
-}
-
-static int starts_with(const char *text, const char *prefix) {
-    return strncmp(text, prefix, strlen(prefix)) == 0;
-}
-
 /* Matches `literal` at the cursor, ignoring spaces in front of either, and moves past it. */
 static int expect(const char **cursor, const char *literal) {
     const char *input = skip_spaces(*cursor);
@@ -71,18 +58,6 @@ static int expect(const char **cursor, const char *literal) {
 
     if (strncmp(input, wanted, length) != 0) return 0;
     *cursor = input + length;
-    return 1;
-}
-
-static int read_int(const char **cursor, int *value) {
-    char *end = NULL;
-
-    errno = 0;
-    const long parsed = strtol(*cursor, &end, DECIMAL_BASE);
-    if (end == *cursor || errno == ERANGE || parsed < INT_MIN || parsed > INT_MAX) return 0;
-
-    *value = (int) parsed;
-    *cursor = end;
     return 1;
 }
 
