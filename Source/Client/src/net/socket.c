@@ -419,22 +419,12 @@ void sv_setchar_dir(unsigned char *buf) {
     pl.dir = *(unsigned char *) (buf + 1);
 }
 
-extern int stat_raised[];
-extern int stat_points_used;
-
 void sv_setchar_pts(unsigned char *buf) {
-    int n;
-
     DEBUG("SV SETCHAR PTS");
     pl.points = *(unsigned int *) (buf + 1);
     pl.points_tot = *(unsigned int *) (buf + 5);
 
-    if (pl.kindred != *(unsigned int *) (buf + 9)) {
-        stat_points_used = 0;
-        for (n = 0; n < 108; n++) {
-            stat_raised[n] = 0;
-        }
-    }
+    if (pl.kindred != *(unsigned int *) (buf + 9)) stat_raise_reset_all();
 
     pl.kindred = *(unsigned int *) (buf + 9);
 }

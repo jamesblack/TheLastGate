@@ -117,11 +117,11 @@ static AttributeCostResult cost_to_raise_attributes_by_5_uber(const int attribut
     return (AttributeCostResult) {HIGH_VAL, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)};
 }
 
-char get_raise_icon(int skill_id, int skill_tab_position) {
-    // Maxed
-    if (skill_needed(skill_id, pl.skill[skill_id][0] + stat_raised[skill_tab_position + 8]) == HIGH_VAL) return ' ';
+char get_raise_icon(int skill_tab_position) {
+    int cost_to_raise_skill = stat_raise_cost(STAT_RAISE_SKILL_BASE + skill_tab_position);
 
-    int cost_to_raise_skill = skill_needed(skill_id, pl.skill[skill_id][0] + stat_raised[skill_tab_position + 8]);
+    // Maxed
+    if (cost_to_raise_skill == HIGH_VAL) return ' ';
 
     AttributeCostResult result;
     if (is_weapon_skill(skilltab[skill_tab_position].nr) && T_BRAV_SK(9)) {
@@ -143,8 +143,6 @@ char get_raise_icon(int skill_id, int skill_tab_position) {
         return '*';
     }
     // Cannot Raise
-    if (skill_needed(skill_id, pl.skill[skill_id][0] + stat_raised[skill_tab_position + 8]) >
-        pl.points - stat_points_used)
-        return ' ';
+    if (cost_to_raise_skill > pl.points - stat_points_used) return ' ';
     return '+';
 }

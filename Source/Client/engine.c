@@ -547,7 +547,7 @@ static int rank_sprite[25] = {
     30, 6, 7, 8, 9
 };
 
-int stat_raised[108] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,};
+int stat_raised[STAT_RAISE_SLOT_COUNT] = {0};
 int stat_points_used = 0;
 
 int points2rank(int v) {

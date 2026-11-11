@@ -17,7 +17,7 @@ void get_attribute_display_info(const int attrib_id, StatDisplayInfo *out) {
     out->base_value = pl.attrib[attrib_id][0] + stat_raised[attrib_id];
     out->current_value = at_score(attrib_id) + stat_raised[attrib_id];
     out->raised_amount = stat_raised[attrib_id];
-    out->cost_to_raise = attrib_needed(attrib_id, pl.attrib[attrib_id][0] + stat_raised[attrib_id]);
+    out->cost_to_raise = stat_raise_cost(attrib_id);
     out->raise_icon = out->cost_to_raise <= pl.points - stat_points_used ? '+' : ' ';
     out->can_lower = stat_raised[attrib_id] > 0;
     out->is_visible = true;
@@ -25,18 +25,18 @@ void get_attribute_display_info(const int attrib_id, StatDisplayInfo *out) {
 }
 
 void get_hp_mana_display_info(const int vital_id, StatDisplayInfo *out) {
-    if (vital_id == 5) {
+    if (vital_id == STAT_RAISE_HITPOINTS) {
         // Health
         out->name = "Hitpoints";
-        out->base_value = pl.hp[0] + stat_raised[5];
-        out->current_value = pl.hp[5] + stat_raised[5];
-        out->cost_to_raise = hp_needed(pl.hp[0] + stat_raised[5]);
-    } else if (vital_id == 7) {
+        out->base_value = pl.hp[0] + stat_raised[STAT_RAISE_HITPOINTS];
+        out->current_value = pl.hp[5] + stat_raised[STAT_RAISE_HITPOINTS];
+        out->cost_to_raise = stat_raise_cost(STAT_RAISE_HITPOINTS);
+    } else if (vital_id == STAT_RAISE_MANA) {
         // Mana
         out->name = "Mana";
-        out->base_value = pl.mana[0] + stat_raised[7];
-        out->current_value = pl.mana[5] + stat_raised[7];
-        out->cost_to_raise = mana_needed(pl.mana[0] + stat_raised[7]);
+        out->base_value = pl.mana[0] + stat_raised[STAT_RAISE_MANA];
+        out->current_value = pl.mana[5] + stat_raised[STAT_RAISE_MANA];
+        out->cost_to_raise = stat_raise_cost(STAT_RAISE_MANA);
     }
 
     out->raised_amount = stat_raised[vital_id];
@@ -76,7 +76,7 @@ static bool is_alternate(int skill_id) {
 
 void get_skill_display_info(const int skill_slot, StatDisplayInfo *out) {
     int skill_tab_id = skill_slot + game_ui_state.skill_scroll;
-    int skill_position = 8 + skill_tab_id;
+    int skill_position = STAT_RAISE_SKILL_BASE + skill_tab_id;
     struct skilltab *skill_tab = &skilltab[skill_tab_id];
     int skill_id = skill_tab->nr;
     int amount_raised = stat_raised[skill_position];
@@ -106,9 +106,9 @@ void get_skill_display_info(const int skill_slot, StatDisplayInfo *out) {
 
     out->base_value = pl.skill[skill_id][0] + amount_raised;
     out->current_value = sk_score(skill_id) + amount_raised;
-    out->cost_to_raise = skill_needed(skill_id, pl.skill[skill_id][0] + amount_raised);
+    out->cost_to_raise = stat_raise_cost(skill_position);
     if (g_config.ui.cost_helper) {
-        out->raise_icon = get_raise_icon(skill_id, skill_tab_id);
+        out->raise_icon = get_raise_icon(skill_tab_id);
     } else {
         out->raise_icon = out->cost_to_raise <= pl.points - stat_points_used ? '+' : ' ';
     }

@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "game/attributes.h"
+#include "game/stat_raise.h"
 EXTERN_C_BEGIN
 
 extern int noshop;
@@ -15,7 +16,7 @@ extern struct skilltab *skilltab;
 extern struct skilltab *raw_skilltab;
 extern int skill_needed(int n, int v);
 extern int attrib_needed(int n, int v);
-extern int stat_raised[108];
+extern int stat_raised[STAT_RAISE_SLOT_COUNT];
 extern void cmd_options(void);
 extern int points2rank(int v);
 extern int rank2points(int v);
