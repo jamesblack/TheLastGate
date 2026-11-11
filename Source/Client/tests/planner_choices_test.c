@@ -20,7 +20,6 @@ static int failures = 0;
 
 #define TEST_PATH "planner_choices_test.dat"
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static PlannerChoices make_choices(const int weapon, const int offhand) {
     PlannerChoices choices;
     choices.weapon = weapon;

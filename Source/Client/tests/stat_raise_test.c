@@ -12,7 +12,7 @@
 #include "inter.h"
 #include "game/stat_raise.h"
 
-struct cplayer pl; // NOLINT(readability-identifier-length)
+struct cplayer pl;
 int stat_raised[STAT_RAISE_SLOT_COUNT];
 int stat_points_used;
 
@@ -22,22 +22,22 @@ struct skilltab *skilltab = test_skilltab;
 #define TEST_CAP 100
 
 int attrib_needed(int attribute_id, int value) {
-    if (value >= TEST_CAP) return HIGH_VAL; // NOLINT(bugprone-signed-bitwise)
+    if (value >= TEST_CAP) return HIGH_VAL;
     return (value * 10) + attribute_id;
 }
 
 int hp_needed(int value) {
-    if (value >= TEST_CAP) return HIGH_VAL; // NOLINT(bugprone-signed-bitwise)
+    if (value >= TEST_CAP) return HIGH_VAL;
     return value * 3;
 }
 
 int mana_needed(int value) {
-    if (value >= TEST_CAP) return HIGH_VAL; // NOLINT(bugprone-signed-bitwise)
+    if (value >= TEST_CAP) return HIGH_VAL;
     return value * 4;
 }
 
 int skill_needed(int skill_id, int value) {
-    if (value >= TEST_CAP) return HIGH_VAL; // NOLINT(bugprone-signed-bitwise)
+    if (value >= TEST_CAP) return HIGH_VAL;
     return (value * 20) + skill_id;
 }
 
@@ -46,7 +46,6 @@ static int sent_count;
 static int sent_stat[MAX_SENT];
 static int sent_amount[MAX_SENT];
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void cmd(int command, int stat_id, int amount) {
     if (command != CL_CMD_STAT || sent_count >= MAX_SENT) return;
     sent_stat[sent_count] = stat_id;
@@ -138,7 +137,7 @@ static void test_hitpoints_and_mana(void) {
 static void test_endurance_never_raises(void) {
     reset_state();
 
-    CHECK(stat_raise_cost(6) == HIGH_VAL); // NOLINT(bugprone-signed-bitwise)
+    CHECK(stat_raise_cost(6) == HIGH_VAL);
     CHECK(stat_raise_try_raise(6) == 0);
     CHECK(stat_raised[6] == 0);
 }
@@ -146,8 +145,8 @@ static void test_endurance_never_raises(void) {
 static void test_out_of_range(void) {
     reset_state();
 
-    CHECK(stat_raise_cost(-1) == HIGH_VAL); // NOLINT(bugprone-signed-bitwise)
-    CHECK(stat_raise_cost(STAT_RAISE_SLOT_COUNT) == HIGH_VAL); // NOLINT(bugprone-signed-bitwise)
+    CHECK(stat_raise_cost(-1) == HIGH_VAL);
+    CHECK(stat_raise_cost(STAT_RAISE_SLOT_COUNT) == HIGH_VAL);
     CHECK(stat_raise_try_raise(STAT_RAISE_SLOT_COUNT) == 0);
     CHECK(stat_raise_try_lower(-1) == 0);
 }
@@ -155,8 +154,8 @@ static void test_out_of_range(void) {
 static void test_skill_slot_past_skill_table(void) {
     reset_state();
 
-    CHECK(stat_raise_cost(STAT_RAISE_SKILL_BASE + MAXSKILL - 1) != HIGH_VAL); // NOLINT(bugprone-signed-bitwise)
-    CHECK(stat_raise_cost(STAT_RAISE_SKILL_BASE + MAXSKILL) == HIGH_VAL); // NOLINT(bugprone-signed-bitwise)
+    CHECK(stat_raise_cost(STAT_RAISE_SKILL_BASE + MAXSKILL - 1) != HIGH_VAL);
+    CHECK(stat_raise_cost(STAT_RAISE_SKILL_BASE + MAXSKILL) == HIGH_VAL);
     CHECK(stat_raise_try_raise(STAT_RAISE_SKILL_BASE + MAXSKILL) == 0);
 }
 
@@ -172,7 +171,7 @@ static void test_capped_stat(void) {
     reset_state();
     pl.attrib[2][0] = TEST_CAP;
 
-    CHECK(stat_raise_cost(2) == HIGH_VAL); // NOLINT(bugprone-signed-bitwise)
+    CHECK(stat_raise_cost(2) == HIGH_VAL);
     CHECK(stat_raise_try_raise(2) == 0);
 }
 
@@ -209,8 +208,8 @@ static void test_cost_after(void) {
 
     CHECK(stat_raise_cost_after(2, 0) == 402);
     CHECK(stat_raise_cost_after(2, 1) == 412);
-    CHECK(stat_raise_cost_after(2, -1) == HIGH_VAL); // NOLINT(bugprone-signed-bitwise)
-    CHECK(stat_raise_cost_after(STAT_RAISE_SLOT_COUNT, 0) == HIGH_VAL); // NOLINT(bugprone-signed-bitwise)
+    CHECK(stat_raise_cost_after(2, -1) == HIGH_VAL);
+    CHECK(stat_raise_cost_after(STAT_RAISE_SLOT_COUNT, 0) == HIGH_VAL);
 }
 
 static void test_bundle_raises_all(void) {
