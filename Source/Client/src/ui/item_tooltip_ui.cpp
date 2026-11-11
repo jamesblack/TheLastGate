@@ -17,10 +17,10 @@ static const float TOOLTIP_WINDOW_PADDING[2] = {8, 6};
 static const float TOOLTIP_CELL_PADDING[2] = {6, 0};
 static const float TOOLTIP_BORDER_SIZE = 1.0F;
 static const float TOOLTIP_DELTA_SPACING = 4.0F;
-static const unsigned int TOOLTIP_BORDER_COLOR_32 = 0xFF3A6B8C;
-static const unsigned int TOOLTIP_DIM_COLOR_32 = 0xFF9A9A90;
-static const unsigned int TOOLTIP_UPGRADE_COLOR_32 = IM_COL32(90, 220, 90, 255);
-static const unsigned int TOOLTIP_DOWNGRADE_COLOR_32 = IM_COL32(230, 80, 80, 255);
+static constexpr unsigned int TOOLTIP_BORDER_COLOR = color_rgb(140, 107, 58);
+static constexpr unsigned int TOOLTIP_DIM_COLOR = color_rgb(144, 154, 154);
+static constexpr unsigned int TOOLTIP_UPGRADE_COLOR = color_rgb(90, 220, 90);
+static constexpr unsigned int TOOLTIP_DOWNGRADE_COLOR = color_rgb(230, 80, 80);
 
 static const int TENTHS_PER_PERCENT = 10;
 static const float TENTHS_PER_PERCENT_FLOAT = 10.0F;
@@ -149,7 +149,7 @@ static void draw_badges(const char *label, const unsigned int flags, const ModBa
     for (int badge = 0; badge < count; badge++) {
         if ((flags & badges[badge].flag) == 0) continue;
         if (!shown) {
-            text_colored(TOOLTIP_DIM_COLOR_32, label);
+            text_colored(TOOLTIP_DIM_COLOR, label);
             shown = true;
         }
         ImGui::SameLine();
@@ -200,7 +200,7 @@ static void draw_delta(const ItemStat *stat, const int delta) {
     format_value(delta_text, sizeof(delta_text), stat, delta);
     const bool better = stat_lower_is_better(stat->name) ? delta < 0 : delta > 0;
     ImGui::SameLine(0, TOOLTIP_DELTA_SPACING);
-    text_colored(better ? TOOLTIP_UPGRADE_COLOR_32 : TOOLTIP_DOWNGRADE_COLOR_32, delta_text);
+    text_colored(better ? TOOLTIP_UPGRADE_COLOR : TOOLTIP_DOWNGRADE_COLOR, delta_text);
 }
 
 static TableColumns table_columns(const ItemDetails *shown, const ItemDetails *held) {
@@ -272,7 +272,7 @@ static void draw_required_cell(const ItemStat *stat) {
     if (!stat_shows_required(stat)) return;
 
     snprintf(value_text, sizeof(value_text), "%d", stat->required);
-    text_colored(TOOLTIP_DIM_COLOR_32, value_text);
+    text_colored(TOOLTIP_DIM_COLOR, value_text);
 }
 
 /* Each value is followed by what swapping the held item in would change: held minus shown. */
@@ -305,16 +305,16 @@ static void draw_gained_stats(const StatTable *table) {
 
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        text_colored(TOOLTIP_DIM_COLOR_32, gain->name);
+        text_colored(TOOLTIP_DIM_COLOR, gain->name);
 
         ImGui::TableNextColumn();
-        text_colored(TOOLTIP_DIM_COLOR_32, "-");
+        text_colored(TOOLTIP_DIM_COLOR, "-");
         draw_delta(gain, gain->passive);
 
         if (table->columns.show_active) {
             ImGui::TableNextColumn();
             if (stat_has_active(gain)) {
-                text_colored(TOOLTIP_DIM_COLOR_32, "-");
+                text_colored(TOOLTIP_DIM_COLOR, "-");
                 draw_delta(gain, gain->active);
             }
         }
@@ -414,7 +414,7 @@ static bool begin_item_tooltip() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, TOOLTIP_BORDER_SIZE);
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(TOOLTIP_CELL_PADDING[0], TOOLTIP_CELL_PADDING[1]));
     ImGui::PushStyleColor(ImGuiCol_PopupBg, BACKGROUND_COLOR_DARK_MODE);
-    ImGui::PushStyleColor(ImGuiCol_Border, TOOLTIP_BORDER_COLOR_32);
+    ImGui::PushStyleColor(ImGuiCol_Border, TOOLTIP_BORDER_COLOR);
 
     if (ImGui::BeginTooltip()) {
         ImGui::PushTextWrapPos(TOOLTIP_MAX_WIDTH);
@@ -441,7 +441,7 @@ static void draw_empty_slot_comparison(const ItemDetails *held) {
     static const ItemDetails empty_slot = {};
 
     if (held == nullptr || !begin_item_tooltip()) return;
-    text_colored(TOOLTIP_DIM_COLOR_32, "Empty slot");
+    text_colored(TOOLTIP_DIM_COLOR, "Empty slot");
     if (held->stat_count > 0) {
         ImGui::Separator();
         draw_stat_table(&empty_slot, held);
@@ -470,9 +470,9 @@ static bool draw_held_comparison() {
     const ItemDetails *details = item_tooltip_hovered_details();
     if (!has_text(block, details) || !begin_item_tooltip()) return true;
 
-    text_colored(TOOLTIP_DIM_COLOR_32, "Equipped");
+    text_colored(TOOLTIP_DIM_COLOR, "Equipped");
     draw_tooltip_body(block, details, held);
-    if (held == nullptr) text_colored(TOOLTIP_DIM_COLOR_32, "No details for the held item.");
+    if (held == nullptr) text_colored(TOOLTIP_DIM_COLOR, "No details for the held item.");
     end_item_tooltip();
     return true;
 }

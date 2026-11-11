@@ -94,15 +94,15 @@ static const EnhancedSkillLayout LAYOUT_DARK = {
     .background_color = BACKGROUND_COLOR_DARK_MODE,
 };
 
-static const unsigned int PREVIEW_CHANGED_COLOR_32 = 0xFFFFFFFF;
-static const unsigned int DIRECT_RAISE_COLOR_32 = 0xFF6ADC7D;
-static const unsigned int ATTRIBUTE_GAIN_COLOR_32 = 0xFFFFB45A;
-static const unsigned int SECTION_LABEL_COLOR_32 = 0xFFE2BC49;
-static const unsigned int RAISED_ROW_HIGHLIGHT_32 = 0x386ADBF3;
+static constexpr unsigned int PREVIEW_CHANGED_COLOR = color_rgb(255, 255, 255);
+static constexpr unsigned int DIRECT_RAISE_COLOR = color_rgb(125, 220, 106);
+static constexpr unsigned int ATTRIBUTE_GAIN_COLOR = color_rgb(90, 180, 255);
+static constexpr unsigned int SECTION_LABEL_COLOR = color_rgb(73, 188, 226);
+static constexpr unsigned int RAISED_ROW_HIGHLIGHT_COLOR = color_rgba(243, 219, 106, 56);
 static const float ATTRIBUTE_MARKER_WIDTH = 2;
-static const unsigned int COST_TEXT_COLOR_32 = 0xFFB0B0A8;
-static const unsigned int GLYPH_HOVER_COLOR_32 = 0xFFFFFFFF;
-static const unsigned int FRAME_TINT_COLOR_32 = 0xFFFFFFFF;
+static constexpr unsigned int COST_TEXT_COLOR = color_rgb(168, 176, 176);
+static constexpr unsigned int GLYPH_HOVER_COLOR = color_rgb(255, 255, 255);
+static constexpr unsigned int FRAME_TINT_COLOR = color_rgb(255, 255, 255);
 // NOLINTEND(readability-magic-numbers)
 
 #define VALUE_TEXT_SIZE 32
@@ -298,7 +298,7 @@ static bool glyph_button(const EnhancedSkillLayout *layout, const float row_left
         row_text(layout, row_left, row_top, offset + 2, HINT_GREY_FONT_COLOR, glyph);
         return false;
     }
-    row_text(layout, row_left, row_top, offset + 2, hovered ? GLYPH_HOVER_COLOR_32 : GOLD_FONT_COLOR, glyph);
+    row_text(layout, row_left, row_top, offset + 2, hovered ? GLYPH_HOVER_COLOR : GOLD_FONT_COLOR, glyph);
     return clicked;
 }
 
@@ -332,11 +332,11 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
     /* Rows you bought points for get the gold band; rows fed by a raised attribute get a blue edge marker. */
     if (row_view->direct_raise != 0) {
         imgui_draw_list_add_rect_filled(draw_list, screen_left, screen_top, screen_left + layout->column_width,
-                                        screen_top + layout->row_height, RAISED_ROW_HIGHLIGHT_32, 0, 0);
+                                        screen_top + layout->row_height, RAISED_ROW_HIGHLIGHT_COLOR, 0, 0);
     }
     if (row_view->uses_raised_attribute) {
         imgui_draw_list_add_rect_filled(draw_list, screen_left, screen_top, screen_left + ATTRIBUTE_MARKER_WIDTH,
-                                        screen_top + layout->row_height, ATTRIBUTE_GAIN_COLOR_32, 0, 0);
+                                        screen_top + layout->row_height, ATTRIBUTE_GAIN_COLOR, 0, 0);
     }
 
     if (row_view->skill_position >= 0 && row_view->skill_position == focused_skill_position) {
@@ -374,17 +374,16 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
     /* Preview reads "total +bought +from attributes", each part in its own colour. */
     float preview_offset = layout->preview_left;
     snprintf(value_text, sizeof(value_text), "%d", preview);
-    row_text(layout, row_left, row_top, preview_offset, changed ? PREVIEW_CHANGED_COLOR_32 : GOLD_FONT_COLOR,
-             value_text);
+    row_text(layout, row_left, row_top, preview_offset, changed ? PREVIEW_CHANGED_COLOR : GOLD_FONT_COLOR, value_text);
     preview_offset += text_width(value_text);
     if (row_view->direct_raise != 0) {
         snprintf(value_text, sizeof(value_text), " +%d", row_view->direct_raise);
-        row_text(layout, row_left, row_top, preview_offset, DIRECT_RAISE_COLOR_32, value_text);
+        row_text(layout, row_left, row_top, preview_offset, DIRECT_RAISE_COLOR, value_text);
         preview_offset += text_width(value_text);
     }
     if (row_view->attribute_gain != 0) {
         snprintf(value_text, sizeof(value_text), " +%d", row_view->attribute_gain);
-        row_text(layout, row_left, row_top, preview_offset, ATTRIBUTE_GAIN_COLOR_32, value_text);
+        row_text(layout, row_left, row_top, preview_offset, ATTRIBUTE_GAIN_COLOR, value_text);
     }
 
     if (row_view->cost == HIGH_VAL) { // NOLINT(bugprone-signed-bitwise)
@@ -392,7 +391,7 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
     } else {
         snprintf(value_text, sizeof(value_text), "%d", row_view->cost);
     }
-    row_text_right(layout, row_left, row_top, layout->cost_right, COST_TEXT_COLOR_32, value_text);
+    row_text_right(layout, row_left, row_top, layout->cost_right, COST_TEXT_COLOR, value_text);
 
     imgui_pop_id();
 
@@ -405,7 +404,7 @@ static void section_label_render(const EnhancedSkillLayout *layout, const char *
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
 
-    row_text(layout, row_left, row_top, 2, SECTION_LABEL_COLOR_32, label);
+    row_text(layout, row_left, row_top, 2, SECTION_LABEL_COLOR, label);
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
 }
@@ -622,10 +621,10 @@ static void planned_value_row_render(const EnhancedSkillLayout *layout, const ch
     const float next_row_left = imgui_get_cursor_pos_x();
     const float next_row_top = imgui_get_cursor_pos_y();
     snprintf(value_text, sizeof(value_text), "%d", shown);
-    row_text(layout, row_left, row_top, layout->preview_left, PREVIEW_CHANGED_COLOR_32, value_text);
+    row_text(layout, row_left, row_top, layout->preview_left, PREVIEW_CHANGED_COLOR, value_text);
     const float difference_left = layout->preview_left + text_width(value_text);
     snprintf(value_text, sizeof(value_text), " %+d", shown - current);
-    row_text(layout, row_left, row_top, difference_left, ATTRIBUTE_GAIN_COLOR_32, value_text);
+    row_text(layout, row_left, row_top, difference_left, ATTRIBUTE_GAIN_COLOR, value_text);
     imgui_set_cursor_pos(next_row_left, next_row_top);
 }
 
@@ -829,18 +828,18 @@ static void legend_render(const EnhancedSkillLayout *layout) {
     section_label_render(layout, "Key");
 
     imgui_draw_list_add_rect_filled(draw_list, screen_left, screen_top, screen_left + layout->column_width,
-                                    screen_top + layout->row_height, RAISED_ROW_HIGHLIGHT_32, 0, 0);
+                                    screen_top + layout->row_height, RAISED_ROW_HIGHLIGHT_COLOR, 0, 0);
     row_top = imgui_get_cursor_pos_y();
-    row_text(layout, row_left, row_top, 2, DIRECT_RAISE_COLOR_32, "+N");
+    row_text(layout, row_left, row_top, 2, DIRECT_RAISE_COLOR, "+N");
     row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR, "points you bought for it");
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
 
     imgui_draw_list_add_rect_filled(draw_list, screen_left, screen_top + layout->row_height,
                                     screen_left + ATTRIBUTE_MARKER_WIDTH, screen_top + (layout->row_height * 2),
-                                    ATTRIBUTE_GAIN_COLOR_32, 0, 0);
+                                    ATTRIBUTE_GAIN_COLOR, 0, 0);
     row_top = imgui_get_cursor_pos_y();
-    row_text(layout, row_left, row_top, 2, ATTRIBUTE_GAIN_COLOR_32, "+N");
+    row_text(layout, row_left, row_top, 2, ATTRIBUTE_GAIN_COLOR, "+N");
     row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR, "from raised attributes");
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
@@ -1003,7 +1002,7 @@ static void buff_route_lines_render(const EnhancedSkillLayout *layout, const Buf
 
         snprintf(label_text, sizeof(label_text), "+%d %s", raise->points, raise_name(raise->raise_index));
         snprintf(value_text, sizeof(value_text), "%d", raise->cost);
-        panel_row_render(layout, layout->raise_line_indent, is_skill ? DIRECT_RAISE_COLOR_32 : ATTRIBUTE_GAIN_COLOR_32,
+        panel_row_render(layout, layout->raise_line_indent, is_skill ? DIRECT_RAISE_COLOR : ATTRIBUTE_GAIN_COLOR,
                          label_text, value_text);
     }
 }
@@ -1046,10 +1045,10 @@ static void other_route_render(const EnhancedSkillLayout *layout, const char *la
 
     if (route->available != 0) {
         snprintf(value_text, sizeof(value_text), "%d exp", route->total_cost);
-        panel_row_render(layout, 2, COST_TEXT_COLOR_32, label, value_text);
+        panel_row_render(layout, 2, COST_TEXT_COLOR, label, value_text);
     } else {
         snprintf(label_text, sizeof(label_text), "%s not available", label);
-        panel_row_render(layout, 2, COST_TEXT_COLOR_32, label_text, NULL);
+        panel_row_render(layout, 2, COST_TEXT_COLOR, label_text, NULL);
     }
 }
 
@@ -1061,7 +1060,7 @@ static void buff_focus_panel_render(const EnhancedSkillLayout *layout, const cha
 
     snprintf(label_text, sizeof(label_text), "%s  %d -> %d", skill_name, result->current_value,
              result->current_value + 1);
-    panel_row_render(layout, 2, PREVIEW_CHANGED_COLOR_32, label_text, NULL);
+    panel_row_render(layout, 2, PREVIEW_CHANGED_COLOR, label_text, NULL);
 
     if (result->best.available == 0) {
         snprintf(label_text, sizeof(label_text), "%s can't be raised further", skill_name);
@@ -1125,7 +1124,7 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     const int preview =
             focused_row.current + focused_row.buff_shift + focused_row.direct_raise + focused_row.attribute_gain;
     snprintf(label_text, sizeof(label_text), "%s  %d -> %d", skill_name, preview, preview + 1);
-    panel_row_render(layout, 2, PREVIEW_CHANGED_COLOR_32, label_text, NULL);
+    panel_row_render(layout, 2, PREVIEW_CHANGED_COLOR, label_text, NULL);
 
     if (suggestion.any_available == 0) {
         snprintf(label_text, sizeof(label_text), "%s can't be raised further", skill_name);
@@ -1141,13 +1140,13 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     if (suggestion.use_direct != 0) {
         snprintf(label_text, sizeof(label_text), "+1 %s", skill_name);
         snprintf(value_text, sizeof(value_text), "%d", winning_route->total_cost);
-        panel_row_render(layout, layout->raise_line_indent, DIRECT_RAISE_COLOR_32, label_text, value_text);
+        panel_row_render(layout, layout->raise_line_indent, DIRECT_RAISE_COLOR, label_text, value_text);
     } else {
         for (raise_number = 0; raise_number < winning_route->raise_count; raise_number++) {
             const SkillFocusRaise *raise = &winning_route->raises[raise_number];
             snprintf(label_text, sizeof(label_text), "+%d %s", raise->points, attribute_names[raise->attribute_id]);
             snprintf(value_text, sizeof(value_text), "%d", raise->cost);
-            panel_row_render(layout, layout->raise_line_indent, ATTRIBUTE_GAIN_COLOR_32, label_text, value_text);
+            panel_row_render(layout, layout->raise_line_indent, ATTRIBUTE_GAIN_COLOR, label_text, value_text);
         }
     }
 
@@ -1158,10 +1157,10 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     }
     if (other_route->available != 0) {
         snprintf(value_text, sizeof(value_text), "%d exp", other_route->total_cost);
-        panel_row_render(layout, 2, COST_TEXT_COLOR_32, label_text, value_text);
+        panel_row_render(layout, 2, COST_TEXT_COLOR, label_text, value_text);
     } else {
         snprintf(label_text + strlen(label_text), sizeof(label_text) - strlen(label_text), " not available");
-        panel_row_render(layout, 2, COST_TEXT_COLOR_32, label_text, NULL);
+        panel_row_render(layout, 2, COST_TEXT_COLOR, label_text, NULL);
     }
 
     const float row_left = imgui_get_cursor_pos_x();
@@ -1270,7 +1269,7 @@ static void frame_render(const EnhancedSkillLayout *layout) {
     imgui_draw_list_add_image_9_slice(draw_list, (void *) (intptr_t) frame->gl_texture, left, top, right, bottom,
                                       layout->frame_border, layout->frame_border, layout->frame_border,
                                       layout->frame_border, (float) frame->pixel_width, (float) frame->pixel_height,
-                                      frame->uv0.u, frame->uv0.v, frame->uv1.u, frame->uv1.v, FRAME_TINT_COLOR_32);
+                                      frame->uv0.u, frame->uv0.v, frame->uv1.u, frame->uv1.v, FRAME_TINT_COLOR);
 }
 
 void enhanced_skill_window_render(void) {
