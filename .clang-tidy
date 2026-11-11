@@ -7,6 +7,6 @@ Checks: >
   -llvm-header-guard
 
 CheckOptions:
-  - { key: readability-identifier-length.IgnoredVariableNames, value: '^(i|j|k|io|id)$' }
-  - { key: readability-identifier-length.IgnoredParameterNames, value: '^(id)$' }
+  - { key: readability-identifier-length.IgnoredVariableNames, value: '^(i|j|k|io|id|x|y)$' }
+  - { key: readability-identifier-length.IgnoredParameterNames, value: '^(id|x|y)$' }
   - { key: readability-braces-around-statements.ShortStatementLines, value: 1 }
