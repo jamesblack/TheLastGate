@@ -69,7 +69,7 @@ static const EnhancedSkillLayout LAYOUT_LIGHT = {
     .focus_name_right = 118,
     .raise_line_indent = 10,
     .plan_button_width = 60,
-    .background_color = 0xF00A0F2A,
+    .background_color = BACKGROUND_COLOR_LIGHT_MODE,
 };
 
 static const EnhancedSkillLayout LAYOUT_DARK = {
@@ -97,12 +97,10 @@ static const EnhancedSkillLayout LAYOUT_DARK = {
 static constexpr unsigned int PREVIEW_CHANGED_COLOR = color_rgb(255, 255, 255);
 static constexpr unsigned int DIRECT_RAISE_COLOR = color_rgb(125, 220, 106);
 static constexpr unsigned int ATTRIBUTE_GAIN_COLOR = color_rgb(90, 180, 255);
-static constexpr unsigned int SECTION_LABEL_COLOR = color_rgb(73, 188, 226);
 static constexpr unsigned int RAISED_ROW_HIGHLIGHT_COLOR = color_rgba(243, 219, 106, 56);
 static const float ATTRIBUTE_MARKER_WIDTH = 2;
 static constexpr unsigned int COST_TEXT_COLOR = color_rgb(168, 176, 176);
 static constexpr unsigned int GLYPH_HOVER_COLOR = color_rgb(255, 255, 255);
-static constexpr unsigned int FRAME_TINT_COLOR = color_rgb(255, 255, 255);
 // NOLINTEND(readability-magic-numbers)
 
 #define VALUE_TEXT_SIZE 32
@@ -403,7 +401,7 @@ static void section_label_render(const EnhancedSkillLayout *layout, const char *
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
 
-    row_text(layout, row_left, row_top, 2, SECTION_LABEL_COLOR, label);
+    row_text(layout, row_left, row_top, 2, BLUE_FONT_COLOR, label);
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
 }
@@ -1267,7 +1265,7 @@ static void frame_render(const EnhancedSkillLayout *layout) {
     imgui_draw_list_add_image_9_slice(draw_list, (void *) (intptr_t) frame->gl_texture, left, top, right, bottom,
                                       layout->frame_border, layout->frame_border, layout->frame_border,
                                       layout->frame_border, (float) frame->pixel_width, (float) frame->pixel_height,
-                                      frame->uv0.u, frame->uv0.v, frame->uv1.u, frame->uv1.v, FRAME_TINT_COLOR);
+                                      frame->uv0.u, frame->uv0.v, frame->uv1.u, frame->uv1.v, WHITE_TINT);
 }
 
 void enhanced_skill_window_render(void) {
