@@ -17,6 +17,7 @@
 #include "planner/buff_model.h"
 #include "planner/combat_model.h"
 #include "game/game_ui.h"
+#include "planner/planner_advanced_window.hpp"
 #include "planner/planner_choices.h"
 #include "planner/planner_ui.hpp"
 #include "planner/skill_focus.h"
@@ -131,9 +132,6 @@ static void drop_focus_if_list_changed(void) {
     if (focused_skill_position < 0) return;
     if (stat_raise_skill_list_version() != focused_list_version) enhanced_skill_window_clear_focus();
 }
-
-/* Buff toggles, and the model every row is drawn from; the model is rebuilt each frame. */
-static bool show_buffed_toggle[BUFF_KIND_COUNT];
 
 typedef struct {
     bool available; /* false until the spell stats have arrived */
@@ -501,6 +499,10 @@ static PlannerChoices chosen = {PLANNER_CHOICE_NONE, PLANNER_CHOICE_NONE};
 static unsigned int chosen_character = 0;
 static bool chosen_loaded = false;
 
+static bool spell_toggle_on(const int kind) {
+    return ((chosen.spell_toggles >> (unsigned int) kind) & 1U) != 0;
+}
+
 static void save_choices(void) {
     planner_choices_save(PLANNER_CHOICES_FILE, okey.usnr, chosen);
 }
@@ -763,7 +765,7 @@ static bool build_buff_model_input(BuffModelInput *input) {
         if (reading != NULL) input->active[kind] = *reading;
         /* A buff from a spell you don't know stays in the numbers; it has no toggle. */
         if (input->spell_known[kind] != 0) {
-            input->show_buffed[kind] = show_buffed_toggle[kind] && buff_reading_ready(kind) ? 1 : 0;
+            input->show_buffed[kind] = spell_toggle_on(kind) && buff_reading_ready(kind) ? 1 : 0;
         } else {
             input->show_buffed[kind] = buff_watch_is_active((BuffKind) kind);
         }
@@ -788,51 +790,76 @@ static void refresh_buff_state(void) {
     buff_model_compute(&buff_state.unplanned_input, &buff_state.unplanned);
 }
 
-static void buff_row_render(const EnhancedSkillLayout *layout, const int kind) {
+static char spell_warnings[BUFF_KIND_COUNT][LABEL_TEXT_SIZE];
+
+/* A weaker cast of your own doesn't replace the buff already on you. */
+static const char *spell_warning(const int kind) {
+    const BuffReading *reading = buff_watch_reading((BuffKind) kind);
+
+    if (!buff_state.available || !buff_reading_ready(kind) || !spell_toggle_on(kind) || reading == NULL ||
+        buff_state.planned.cast_power[kind] >= reading->power) {
+        return NULL;
+    }
+    snprintf(spell_warnings[kind], sizeof(spell_warnings[kind]), "Your %s (%d) won't replace the active one (%d)",
+             skilltab[spell_skill_position(kind)].name, buff_state.planned.cast_power[kind], reading->power);
+    return spell_warnings[kind];
+}
+
+static PlannerAdvancedView build_advanced_view(void) {
+    PlannerAdvancedView view;
+    int kind;
+
+    memset(&view, 0, sizeof(view));
+    for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
+        view.spells[kind].known = spell_known(kind) ? 1 : 0;
+        if (view.spells[kind].known == 0) continue;
+        view.spells[kind].ready = buff_state.available && buff_reading_ready(kind) ? 1 : 0;
+        view.spells[kind].name = skilltab[spell_skill_position(kind)].name;
+        view.spells[kind].warning = spell_warning(kind);
+    }
+    return view;
+}
+
+#define ADVANCED_BUTTON_WIDTH 80
+
+static void math_header_render(const EnhancedSkillLayout *layout) {
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
     const float button_row_height = BUTTON_SPRITE_HEIGHT + 2;
-    const bool ready = buff_state.available && buff_reading_ready(kind);
-    const BuffReading *reading = buff_watch_reading((BuffKind) kind);
-    const char *spell_name = skilltab[spell_skill_position(kind)].name;
-    char label_text[LABEL_TEXT_SIZE];
 
-    snprintf(label_text, sizeof(label_text), ready ? "%s" : "%s (reading buffs...)", spell_name);
-    imgui_set_cursor_pos(row_left + 2, row_top);
-    imgui_text_colored_32(ready ? GOLD_FONT_COLOR : HINT_GREY_FONT_COLOR, label_text);
-
-    imgui_push_id_int(kind);
-    imgui_set_cursor_pos(row_left + layout->cost_right - layout->plan_button_width, row_top);
-    if (ui_button_enabled(show_buffed_toggle[kind] ? "On" : "Off", layout->plan_button_width, BUTTON_SPRITE_HEIGHT,
-                          ready)) {
-        show_buffed_toggle[kind] = !show_buffed_toggle[kind];
+    row_text(layout, row_left, row_top + ((button_row_height - layout->row_height) / 2), 2, BLUE_FONT_COLOR,
+             "In the math");
+    imgui_set_cursor_pos(row_left + layout->cost_right - ADVANCED_BUTTON_WIDTH, row_top);
+    if (ui_button("Advanced...", ADVANCED_BUTTON_WIDTH, BUTTON_SPRITE_HEIGHT)) {
+        game_ui_state.show_planner_advanced = true;
     }
-    imgui_pop_id();
-
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, button_row_height);
-
-    /* A weaker cast of your own doesn't replace the buff already on you. */
-    if (ready && show_buffed_toggle[kind] && reading != NULL && buff_state.planned.cast_power[kind] < reading->power) {
-        snprintf(label_text, sizeof(label_text), "Your %s (%d) won't replace the active one (%d)", spell_name,
-                 buff_state.planned.cast_power[kind], reading->power);
-        imgui_set_cursor_pos(row_left + layout->raise_line_indent, imgui_get_cursor_pos_y());
-        imgui_text_colored_32(HINT_GREY_FONT_COLOR, label_text);
-        imgui_set_cursor_pos(row_left, imgui_get_cursor_pos_y());
-    }
 }
 
-static void buffs_block_render(const EnhancedSkillLayout *layout) {
-    int kind;
-    bool any_known = false;
+static void math_line_render(const EnhancedSkillLayout *layout, const char *name) {
+    const float row_left = imgui_get_cursor_pos_x();
+    const float row_top = imgui_get_cursor_pos_y();
 
-    for (kind = 0; kind < BUFF_KIND_COUNT; kind++) any_known = any_known || spell_known(kind);
-    if (!any_known) return;
+    row_text(layout, row_left, row_top, layout->raise_line_indent, GOLD_FONT_COLOR, name);
+    imgui_set_cursor_pos(row_left, row_top);
+    imgui_dummy(layout->column_width, layout->row_height);
+}
+
+static void math_block_render(const EnhancedSkillLayout *layout) {
+    int kind;
+    int card_index;
 
     imgui_dummy(layout->column_width, layout->row_height);
-    section_label_render(layout, "Buffs");
+    math_header_render(layout);
+    if (race_gamemode(okey.race) == 1) math_line_render(layout, "Hard Mode");
     for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
-        if (spell_known(kind)) buff_row_render(layout, kind);
+        if (spell_known(kind) && spell_toggle_on(kind)) {
+            math_line_render(layout, skilltab[spell_skill_position(kind)].name);
+        }
+    }
+    for (card_index = 0; card_index < TAROT_CARD_COUNT; card_index++) {
+        if (tarot_set_has(chosen.tarot_cards, card_index) != 0) math_line_render(layout, planner_card_name(card_index));
     }
 }
 
@@ -1284,7 +1311,7 @@ static void left_column_render(const EnhancedSkillLayout *layout) {
 
     imgui_dummy(layout->column_width, layout->row_height);
     combat_block_render(layout);
-    buffs_block_render(layout);
+    math_block_render(layout);
 
     imgui_dummy(layout->column_width, layout->row_height);
     focus_panel_render(layout);
@@ -1339,6 +1366,7 @@ static void header_render(const EnhancedSkillLayout *layout) {
     imgui_set_cursor_pos(content_right - layout->command_button_width, button_top);
     if (ui_button("Close", layout->command_button_width, BUTTON_SPRITE_HEIGHT)) {
         game_ui_state.show_enhanced_skills = false;
+        game_ui_state.show_planner_advanced = false;
     }
 
     imgui_set_cursor_pos(layout->window_padding, header_top);
@@ -1370,6 +1398,7 @@ void enhanced_skill_window_render(void) {
     const float right_column_left = layout->window_padding + layout->column_width + layout->column_gap;
 
     drop_focus_if_list_changed();
+    load_choices_for_character();
     refresh_buff_state();
 
     imgui_set_next_window_pos(layout->window_position.x, layout->window_position.y);
@@ -1400,4 +1429,7 @@ void enhanced_skill_window_render(void) {
     }
     imgui_end();
     imgui_pop_style_var(4);
+
+    const PlannerAdvancedView advanced_view = build_advanced_view();
+    if (planner_advanced_window_render(&chosen, &advanced_view) != 0) save_choices();
 }
