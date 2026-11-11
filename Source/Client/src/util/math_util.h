@@ -23,3 +23,6 @@ static int min(int first, int second) {
 static int max(int first, int second) {
     return first > second ? first : second;
 }
+static int clamp(int value, int low, int high) {
+    return max(low, min(value, high));
+}
