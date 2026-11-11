@@ -19,28 +19,26 @@
 bool waiting_for_keybind = false;
 
 static ScrollableRegion get_scrollable_region(int x, int y) {
-    if (x > gui_inv_x[0] && x < gui_inv_x[1] && y > gui_inv_y[0] && y < gui_inv_y[1])
-        return INVENTORY;
+    if (x > gui_inv_x[0] && x < gui_inv_x[1] && y > gui_inv_y[0] && y < gui_inv_y[1]) return INVENTORY;
 
-    if (x > gui_skl_names[RECT_X1] && x < gui_skl_names[RECT_X2] + 110 && y > gui_skl_names[RECT_Y1] && y <
-        gui_skl_names[RECT_Y2])
+    if (x > gui_skl_names[RECT_X1] && x < gui_skl_names[RECT_X2] + 110 && y > gui_skl_names[RECT_Y1] &&
+        y < gui_skl_names[RECT_Y2])
         return SKILL_LIST;
 
-    if (game_ui_state.show_waypoints && x > (((1280 / 2) - (320 / 2))) && x < (((1280 / 2) - (320 / 2)) + 280 - 13) && y > (
-            ((736 / 2) - (320 / 2) + 72) + 1) && y < (((736 / 2) - (320 / 2) + 72) + 1 + 280))
+    if (game_ui_state.show_waypoints && x > (((1280 / 2) - (320 / 2))) && x < (((1280 / 2) - (320 / 2)) + 280 - 13) &&
+        y > (((736 / 2) - (320 / 2) + 72) + 1) && y < (((736 / 2) - (320 / 2) + 72) + 1 + 280))
         return WAYPOINT_PAGE;
 
-    if (game_ui_state.open_shop == 112 && x > (((1280 / 2) - (320 / 2))) && x < (((1280 / 2) - (320 / 2)) + 280 - 13) && y > (
-            ((736 / 2) - (320 / 2) + 72) + 1) && y < (((736 / 2) - (320 / 2) + 72) + 1 + 280))
+    if (game_ui_state.open_shop == 112 && x > (((1280 / 2) - (320 / 2))) && x < (((1280 / 2) - (320 / 2)) + 280 - 13) &&
+        y > (((736 / 2) - (320 / 2) + 72) + 1) && y < (((736 / 2) - (320 / 2) + 72) + 1 + 280))
         return DEPOT_PAGE;
 
-    if (game_ui_state.show_options && x > (((1280 / 2) - (320 / 2))) && x < (((1280 / 2) - (320 / 2)) + 280 - 13) && y > (
-            ((736 / 2) - (320 / 2) + 72) + 1) && y < (((736 / 2) - (320 / 2) + 72) + 1 + 280)) {
+    if (game_ui_state.show_options && x > (((1280 / 2) - (320 / 2))) && x < (((1280 / 2) - (320 / 2)) + 280 - 13) &&
+        y > (((736 / 2) - (320 / 2) + 72) + 1) && y < (((736 / 2) - (320 / 2) + 72) + 1 + 280)) {
         return OPTIONS_WINDOW;
     }
 
-    if (x > 973 && x < 1275 && y > 6 && y < 230)
-        return CHAT_HISTORY;
+    if (x > 973 && x < 1275 && y > 6 && y < 230) return CHAT_HISTORY;
 
 
     return NONE;
@@ -173,7 +171,7 @@ static void handle_hotkey(const BindingDescriptor *binding) {
 
         xlog(2, " ");
         xlog(2, "Client Version RC%d.%02d", CLIENT_VERSION.major, CLIENT_VERSION.minor);
-        xlog(2, "Networking Version %d.%02d.%02d",NETWORKING_VERSION >> 16, (NETWORKING_VERSION >> 8) & 255,
+        xlog(2, "Networking Version %d.%02d.%02d", NETWORKING_VERSION >> 16, (NETWORKING_VERSION >> 8) & 255,
              NETWORKING_VERSION & 255);
         xlog(2, "Server Version %d.%02d.%02d", ser_ver >> 16, (ser_ver >> 8) & 255, ser_ver & 255);
         xlog(2, "SDL Version %d.%02d.%02d", info.version.major, info.version.minor, info.version.patch);
@@ -267,7 +265,7 @@ void game_handle_input(const SDL_Event *e) {
                         noshop = QSIZE * 3;
                         closed_window = true;
                     }
-                    if (game_ui_state.show_waypoints ) {
+                    if (game_ui_state.show_waypoints) {
                         game_ui_state.show_waypoints = false;
                         closed_window = true;
                     }
@@ -495,8 +493,7 @@ void game_handle_input(const SDL_Event *e) {
                         say(input);
                     }
                     break;
-                default:
-                    break;
+                default: break;
             }
             break; // End of SDL_KEYDOWN
 
@@ -543,33 +540,25 @@ void game_handle_input(const SDL_Event *e) {
                 case INVENTORY:
                     if (delta < 0 && game_ui_state.inventory_scroll < MAXITEMS - 30)
                         game_ui_state.inventory_scroll += 10;
-                    else if (delta > 0 && game_ui_state.inventory_scroll > 1)
-                        game_ui_state.inventory_scroll -= 10;
+                    else if (delta > 0 && game_ui_state.inventory_scroll > 1) game_ui_state.inventory_scroll -= 10;
                     break;
                 case SKILL_LIST:
-                    if (game_ui_state.hud_mode == HUD_MODE_LIST_OFFENSES || game_ui_state.hud_mode == HUD_MODE_LIST_DEFENSES) {
-                        if (delta < 0 && game_ui_state.meta_scroll < MAX_META_SCROLL)
-                            game_ui_state.meta_scroll++;
-                        else if (delta > 0 && game_ui_state.meta_scroll > 0)
-                            game_ui_state.meta_scroll--;
+                    if (game_ui_state.hud_mode == HUD_MODE_LIST_OFFENSES ||
+                        game_ui_state.hud_mode == HUD_MODE_LIST_DEFENSES) {
+                        if (delta < 0 && game_ui_state.meta_scroll < MAX_META_SCROLL) game_ui_state.meta_scroll++;
+                        else if (delta > 0 && game_ui_state.meta_scroll > 0) game_ui_state.meta_scroll--;
                     } else {
-                        if (delta < 0 && game_ui_state.skill_scroll < MAX_SKILL_SCROLL)
-                            game_ui_state.skill_scroll++;
-                        else if (delta > 0 && game_ui_state.skill_scroll > 0)
-                            game_ui_state.skill_scroll--;
+                        if (delta < 0 && game_ui_state.skill_scroll < MAX_SKILL_SCROLL) game_ui_state.skill_scroll++;
+                        else if (delta > 0 && game_ui_state.skill_scroll > 0) game_ui_state.skill_scroll--;
                     }
                     break;
                 case WAYPOINT_PAGE:
-                    if (delta < 0 && game_ui_state.waypoint_scroll < MAXWPS - 8)
-                        game_ui_state.waypoint_scroll++;
-                    else if (delta > 0 && game_ui_state.waypoint_scroll > 0)
-                        game_ui_state.waypoint_scroll--;
+                    if (delta < 0 && game_ui_state.waypoint_scroll < MAXWPS - 8) game_ui_state.waypoint_scroll++;
+                    else if (delta > 0 && game_ui_state.waypoint_scroll > 0) game_ui_state.waypoint_scroll--;
                     break;
                 case DEPOT_PAGE:
-                    if (delta < 0 && game_ui_state.open_depot_page < 7)
-                        game_ui_state.open_depot_page++;
-                    else if (delta > 0 && game_ui_state.open_depot_page > 0)
-                        game_ui_state.open_depot_page--;
+                    if (delta < 0 && game_ui_state.open_depot_page < 7) game_ui_state.open_depot_page++;
+                    else if (delta > 0 && game_ui_state.open_depot_page > 0) game_ui_state.open_depot_page--;
                     break;
                 case CHAT_HISTORY:
                     if (delta < 0 && logstart > 0) {
