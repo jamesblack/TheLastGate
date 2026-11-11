@@ -1,8 +1,5 @@
 #include "skill_preview.h"
 
-#define NORMAL_ATTRIBUTE_DIVISOR 5
-#define HARD_MODE_ATTRIBUTE_DIVISOR 6
-
 int skill_preview_attribute_divisor(const int is_hard_mode) {
     return is_hard_mode ? HARD_MODE_ATTRIBUTE_DIVISOR : NORMAL_ATTRIBUTE_DIVISOR;
 }

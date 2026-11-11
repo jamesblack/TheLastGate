@@ -54,7 +54,7 @@ static int planned_aptitude(const BuffModelInput *input) {
 }
 
 static int cast_power(const BuffModelInput *input, const int skill_value, const int aptitude) {
-    const int power = min((skill_value + input->spell_bonus) * input->spell_multiplier / 100, 2 * aptitude);
+    const int power = min((skill_value + input->spell_bonus) * input->spell_multiplier / PERCENT_BASE, 2 * aptitude);
     return max(0, power);
 }
 

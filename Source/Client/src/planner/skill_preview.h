@@ -15,6 +15,9 @@
 extern "C" {
 #endif
 
+#define NORMAL_ATTRIBUTE_DIVISOR 5
+#define HARD_MODE_ATTRIBUTE_DIVISOR 6
+
 /* Divisor applied to the attribute sum: 5 normally, 6 in Hard Mode. */
 int skill_preview_attribute_divisor(int is_hard_mode);
 

@@ -8,13 +8,14 @@
  */
 
 #include "game/attributes.h"
+#include "planner/skill_preview.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Largest divisor: no attribute ever needs more points than this to reach the next boundary. */
-#define SKILL_FOCUS_MAX_STEPS 6
+#define SKILL_FOCUS_MAX_STEPS HARD_MODE_ATTRIBUTE_DIVISOR
 /* Marks a point that can't be bought (the stat is capped). */
 #define SKILL_FOCUS_NO_COST (-1)
 
