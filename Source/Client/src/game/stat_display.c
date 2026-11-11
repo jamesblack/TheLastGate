@@ -49,8 +49,8 @@ void get_hp_mana_display_info(const int vital_id, StatDisplayInfo *out) {
 /* Returns true if the skill is always known */
 /* Stealth, Resist, Regen, Rest, Meditate, Immunity */
 static bool is_inherit_skill(int skill_id) {
-    return skill_id == 8 || skill_id == 23 || skill_id == 28 || skill_id == 29 || skill_id == 30 || skill_id == 32 || (
-               skill_id == 44 && IS_SEYAN_DU);
+    return skill_id == 8 || skill_id == 23 || skill_id == 28 || skill_id == 29 || skill_id == 30 || skill_id == 32 ||
+           (skill_id == 44 && IS_SEYAN_DU);
 }
 
 static bool is_alternate(int skill_id) {
@@ -127,8 +127,6 @@ void render_stat_line(const StatDisplayInfo *stat, int x, int y, bool show_base_
         xputtext(x + 140, y, stat->text_color, "%3d", stat->current_value);
     }
     render_putc(x + 163, y, g_config.ui.cost_helper && stat->raise_icon != '+' ? 2 : 1, stat->raise_icon);
-    if (stat->can_lower)
-        render_putc(x + 177, y, 1, '-');
-    if (stat->cost_to_raise != HIGH_VAL && stat->base_value > 0)
-        xputtext(x + 189, y, 1, "%7d", stat->cost_to_raise);
+    if (stat->can_lower) render_putc(x + 177, y, 1, '-');
+    if (stat->cost_to_raise != HIGH_VAL && stat->base_value > 0) xputtext(x + 189, y, 1, "%7d", stat->cost_to_raise);
 }
