@@ -19,12 +19,10 @@
 extern "C" {
 #endif
 
-#define BUFF_MODEL_SKILL_ATTRIBUTES 3
-
 typedef struct {
     int server_total; /* the skill's value as the server sends it */
     int planned; /* points planned for the skill itself */
-    int attribute_ids[BUFF_MODEL_SKILL_ATTRIBUTES]; /* -1 marks an unused slot */
+    int attribute_ids[ATTRIBUTES_PER_SKILL]; /* -1 marks an unused slot */
 } BuffModelSkill;
 
 typedef struct {

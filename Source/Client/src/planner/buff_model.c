@@ -26,7 +26,7 @@ static int attribute_sum(const BuffModelSkill *skill, const int attributes[ATTRI
     int slot;
     int total = 0;
 
-    for (slot = 0; slot < BUFF_MODEL_SKILL_ATTRIBUTES; slot++) {
+    for (slot = 0; slot < ATTRIBUTES_PER_SKILL; slot++) {
         const int attribute_id = skill->attribute_ids[slot];
         if (attribute_id >= 0 && attribute_id < ATTRIBUTE_COUNT) total += attributes[attribute_id];
     }

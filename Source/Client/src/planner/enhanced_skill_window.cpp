@@ -155,7 +155,7 @@ static BuffModelSkill model_skill_for(const int skill_position, const int planne
 
     skill.server_total = sk_score(skill_entry->nr);
     skill.planned = planned;
-    for (attribute_slot = 0; attribute_slot < BUFF_MODEL_SKILL_ATTRIBUTES; attribute_slot++) {
+    for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
         /* attrib is a signed char where -1 marks an unused slot. */
         // NOLINTNEXTLINE(bugprone-signed-char-misuse)
         const int attribute_id = (int) skill_entry->attrib[attribute_slot];
@@ -232,12 +232,12 @@ static StatRowView build_vital_row(const char *name, const int current, const in
 static StatRowView build_skill_row(const int skill_position, const int attribute_divisor) {
     const struct skilltab *skill_entry = &skilltab[skill_position];
     const int raise_index = STAT_RAISE_SKILL_BASE + skill_position;
-    int attribute_values[SKILL_PREVIEW_ATTRIBUTE_COUNT];
-    int attribute_raises[SKILL_PREVIEW_ATTRIBUTE_COUNT];
+    int attribute_values[ATTRIBUTES_PER_SKILL];
+    int attribute_raises[ATTRIBUTES_PER_SKILL];
     StatRowView row_view = {0};
     int attribute_slot;
 
-    for (attribute_slot = 0; attribute_slot < SKILL_PREVIEW_ATTRIBUTE_COUNT; attribute_slot++) {
+    for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
         /* attrib is a signed char where -1 marks an unused slot. */
         // NOLINTNEXTLINE(bugprone-signed-char-misuse)
         const int attribute_id = (int) skill_entry->attrib[attribute_slot];
@@ -858,7 +858,7 @@ static SkillFocusInput build_focus_input(const int skill_position) {
     int slot_index;
     int step_index;
 
-    for (slot_index = 0; slot_index < SKILL_FOCUS_SLOT_COUNT; slot_index++) {
+    for (slot_index = 0; slot_index < ATTRIBUTES_PER_SKILL; slot_index++) {
         /* attrib is a signed char where -1 marks an unused slot. */
         // NOLINTNEXTLINE(bugprone-signed-char-misuse)
         const int attribute_id = (int) skill_entry->attrib[slot_index];
@@ -900,8 +900,8 @@ static void panel_row_render(const EnhancedSkillLayout *layout, const float labe
 }
 
 static void plan_suggestion(const SkillFocusSuggestion *suggestion, const int skill_position) {
-    int raise_indices[SKILL_FOCUS_SLOT_COUNT];
-    int point_counts[SKILL_FOCUS_SLOT_COUNT];
+    int raise_indices[ATTRIBUTES_PER_SKILL];
+    int point_counts[ATTRIBUTES_PER_SKILL];
     int entry_count = 0;
     int raise_number;
 
@@ -941,7 +941,7 @@ static void add_buff_candidate(BuffFocusInput *input, const int raise_index, con
 static void add_skill_attribute_candidates(BuffFocusInput *input, const BuffModelSkill *skill) {
     int attribute_slot;
 
-    for (attribute_slot = 0; attribute_slot < BUFF_MODEL_SKILL_ATTRIBUTES; attribute_slot++) {
+    for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
         add_buff_candidate(input, skill->attribute_ids[attribute_slot], SKILL_FOCUS_MAX_STEPS);
     }
 }

@@ -9,20 +9,20 @@
  * tests.
  */
 
+#include "game/attributes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define SKILL_PREVIEW_ATTRIBUTE_COUNT 3
 
 /* Divisor applied to the attribute sum: 5 normally, 6 in Hard Mode. */
 int skill_preview_attribute_divisor(int is_hard_mode);
 
 /* Extra skill points the planned raises give on top of the current attribute share. */
-int skill_preview_attribute_gain(const int attribute_values[SKILL_PREVIEW_ATTRIBUTE_COUNT],
-                                 const int attribute_raises[SKILL_PREVIEW_ATTRIBUTE_COUNT], int divisor);
+int skill_preview_attribute_gain(const int attribute_values[ATTRIBUTES_PER_SKILL],
+                                 const int attribute_raises[ATTRIBUTES_PER_SKILL], int divisor);
 
-int skill_preview_uses_raised_attribute(const int attribute_raises[SKILL_PREVIEW_ATTRIBUTE_COUNT]);
+int skill_preview_uses_raised_attribute(const int attribute_raises[ATTRIBUTES_PER_SKILL]);
 
 #ifdef __cplusplus
 }

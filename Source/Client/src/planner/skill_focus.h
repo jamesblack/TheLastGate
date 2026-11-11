@@ -7,21 +7,22 @@
  * built into the unit tests; the caller supplies every value and cost.
  */
 
+#include "game/attributes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define SKILL_FOCUS_SLOT_COUNT 3
 /* Largest divisor: no attribute ever needs more points than this to reach the next boundary. */
 #define SKILL_FOCUS_MAX_STEPS 6
 /* Marks a point that can't be bought (the stat is capped). */
 #define SKILL_FOCUS_NO_COST (-1)
 
 typedef struct {
-    int attribute_ids[SKILL_FOCUS_SLOT_COUNT]; /* -1 marks an unused slot */
-    int attribute_values[SKILL_FOCUS_SLOT_COUNT]; /* values the preview sums, planned raises included */
+    int attribute_ids[ATTRIBUTES_PER_SKILL]; /* -1 marks an unused slot */
+    int attribute_values[ATTRIBUTES_PER_SKILL]; /* values the preview sums, planned raises included */
     /* Cost of the 1st..6th extra point of each slot's attribute. A repeated attribute uses its first slot's costs. */
-    int attribute_step_costs[SKILL_FOCUS_SLOT_COUNT][SKILL_FOCUS_MAX_STEPS];
+    int attribute_step_costs[ATTRIBUTES_PER_SKILL][SKILL_FOCUS_MAX_STEPS];
     int divisor;
     int direct_cost; /* SKILL_FOCUS_NO_COST when the skill itself is capped */
 } SkillFocusInput;
@@ -36,7 +37,7 @@ typedef struct {
     int available;
     int total_cost;
     int raise_count; /* 0 for the direct route */
-    SkillFocusRaise raises[SKILL_FOCUS_SLOT_COUNT]; /* ordered by attribute id, ascending */
+    SkillFocusRaise raises[ATTRIBUTES_PER_SKILL]; /* ordered by attribute id, ascending */
 } SkillFocusRoute;
 
 typedef struct {

@@ -25,7 +25,7 @@ static SkillFocusInput make_input(const int first_id, const int second_id, const
     input.attribute_ids[0] = first_id;
     input.attribute_ids[1] = second_id;
     input.attribute_ids[2] = third_id;
-    for (slot_index = 0; slot_index < SKILL_FOCUS_SLOT_COUNT; slot_index++) {
+    for (slot_index = 0; slot_index < ATTRIBUTES_PER_SKILL; slot_index++) {
         input.attribute_values[slot_index] = 0;
         for (step_index = 0; step_index < SKILL_FOCUS_MAX_STEPS; step_index++) {
             input.attribute_step_costs[slot_index][step_index] = 100;
@@ -101,7 +101,7 @@ static void test_on_boundary_needs_full_step(void) {
     int step_index;
 
     set_values(&input, 15, 15, 15);
-    for (slot_index = 0; slot_index < SKILL_FOCUS_SLOT_COUNT; slot_index++) {
+    for (slot_index = 0; slot_index < ATTRIBUTES_PER_SKILL; slot_index++) {
         for (step_index = 0; step_index < SKILL_FOCUS_MAX_STEPS; step_index++) {
             input.attribute_step_costs[slot_index][step_index] = 10;
         }
@@ -170,7 +170,7 @@ static void make_all_capped(SkillFocusInput *input) {
     int slot_index;
     int step_index;
 
-    for (slot_index = 0; slot_index < SKILL_FOCUS_SLOT_COUNT; slot_index++) {
+    for (slot_index = 0; slot_index < ATTRIBUTES_PER_SKILL; slot_index++) {
         for (step_index = 0; step_index < SKILL_FOCUS_MAX_STEPS; step_index++) {
             input->attribute_step_costs[slot_index][step_index] = SKILL_FOCUS_NO_COST;
         }
@@ -221,7 +221,7 @@ static void test_hard_mode_divisor(void) {
     int step_index;
 
     set_values(&input, 12, 12, 12);
-    for (slot_index = 0; slot_index < SKILL_FOCUS_SLOT_COUNT; slot_index++) {
+    for (slot_index = 0; slot_index < ATTRIBUTES_PER_SKILL; slot_index++) {
         for (step_index = 0; step_index < SKILL_FOCUS_MAX_STEPS; step_index++) {
             input.attribute_step_costs[slot_index][step_index] = 10;
         }

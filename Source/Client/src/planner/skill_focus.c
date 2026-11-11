@@ -11,12 +11,11 @@ typedef struct {
     const int *step_costs;
 } DistinctAttribute;
 
-static int collect_distinct_attributes(const SkillFocusInput *input,
-                                       DistinctAttribute distinct[SKILL_FOCUS_SLOT_COUNT]) {
+static int collect_distinct_attributes(const SkillFocusInput *input, DistinctAttribute distinct[ATTRIBUTES_PER_SKILL]) {
     int distinct_count = 0;
     int slot_index;
 
-    for (slot_index = 0; slot_index < SKILL_FOCUS_SLOT_COUNT; slot_index++) {
+    for (slot_index = 0; slot_index < ATTRIBUTES_PER_SKILL; slot_index++) {
         const int attribute_id = input->attribute_ids[slot_index];
         int known_index;
         int insert_index;
@@ -58,11 +57,11 @@ static int prefix_cost(const int *step_costs, const int point_count) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static SkillFocusRoute cheapest_attribute_route(const SkillFocusInput *input) {
-    DistinctAttribute distinct[SKILL_FOCUS_SLOT_COUNT];
+    DistinctAttribute distinct[ATTRIBUTES_PER_SKILL];
     const int distinct_count = collect_distinct_attributes(input, distinct);
     const int max_points = min(input->divisor, SKILL_FOCUS_MAX_STEPS);
-    int point_counts[SKILL_FOCUS_SLOT_COUNT] = {0, 0, 0};
-    int best_counts[SKILL_FOCUS_SLOT_COUNT] = {0, 0, 0};
+    int point_counts[ATTRIBUTES_PER_SKILL] = {0, 0, 0};
+    int best_counts[ATTRIBUTES_PER_SKILL] = {0, 0, 0};
     int best_cost = SKILL_FOCUS_NO_COST;
     int best_points = 0;
     int attribute_sum = 0;
@@ -73,7 +72,7 @@ static SkillFocusRoute cheapest_attribute_route(const SkillFocusInput *input) {
     memset(&route, 0, sizeof(route));
     if (distinct_count == 0 || input->divisor <= 0) return route;
 
-    for (slot_index = 0; slot_index < SKILL_FOCUS_SLOT_COUNT; slot_index++) {
+    for (slot_index = 0; slot_index < ATTRIBUTES_PER_SKILL; slot_index++) {
         if (input->attribute_ids[slot_index] >= 0) attribute_sum += input->attribute_values[slot_index];
     }
     needed = input->divisor - (attribute_sum % input->divisor);
