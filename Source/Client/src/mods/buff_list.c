@@ -1,11 +1,11 @@
 #include "buff_list.h"
 
-#include <stdlib.h>
 #include <string.h>
+
+#include "util/string_util.h"
 
 #define POWER_MARKER " power of "
 #define BONUS_PREFIX " : "
-#define DECIMAL_BASE 10
 
 static const char *const BUFF_NAMES[BUFF_KIND_COUNT] = {"Bless", "Enhance", "Protect"};
 
@@ -25,11 +25,6 @@ void buff_list_parser_start(BuffListParser *parser) {
     parser->current_kind = BUFF_KIND_NONE;
 }
 
-static int is_blank(const char *text) {
-    while (*text == ' ') text++;
-    return *text == 0;
-}
-
 /* "<Name> power of N": sets the current buff, or clears it for a buff that isn't kept. */
 static int read_power_line(BuffListParser *parser, const char *text) {
     const char *marker = strstr(text, POWER_MARKER);
@@ -41,9 +36,11 @@ static int read_power_line(BuffListParser *parser, const char *text) {
     for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
         if (strlen(BUFF_NAMES[kind]) == name_length && strncmp(text, BUFF_NAMES[kind], name_length) == 0) {
             BuffReading *reading = &parser->readings[kind];
+            const char *cursor = marker + strlen(POWER_MARKER);
+
             memset(reading, 0, sizeof(*reading));
             reading->known = 1;
-            reading->power = (int) strtol(marker + strlen(POWER_MARKER), NULL, DECIMAL_BASE);
+            read_int(&cursor, &reading->power);
             parser->current_kind = kind;
         }
     }
@@ -53,15 +50,16 @@ static int read_power_line(BuffListParser *parser, const char *text) {
 /* " : +N <stat>" under the current buff. */
 static void read_bonus_line(BuffListParser *parser, const char *text) {
     BuffReading *reading;
-    char *stat_name;
+    const char *cursor;
+    const char *stat_name;
     int amount;
     int attribute_id;
 
     if (parser->current_kind == BUFF_KIND_NONE) return;
-    if (strncmp(text, BONUS_PREFIX, strlen(BONUS_PREFIX)) != 0) return;
-    amount = (int) strtol(text + strlen(BONUS_PREFIX), &stat_name, DECIMAL_BASE);
-    if (*stat_name != ' ') return;
-    stat_name++;
+    if (!starts_with(text, BONUS_PREFIX)) return;
+    cursor = text + strlen(BONUS_PREFIX);
+    if (!read_int(&cursor, &amount) || *cursor != ' ') return;
+    stat_name = cursor + 1;
 
     reading = &parser->readings[parser->current_kind];
     for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
