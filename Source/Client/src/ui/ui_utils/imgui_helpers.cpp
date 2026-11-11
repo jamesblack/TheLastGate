@@ -10,12 +10,8 @@ void imgui_draw_sprite(ImDrawList *draw_list, const SpriteData *data, const ImVe
     if (!data->loaded_in_atlas) return;
 
     const ImTextureID texture = data->atlas_texture;
-    draw_list->AddImage(texture,
-                        position,
-                        ImVec2(position.x + data->pixel_width, position.y + data->pixel_height),
-                        ImVec2(data->uv0.u, data->uv0.v),
-                        ImVec2(data->uv1.u, data->uv1.v),
-                        WHITE_TINT);
+    draw_list->AddImage(texture, position, ImVec2(position.x + data->pixel_width, position.y + data->pixel_height),
+                        ImVec2(data->uv0.u, data->uv0.v), ImVec2(data->uv1.u, data->uv1.v), WHITE_TINT);
 }
 
 void imgui_center_next_item(const float item_width) {
