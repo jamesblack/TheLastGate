@@ -50,7 +50,7 @@ static const OptionWindowLayout LAYOUT = {
     .keybind_cell_padding = {2, 2},
     .keybind_button_size = {80, 20},
     .keybind_reset_button_size = {52, 20},
-    .keybind_reset_all_button_size = {200, 20}
+    .keybind_reset_all_button_size = {200, 20},
 };
 
 static const OptionWindowLayout *get_layout(void) {
@@ -59,8 +59,8 @@ static const OptionWindowLayout *get_layout(void) {
 
 static float get_table_width(const OptionWindowLayout *layout) {
     const float cell_count = 3;
-    return layout->keybind_cell_padding.x * cell_count * 2 + layout->keybind_label_width + layout->
-           keybind_reset_button_size.x + layout->keybind_button_size.x;
+    return layout->keybind_cell_padding.x * cell_count * 2 + layout->keybind_label_width +
+           layout->keybind_reset_button_size.x + layout->keybind_button_size.x;
 }
 
 bool is_resetting_keybinds = false;
@@ -158,9 +158,9 @@ static bool keybind_label(const OptionWindowLayout *layout, const char *label, B
 
             /* Build modifier flags */
             KeybindModifier mod_flags = KEYBIND_MOD_NONE;
-            if (has_shift) mod_flags = (KeybindModifier)(mod_flags | KEYBIND_MOD_SHIFT);
-            if (has_ctrl) mod_flags = (KeybindModifier)(mod_flags | KEYBIND_MOD_CTRL);
-            if (has_alt) mod_flags = (KeybindModifier)(mod_flags | KEYBIND_MOD_ALT);
+            if (has_shift) mod_flags = (KeybindModifier) (mod_flags | KEYBIND_MOD_SHIFT);
+            if (has_ctrl) mod_flags = (KeybindModifier) (mod_flags | KEYBIND_MOD_CTRL);
+            if (has_alt) mod_flags = (KeybindModifier) (mod_flags | KEYBIND_MOD_ALT);
 
             /* Check for any key press (except ESC, DELETE, and ENTER) */
             int i;
@@ -187,11 +187,9 @@ static bool keybind_label(const OptionWindowLayout *layout, const char *label, B
 
             /* Check arrow keys and other special keys */
             if (pressed_key == SDLK_UNKNOWN) {
-                SDL_Keycode special_keys[] = {
-                    SDLK_TAB, SDLK_BACKSPACE, SDLK_INSERT,
-                    SDLK_HOME, SDLK_END, SDLK_PAGEUP, SDLK_PAGEDOWN,
-                    SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT
-                };
+                SDL_Keycode special_keys[] = {SDLK_TAB,  SDLK_BACKSPACE, SDLK_INSERT,   SDLK_HOME,
+                                              SDLK_END,  SDLK_PAGEUP,    SDLK_PAGEDOWN, SDLK_UP,
+                                              SDLK_DOWN, SDLK_LEFT,      SDLK_RIGHT};
                 int num_special_keys = sizeof(special_keys) / sizeof(special_keys[0]);
                 for (i = 0; i < num_special_keys; i++) {
                     if (imgui_is_key_pressed(special_keys[i])) {
@@ -299,8 +297,7 @@ static void general_settings_tab() {
 
     push_checkbox_style();
     /* Checkmark */
-    togglable_option("##1", &g_config.ui.escape_closes_menu_first,
-                     "Escape closes windows before canceling movement.");
+    togglable_option("##1", &g_config.ui.escape_closes_menu_first, "Escape closes windows before canceling movement.");
     togglable_option("##2", &g_config.ui.cost_helper, "Show attribute (B,W,I,A,S) when cheaper than the skill.");
     togglable_option("##3", &g_config.gameplay.give_more,
                      "Holding shift when giving an item will attempt to reload that item.");
@@ -308,8 +305,7 @@ static void general_settings_tab() {
                      "Holding ctrl when issuing using will queue that use. Limit 5");
     togglable_option("##5", &g_config.ui.enter_to_talk,
                      "Press Enter to activate chat mode before typing. Press Enter again to send, or ESC to cancel.");
-    togglable_option("##11", &g_config.ui.expanded_quick_stats,
-                     "Show Hit/Parry Score with Weapon/Armor value.");
+    togglable_option("##11", &g_config.ui.expanded_quick_stats, "Show Hit/Parry Score with Weapon/Armor value.");
     togglable_option("##12", &g_config.ui.skill_planner,
                      "Enable the skill planner: the Planner button below the skill list and its hotkey.");
     togglable_option(
@@ -329,7 +325,7 @@ static void general_settings_tab() {
     imgui_pop_style_color(1);
     if (imgui_is_item_hovered()) {
         ui_tooltip(
-            "Actions that are interrupted will be retried, up to 10 times, until they succeed. Progress will reset attempts.");
+                "Actions that are interrupted will be retried, up to 10 times, until they succeed. Progress will reset attempts.");
     }
     imgui_spacing();
     togglable_option("##6", &g_config.gameplay.stubborn_use, "Stubborn Use");
@@ -371,21 +367,12 @@ static void keybind_settings_tab(const OptionWindowLayout *layout) {
     int keybind_id = 0;
     float text_width;
     BindingCategory categories[] = {
-        BINDING_CATEGORY_SPELL,
-        BINDING_CATEGORY_SPEED,
-        BINDING_CATEGORY_WORLD,
-        BINDING_CATEGORY_WINDOW,
-        BINDING_CATEGORY_GENERAL,
-        BINDING_CATEGORY_GC
+        BINDING_CATEGORY_SPELL,  BINDING_CATEGORY_SPEED,   BINDING_CATEGORY_WORLD,
+        BINDING_CATEGORY_WINDOW, BINDING_CATEGORY_GENERAL, BINDING_CATEGORY_GC,
     };
 
     const char *category_names[] = {
-        "Spell Hotkeys",
-        "Speed Hotkeys",
-        "World Hotkeys",
-        "Window Hotkeys",
-        "General Hotkeys",
-        "GC Commands"
+        "Spell Hotkeys", "Speed Hotkeys", "World Hotkeys", "Window Hotkeys", "General Hotkeys", "GC Commands",
     };
 
     int num_categories = sizeof(categories) / sizeof(categories[0]);
@@ -466,8 +453,8 @@ void options_window_render() {
     float button_spacing = get_button_spacing(layout);
     if (imgui_begin("Options Window", NULL,
                     IMGUI_WINDOW_FLAG_NO_COLLAPSE | IMGUI_WINDOW_FLAG_NO_MOVE | IMGUI_WINDOW_FLAG_NO_RESIZE |
-                    IMGUI_WINDOW_FLAG_NO_TITLE_BAR | IMGUI_WINDOW_FLAG_NO_SCROLLBAR |
-                    IMGUI_WINDOW_FLAG_NO_SCROLL_WITH_MOUSE)) {
+                            IMGUI_WINDOW_FLAG_NO_TITLE_BAR | IMGUI_WINDOW_FLAG_NO_SCROLLBAR |
+                            IMGUI_WINDOW_FLAG_NO_SCROLL_WITH_MOUSE)) {
         /* Custom tab buttons - fixed at top */
         if (tab_button("General", active_tab == 0, layout->tab_button_size.x)) {
             active_tab = 0;
