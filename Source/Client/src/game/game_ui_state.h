@@ -33,6 +33,7 @@ typedef struct {
     bool show_waypoints;
     bool show_options;
     bool show_enhanced_skills;
+    bool show_planner_advanced;
     bool show_motd;
     bool show_new_player;
 

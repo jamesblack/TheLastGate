@@ -269,6 +269,10 @@ void game_handle_input(const SDL_Event *e) {
                         game_ui_state.show_waypoints = false;
                         closed_window = true;
                     }
+                    if (game_ui_state.show_planner_advanced) {
+                        game_ui_state.show_planner_advanced = false;
+                        closed_window = true;
+                    }
                     if (game_ui_state.show_enhanced_skills) {
                         game_ui_state.show_enhanced_skills = false;
                         closed_window = true;
