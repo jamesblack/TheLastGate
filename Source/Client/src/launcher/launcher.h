@@ -55,7 +55,7 @@ void launcher_init(void);
 void launcher_shutdown(void);
 void launcher_tick(void);
 void launcher_connect(void);
-void launcher_set_fyi(const char* text);
+void launcher_set_fyi(const char *text);
 const char *launcher_server_label(void);
 void launcher_clear_saved_map(void);
 EXTERN_C_END
