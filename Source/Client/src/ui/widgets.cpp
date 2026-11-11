@@ -3,6 +3,7 @@
 #include <imgui.h>
 
 #include "imgui/imgui_wrapper.h"
+#include "launcher_ui.hpp"
 #include "ui_common.hpp"
 #include "graphics/sdl.h"
 #include "config/keybindings.h"
@@ -195,34 +196,33 @@ typedef struct {
 
 /* Parchment box with black text and a purple-red list. */
 static constexpr DropdownPalette LAUNCHER_DROPDOWN_PALETTE = {
-    .box_text = 0xFF000000,
-    .border = 0xFF446A75,
-    .box_background = 0xFFAFD8E9,
-    .box_background_hovered = 0xFF71B6D8,
-    .box_background_active = 0xFF509FCF,
-    .list_background = 0xFF210004,
-    .selected = 0xFF7F434C,
-    .hovered = 0xFF6F4046,
-    .active = 0x7F412529,
+    .box_text = LAUNCHER_BLACK_COLOR,
+    .border = LAUNCHER_BORDER_COLOR,
+    .box_background = LAUNCHER_BEIGE_COLOR,
+    .box_background_hovered = LAUNCHER_BEIGE_HOVERED_COLOR,
+    .box_background_active = LAUNCHER_BEIGE_ACTIVE_COLOR,
+    .list_background = LAUNCHER_INNER_WINDOW_COLOR,
+    .selected = LAUNCHER_DROPDOWN_SELECTED_COLOR,
+    .hovered = LAUNCHER_DROPDOWN_HIGHLIGHT_COLOR,
+    .active = LAUNCHER_DROPDOWN_ACTIVE_COLOR,
     .border_size = 2,
 };
 
 /* Gold text on dark red with a thin gold-brown edge, like the HUD's Update button. */
 static constexpr DropdownPalette GAME_DROPDOWN_PALETTE = {
-    .box_text = 0xFF6ADBF3,
-    .border = 0xFF086276,
-    .box_background = 0xFF02022D,
-    .box_background_hovered = 0xFF020247,
-    .box_background_active = 0xFF03035C,
-    .list_background = 0xFF02021E,
-    .selected = 0xFF0A146E,
-    .hovered = 0xFF080F5A,
-    .active = 0xFF03035C,
+    .box_text = GOLD_FONT_COLOR,
+    .border = color_rgb(118, 98, 8),
+    .box_background = color_rgb(45, 2, 2),
+    .box_background_hovered = color_rgb(71, 2, 2),
+    .box_background_active = color_rgb(92, 3, 3),
+    .list_background = color_rgb(30, 2, 2),
+    .selected = color_rgb(110, 20, 10),
+    .hovered = color_rgb(90, 15, 8),
+    .active = color_rgb(92, 3, 3),
     .border_size = 1,
 };
 
 /* Options and descriptions are gold in every look. */
-static constexpr ImU32 DROPDOWN_GOLD_TEXT_COLOR = 0xFF6ADBF3;
 static constexpr ImVec2 DROPDOWN_LIST_PADDING = ImVec2(4, 4);
 static constexpr float DROPDOWN_DESCRIPTION_WRAP_FONT_SIZES = 25.0F;
 /* Spacing the dropdown sets for itself, so a window's own spacing doesn't squash it. */
@@ -237,7 +237,7 @@ static void dropdown_description_render(const char *description) {
         return;
     }
 
-    ImGui::PushStyleColor(ImGuiCol_Text, DROPDOWN_GOLD_TEXT_COLOR);
+    ImGui::PushStyleColor(ImGuiCol_Text, GOLD_FONT_COLOR);
     ImGui::BeginTooltip();
     ImGui::PushTextWrapPos(ImGui::GetFontSize() * DROPDOWN_DESCRIPTION_WRAP_FONT_SIZES);
     ImGui::TextUnformatted(description);
@@ -254,7 +254,7 @@ static bool dropdown_render(const DropdownPalette *palette, const char *id, cons
                                   .Var(ImGuiStyleVar_FramePadding, DROPDOWN_FRAME_PADDING)
                                   .Var(ImGuiStyleVar_ItemSpacing, DROPDOWN_ITEM_SPACING)
                                   .Color(ImGuiCol_PopupBg, palette->list_background)
-                                  .Color(ImGuiCol_Text, DROPDOWN_GOLD_TEXT_COLOR)
+                                  .Color(ImGuiCol_Text, GOLD_FONT_COLOR)
                                   .Build();
 
     auto pop_box_style = ImGuiStyleBuilder()
