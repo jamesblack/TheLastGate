@@ -198,8 +198,7 @@ static const char *get_key_name(SDL_Keycode key) {
         case SDLK_PERIOD: return ".";
         case SDLK_SLASH: return "/";
         case SDLK_BACKQUOTE: return "`";
-        default:
-            return SDL_GetKeyName(key);
+        default: return SDL_GetKeyName(key);
     }
 }
 
