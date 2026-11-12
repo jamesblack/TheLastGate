@@ -449,6 +449,7 @@ void game_handle_input(const SDL_Event *e) {
                     break;
                 case SDLK_RETURN:
                 case SDLK_KP_ENTER:
+                    if (game_ui_state.show_worldmap && worldmap_window_finish_pending_path()) break;
                     if (g_config.ui.enter_to_talk) {
                         if (!chat_mode_active) {
                             chat_mode_active = 1;

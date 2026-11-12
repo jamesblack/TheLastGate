@@ -38,6 +38,7 @@ struct WorldmapPanelState {
     int expanded_category_ids[ANNOTATION_MAX_CATEGORIES];
     int expanded_count;
     WorldmapTool active_tool;
+    bool window_focused;
     bool follow_player;
     bool hovered_tile_valid;
     int hovered_tile_x;
@@ -847,14 +848,6 @@ static void handle_map_input(WorldmapPanelState *panel, AnnotationSet *set, cons
     handle_right_mouse(panel, set, area);
 }
 
-static void handle_line_keys(WorldmapPanelState *panel) {
-    if (panel->active_tool != WORLDMAP_TOOL_LINE || panel->pending_segment_count == 0) return;
-    if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || ImGui::GetIO().WantTextInput) return;
-    if (ImGui::IsKeyPressed(ImGuiKey_Enter, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false)) {
-        request_path_label(panel);
-    }
-}
-
 static bool game_button(const char *text, bool enabled = true, bool pressed = false) {
     const float width = fmaxf((float) BUTTON_SPRITE_WIDTH, ImGui::CalcTextSize(text).x + BUTTON_TEXT_PADDING * 2.0F);
     return ui_game_button(text, text, width, (float) BUTTON_SPRITE_HEIGHT, enabled, pressed);
@@ -1486,11 +1479,12 @@ void worldmap_window_render(void) {
     const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
                                           ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
                                           ImGuiWindowFlags_NoScrollWithMouse;
-    if (ImGui::Begin(WINDOW_TITLE, NULL, window_flags)) {
+    const bool window_visible = ImGui::Begin(WINDOW_TITLE, NULL, window_flags);
+    panel->window_focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+    if (window_visible) {
         frame_current_window();
         render_title_bar(&open);
         ensure_current_category(panel, set);
-        handle_line_keys(panel);
 
         const float bar_height =
                 fmaxf((float) BUTTON_SPRITE_HEIGHT, ImGui::GetFrameHeight()) + ImGui::GetStyle().ItemSpacing.y;
@@ -1529,6 +1523,15 @@ void worldmap_minimap_tooltip_render(void) {
             game_ui_state.minimap_magnification < 1 ? 1 : game_ui_state.minimap_magnification, (int) offset_top,
             (int) offset_left);
     if (pin && pin->label[0] != '\0') ui_tooltip(pin->label);
+}
+
+bool worldmap_window_finish_pending_path(void) {
+    WorldmapPanelState *panel = &panel_state;
+    if (!panel->window_focused || panel->active_tool != WORLDMAP_TOOL_LINE || panel->pending_segment_count == 0) {
+        return false;
+    }
+    request_path_label(panel);
+    return true;
 }
 
 bool worldmap_window_discard_pending_path(void) {

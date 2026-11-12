@@ -10,6 +10,8 @@ void worldmap_window_render(void);
 
 void worldmap_minimap_tooltip_render(void);
 
+bool worldmap_window_finish_pending_path(void);
+
 bool worldmap_window_discard_pending_path(void);
 
 EXTERN_C_END
