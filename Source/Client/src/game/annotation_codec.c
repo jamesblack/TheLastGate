@@ -29,15 +29,15 @@ int byte_buffer_append(ByteBuffer *buffer, const void *bytes, const size_t size)
     return 1;
 }
 
-void annotation_varint_write(ByteBuffer *buffer, unsigned int value) {
+int annotation_varint_write(ByteBuffer *buffer, unsigned int value) {
     unsigned char byte;
     while (value >= 0x80) {
         byte = (unsigned char) (value | 0x80);
-        byte_buffer_append(buffer, &byte, 1);
+        if (!byte_buffer_append(buffer, &byte, 1)) return 0;
         value >>= 7;
     }
     byte = (unsigned char) value;
-    byte_buffer_append(buffer, &byte, 1);
+    return byte_buffer_append(buffer, &byte, 1);
 }
 
 int annotation_varint_read(const unsigned char *bytes, const size_t size, size_t *offset, unsigned int *value) {
@@ -75,18 +75,19 @@ static int write_text(ByteBuffer *buffer, const char *text) {
 }
 
 static int write_point(ByteBuffer *buffer, int *cursor_x, int *cursor_y, const int tile_x, const int tile_y) {
-    const size_t before = buffer->size;
-    annotation_varint_write(buffer, zigzag_encode(tile_x - *cursor_x));
-    annotation_varint_write(buffer, zigzag_encode(tile_y - *cursor_y));
+    if (!annotation_varint_write(buffer, zigzag_encode(tile_x - *cursor_x)) ||
+        !annotation_varint_write(buffer, zigzag_encode(tile_y - *cursor_y))) {
+        return 0;
+    }
     *cursor_x = tile_x;
     *cursor_y = tile_y;
-    return buffer->size > before;
+    return 1;
 }
 
 int annotation_category_encode(const AnnotationCategory *category, ByteBuffer *buffer) {
     int cursor_x = 0, cursor_y = 0, index, segment_index;
     if (!write_text(buffer, category->name) || !write_byte(buffer, (unsigned char) category->colour_index)) return 0;
-    annotation_varint_write(buffer, (unsigned int) category->annotation_count);
+    if (!annotation_varint_write(buffer, (unsigned int) category->annotation_count)) return 0;
     for (index = 0; index < category->annotation_count; index++) {
         const Annotation *annotation = &category->annotations[index];
         if (!write_byte(buffer, (unsigned char) annotation->kind) || !write_text(buffer, annotation->label)) return 0;
@@ -94,7 +95,7 @@ int annotation_category_encode(const AnnotationCategory *category, ByteBuffer *b
             if (!write_point(buffer, &cursor_x, &cursor_y, annotation->tile_x, annotation->tile_y)) return 0;
             continue;
         }
-        annotation_varint_write(buffer, (unsigned int) annotation->segment_count);
+        if (!annotation_varint_write(buffer, (unsigned int) annotation->segment_count)) return 0;
         for (segment_index = 0; segment_index < annotation->segment_count; segment_index++) {
             const AnnotationSegment *segment = &annotation->segments[segment_index];
             if (!write_point(buffer, &cursor_x, &cursor_y, segment->start_x, segment->start_y) ||

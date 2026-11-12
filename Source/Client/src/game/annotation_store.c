@@ -48,7 +48,7 @@ static int build_payload(const AnnotationSet *set, ByteBuffer *payload) {
     int index;
 
     if (!byte_buffer_append(payload, &show_byte, 1)) return 0;
-    annotation_varint_write(payload, (unsigned int) set->category_count);
+    if (!annotation_varint_write(payload, (unsigned int) set->category_count)) return 0;
     for (index = 0; index < set->category_count; index++) {
         const unsigned char visible_byte = set->categories[index].visible ? 1 : 0;
         const unsigned char labels_byte = set->categories[index].show_labels ? 1 : 0;
