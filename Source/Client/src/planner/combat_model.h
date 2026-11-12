@@ -75,8 +75,22 @@ typedef struct {
     int armor;
 } CombatValues;
 
+typedef enum {
+    COMBAT_STAT_HIT,
+    COMBAT_STAT_PARRY,
+    COMBAT_STAT_WEAPON,
+    COMBAT_STAT_ARMOR,
+    COMBAT_STAT_COUNT,
+} CombatStat;
+
 extern const char *const COMBAT_WEAPON_NAMES[COMBAT_WEAPON_COUNT];
 extern const char *const COMBAT_OFFHAND_NAMES[COMBAT_OFFHAND_COUNT];
+extern const char *const COMBAT_STAT_NAMES[COMBAT_STAT_COUNT];
+
+int combat_model_stat_value(const CombatValues *values, CombatStat stat);
+
+/* Marks the known skills whose value can move the stat with the chosen weapon, off-hand and race. */
+void combat_model_skills_affecting(const CombatModelInput *input, CombatStat stat, int affects[COMBAT_SKILL_COUNT]);
 
 /* The weapon of the highest known weapon skill; Unarmed when none is known. */
 CombatWeapon combat_model_default_weapon(const int known[COMBAT_SKILL_COUNT], const int current[COMBAT_SKILL_COUNT]);

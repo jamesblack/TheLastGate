@@ -220,6 +220,44 @@ static void test_ferocity(void) {
     CHECK(result.armor == 20);
 }
 
+static void test_skills_affecting_hit_and_parry(void) {
+    CombatModelInput input = fixture();
+    int affects[COMBAT_SKILL_COUNT];
+
+    input.weapon = COMBAT_WEAPON_SPEAR;
+    input.offhand = COMBAT_OFFHAND_DUAL;
+    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, affects);
+    CHECK(affects[COMBAT_SKILL_DAGGER] && affects[COMBAT_SKILL_STAFF] && affects[COMBAT_SKILL_TACTICS]);
+    CHECK(affects[COMBAT_SKILL_DUAL]);
+    CHECK(!affects[COMBAT_SKILL_SWORD] && !affects[COMBAT_SKILL_SHIELD] && !affects[COMBAT_SKILL_GEARMAST]);
+
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, affects);
+    CHECK(!affects[COMBAT_SKILL_DUAL]);
+
+    input.offhand = COMBAT_OFFHAND_SHIELD;
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, affects);
+    CHECK(affects[COMBAT_SKILL_SHIELD]);
+
+    input.known[COMBAT_SKILL_TACTICS] = 0;
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, affects);
+    CHECK(!affects[COMBAT_SKILL_TACTICS]);
+}
+
+static void test_skills_affecting_weapon_and_armor(void) {
+    CombatModelInput input = fixture();
+    int affects[COMBAT_SKILL_COUNT];
+
+    input.weapon = COMBAT_WEAPON_UNARMED;
+    combat_model_skills_affecting(&input, COMBAT_STAT_WEAPON, affects);
+    CHECK(affects[COMBAT_SKILL_GEARMAST] && affects[COMBAT_SKILL_HAND]);
+    CHECK(!affects[COMBAT_SKILL_FEROCITY] && !affects[COMBAT_SKILL_TACTICS]);
+
+    input.lycan = 1;
+    combat_model_skills_affecting(&input, COMBAT_STAT_ARMOR, affects);
+    CHECK(affects[COMBAT_SKILL_GEARMAST] && affects[COMBAT_SKILL_FEROCITY]);
+    CHECK(!affects[COMBAT_SKILL_HAND]);
+}
+
 int main(void) {
     test_default_weapon_highest_known();
     test_default_weapon_none_known();
@@ -235,6 +273,8 @@ int main(void) {
     test_gear_mastery_divisors();
     test_hand_unarmed_weapon_value();
     test_ferocity();
+    test_skills_affecting_hit_and_parry();
+    test_skills_affecting_weapon_and_armor();
 
     if (failures != 0) {
         printf("%d check(s) failed\n", failures);

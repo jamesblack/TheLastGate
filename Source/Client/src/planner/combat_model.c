@@ -17,6 +17,8 @@ const char *const COMBAT_WEAPON_NAMES[COMBAT_WEAPON_COUNT] = {
 
 const char *const COMBAT_OFFHAND_NAMES[COMBAT_OFFHAND_COUNT] = {"None", "Shield", "Dual Wield"};
 
+const char *const COMBAT_STAT_NAMES[COMBAT_STAT_COUNT] = {"Hit Score", "Parry Score", "Weapon Value", "Armor Value"};
+
 /* Weapon skills a default can come from, with the weapon each one stands for; ties go to the earlier. */
 static const struct {
     CombatSkill skill_id;
@@ -143,4 +145,61 @@ void combat_model_compute(const CombatModelInput *input, CombatValues *result) {
     result->parry = clamp(parry, 0, COMBAT_STAT_MAX);
     result->weapon = clamp(weapon, 0, COMBAT_STAT_MAX);
     result->armor = clamp(armor, 0, COMBAT_STAT_MAX);
+}
+
+int combat_model_stat_value(const CombatValues *values, const CombatStat stat) {
+    switch (stat) {
+        case COMBAT_STAT_HIT: return values->hit;
+        case COMBAT_STAT_PARRY: return values->parry;
+        case COMBAT_STAT_WEAPON: return values->weapon;
+        case COMBAT_STAT_ARMOR: return values->armor;
+        default: return 0;
+    }
+}
+
+static void mark_weapon_skills(const CombatWeapon weapon, int affects[COMBAT_SKILL_COUNT]) {
+    switch (weapon) {
+        case COMBAT_WEAPON_DAGGER: affects[COMBAT_SKILL_DAGGER] = 1; break;
+        case COMBAT_WEAPON_SWORD: affects[COMBAT_SKILL_SWORD] = 1; break;
+        case COMBAT_WEAPON_AXE: affects[COMBAT_SKILL_AXE] = 1; break;
+        case COMBAT_WEAPON_STAFF: affects[COMBAT_SKILL_STAFF] = 1; break;
+        case COMBAT_WEAPON_TWOHAND: affects[COMBAT_SKILL_TWOHAND] = 1; break;
+        case COMBAT_WEAPON_SPEAR:
+            affects[COMBAT_SKILL_DAGGER] = 1;
+            affects[COMBAT_SKILL_STAFF] = 1;
+            break;
+        case COMBAT_WEAPON_GREATAXE:
+            affects[COMBAT_SKILL_AXE] = 1;
+            affects[COMBAT_SKILL_TWOHAND] = 1;
+            break;
+        default: affects[COMBAT_SKILL_HAND] = 1; break;
+    }
+}
+
+void combat_model_skills_affecting(const CombatModelInput *input, const CombatStat stat,
+                                   int affects[COMBAT_SKILL_COUNT]) {
+    int skill_id;
+
+    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) affects[skill_id] = 0;
+    switch (stat) {
+        case COMBAT_STAT_HIT:
+        case COMBAT_STAT_PARRY:
+            mark_weapon_skills(input->weapon, affects);
+            affects[COMBAT_SKILL_TACTICS] = 1;
+            if (stat == COMBAT_STAT_HIT && input->offhand == COMBAT_OFFHAND_DUAL) affects[COMBAT_SKILL_DUAL] = 1;
+            if (stat == COMBAT_STAT_PARRY && input->offhand == COMBAT_OFFHAND_SHIELD) {
+                affects[COMBAT_SKILL_SHIELD] = 1;
+            }
+            break;
+        case COMBAT_STAT_WEAPON:
+        case COMBAT_STAT_ARMOR:
+            affects[COMBAT_SKILL_GEARMAST] = 1;
+            if (input->lycan) affects[COMBAT_SKILL_FEROCITY] = 1;
+            if (stat == COMBAT_STAT_WEAPON && input->weapon == COMBAT_WEAPON_UNARMED) affects[COMBAT_SKILL_HAND] = 1;
+            break;
+        default: break;
+    }
+    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
+        if (!input->known[skill_id]) affects[skill_id] = 0;
+    }
 }
