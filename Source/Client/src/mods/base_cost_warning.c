@@ -5,6 +5,7 @@
 #include "common.h"
 #include "engine.h"
 #include "inter.h"
+#include "game/game_ui.h"
 
 typedef struct {
     int cost;
@@ -48,9 +49,10 @@ static bool is_spell(int skill_id) {
 
 static AttributeCostResult cost_to_raise_attributes_by_5(const char attributes[3]) {
     int initial_values[5] = {pl.attrib[0][0], pl.attrib[1][0], pl.attrib[2][0], pl.attrib[3][0], pl.attrib[4][0]};
+    const int divisor = game_ui_attribute_divisor();
     int total_cost = 0;
     int startingValue =
-            (initial_values[attributes[0]] + initial_values[attributes[1]] + initial_values[attributes[2]]) / 5;
+            (initial_values[attributes[0]] + initial_values[attributes[1]] + initial_values[attributes[2]]) / divisor;
     int attempts = 0;
 
     while (attempts < 10) {
@@ -72,7 +74,8 @@ static AttributeCostResult cost_to_raise_attributes_by_5(const char attributes[3
         total_cost += cost;
         initial_values[current_attribute] += 1;
         int current_value =
-                (initial_values[attributes[0]] + initial_values[attributes[1]] + initial_values[attributes[2]]) / 5;
+                (initial_values[attributes[0]] + initial_values[attributes[1]] + initial_values[attributes[2]]) /
+                divisor;
         if (current_value > startingValue)
             return (AttributeCostResult) {total_cost, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)};
         attempts++;
@@ -82,10 +85,11 @@ static AttributeCostResult cost_to_raise_attributes_by_5(const char attributes[3
 
 static AttributeCostResult cost_to_raise_attributes_by_5_uber(const int attributes[4]) {
     int initial_values[5] = {pl.attrib[0][0], pl.attrib[1][0], pl.attrib[2][0], pl.attrib[3][0], pl.attrib[4][0]};
+    const int divisor = game_ui_attribute_divisor();
     int total_cost = 0;
     int startingValue = ((initial_values[attributes[1]] + initial_values[attributes[2]]) / 2 +
                          initial_values[attributes[0]] + initial_values[attributes[0]]) /
-                        5;
+                        divisor;
     int attempts = 0;
 
     while (attempts < 10) {
@@ -109,7 +113,7 @@ static AttributeCostResult cost_to_raise_attributes_by_5_uber(const int attribut
 
         int current_value = ((initial_values[attributes[1]] + initial_values[attributes[2]]) / 2 +
                              initial_values[attributes[0]] + initial_values[attributes[0]]) /
-                            5;
+                            divisor;
         if (current_value > startingValue)
             return (AttributeCostResult) {total_cost, ATTRIBUTE_TARGETS_FROM_INITIAL_VALUES(initial_values)};
         attempts++;
