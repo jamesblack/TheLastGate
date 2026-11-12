@@ -133,6 +133,10 @@ AnnotationCodeStatus annotation_code_import(const char *code, AnnotationCategory
     status = inflate_bytes(compressed, compressed_size, raw, &raw_size);
     if (status != ANNOTATION_CODE_OK) goto finished;
     decoded = annotation_category_decode(raw, raw_size, &offset, imported);
+    if (decoded == 1 && offset != raw_size) {
+        annotation_category_release(imported);
+        decoded = 0;
+    }
     status = decoded == 1 ? ANNOTATION_CODE_OK : decoded < 0 ? ANNOTATION_CODE_TOO_LARGE : ANNOTATION_CODE_DAMAGED;
 finished:
     free(stripped);

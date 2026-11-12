@@ -331,6 +331,24 @@ static void test_empty_text_label_is_damaged(void) {
     byte_buffer_release(&buffer);
 }
 
+static void test_trailing_bytes_are_damaged(void) {
+    ByteBuffer buffer = {0};
+    AnnotationCategory imported;
+    char *code;
+    append_header(&buffer, "Keys", 1);
+    append_byte(&buffer, ANNOTATION_PIN);
+    append_byte(&buffer, 0);
+    append_zigzag(&buffer, 10);
+    append_zigzag(&buffer, 20);
+    append_byte(&buffer, 0);
+    code = code_from_bytes(buffer.bytes, buffer.size);
+    memset(&imported, 0, sizeof(imported));
+    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    CHECK(imported.annotations == NULL);
+    free(code);
+    byte_buffer_release(&buffer);
+}
+
 int main(void) {
     test_varint_round_trip();
     test_code_round_trip();
@@ -344,6 +362,7 @@ int main(void) {
     test_segment_total_over_cap_is_too_large();
     test_empty_category_name_becomes_imported();
     test_empty_text_label_is_damaged();
+    test_trailing_bytes_are_damaged();
     if (failures != 0) {
         printf("%d annotation code check(s) failed\n", failures);
         return 1;
