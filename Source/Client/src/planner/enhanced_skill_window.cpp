@@ -15,6 +15,7 @@
 #include "planner/attribute_pool.h"
 #include "planner/buff_focus.h"
 #include "planner/buff_model.h"
+#include "planner/combat_focus.h"
 #include "planner/combat_model.h"
 #include "game/game_ui.h"
 #include "planner/planner_advanced_window.hpp"
@@ -115,6 +116,8 @@ static constexpr unsigned int GLYPH_HOVER_COLOR = color_rgb(255, 255, 255);
 static int focused_skill_position = -1;
 /* Skill list version the focus was set under; a newer version means the list was re-sorted. */
 static int focused_list_version = -1;
+/* The combat stat the suggestion panel works on, or -1; only one of this and the skill is ever set. */
+static int focused_combat_stat = -1;
 
 /* Only learned skills that are on the list can be focused. */
 static bool is_focusable(const int skill_position) {
@@ -125,11 +128,22 @@ static bool is_focusable(const int skill_position) {
 
 void enhanced_skill_window_clear_focus(void) {
     focused_skill_position = -1;
+    focused_combat_stat = -1;
 }
 
 static void focus_skill(const int skill_position) {
+    focused_combat_stat = -1;
     focused_skill_position = skill_position;
     focused_list_version = stat_raise_skill_list_version();
+}
+
+static void toggle_combat_stat_focus(const CombatStat stat) {
+    if (focused_combat_stat == (int) stat) {
+        enhanced_skill_window_clear_focus();
+        return;
+    }
+    focused_skill_position = -1;
+    focused_combat_stat = stat;
 }
 
 static void drop_focus_if_list_changed(void) {
@@ -643,6 +657,29 @@ static void planned_value_row_render(const EnhancedSkillLayout *layout, const ch
     imgui_set_cursor_pos(next_row_left, next_row_top);
 }
 
+/* Clicking a combat stat's name focuses it, like a skill's; clicking the focused one again clears the focus. */
+static void combat_stat_row_render(const EnhancedSkillLayout *layout, const CombatStat stat, const int current,
+                                   const int shown) {
+    const float row_left = imgui_get_cursor_pos_x();
+    const float row_top = imgui_get_cursor_pos_y();
+
+    if (focused_combat_stat == (int) stat) {
+        const float screen_left = imgui_get_window_pos_x() + row_left - imgui_get_scroll_x();
+        const float screen_top = imgui_get_window_pos_y() + row_top - imgui_get_scroll_y();
+        imgui_draw_list_add_rect(imgui_get_window_draw_list(), screen_left, screen_top,
+                                 screen_left + layout->column_width, screen_top + layout->row_height, GOLD_FONT_COLOR,
+                                 0, 0, 1);
+    }
+
+    imgui_push_id_int(stat);
+    if (imgui_invisible_button("combat_focus", layout->focus_name_right, layout->row_height)) {
+        toggle_combat_stat_focus(stat);
+    }
+    imgui_pop_id();
+    imgui_set_cursor_pos(row_left, row_top);
+    planned_value_row_render(layout, COMBAT_STAT_NAMES[stat], current, shown);
+}
+
 static void apply_tarot_to_combat(const CombatModelInput *input, CombatValues *result) {
     const CombatValues server = {input->server_hit, input->server_parry, pl.weapon, pl.armor};
     const CombatValues raw_change = {
@@ -686,10 +723,10 @@ static void combat_block_render(const EnhancedSkillLayout *layout) {
 
     section_label_render(layout, changed ? "Combat" : "Combat (current)");
     equipment_row_render(layout, &input);
-    planned_value_row_render(layout, "Hit Score", input.server_hit, result.hit);
-    planned_value_row_render(layout, "Parry Score", input.server_parry, result.parry);
-    planned_value_row_render(layout, "Weapon Value", pl.weapon, result.weapon);
-    planned_value_row_render(layout, "Armor Value", pl.armor, result.armor);
+    combat_stat_row_render(layout, COMBAT_STAT_HIT, input.server_hit, result.hit);
+    combat_stat_row_render(layout, COMBAT_STAT_PARRY, input.server_parry, result.parry);
+    combat_stat_row_render(layout, COMBAT_STAT_WEAPON, pl.weapon, result.weapon);
+    combat_stat_row_render(layout, COMBAT_STAT_ARMOR, pl.armor, result.armor);
     format_meta_value(META_SPELL_MULTIPLIER, value_text, sizeof(value_text));
     value_row_render(layout, "Spell Multiplier", value_text);
     planned_value_row_render(layout, "Spell Aptitude", server_aptitude, shown_aptitude);
@@ -978,16 +1015,17 @@ static void plan_suggestion(const SkillFocusSuggestion *suggestion, const int sk
     stat_raise_try_raise_bundle(raise_indices, point_counts, entry_count);
 }
 
-static void add_buff_candidate(BuffFocusInput *input, const int raise_index, const int max_points) {
+static void add_focus_candidate(BuffFocusCandidate *candidates, int *candidate_count, const int raise_index,
+                                const int max_points) {
     BuffFocusCandidate *candidate;
     int candidate_index;
     int step_index;
 
-    if (raise_index < 0 || input->candidate_count >= BUFF_FOCUS_MAX_CANDIDATES) return;
-    for (candidate_index = 0; candidate_index < input->candidate_count; candidate_index++) {
-        if (input->candidates[candidate_index].raise_index == raise_index) return;
+    if (raise_index < 0 || *candidate_count >= BUFF_FOCUS_MAX_CANDIDATES) return;
+    for (candidate_index = 0; candidate_index < *candidate_count; candidate_index++) {
+        if (candidates[candidate_index].raise_index == raise_index) return;
     }
-    candidate = &input->candidates[input->candidate_count++];
+    candidate = &candidates[(*candidate_count)++];
     candidate->raise_index = raise_index;
     candidate->max_points = max_points;
     for (step_index = 0; step_index < BUFF_FOCUS_MAX_POINTS; step_index++) {
@@ -997,11 +1035,12 @@ static void add_buff_candidate(BuffFocusInput *input, const int raise_index, con
     }
 }
 
-static void add_skill_attribute_candidates(BuffFocusInput *input, const BuffModelSkill *skill) {
+static void add_skill_attribute_candidates(BuffFocusCandidate *candidates, int *candidate_count,
+                                           const BuffModelSkill *skill) {
     int attribute_slot;
 
     for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
-        add_buff_candidate(input, skill->attribute_ids[attribute_slot], SKILL_FOCUS_MAX_STEPS);
+        add_focus_candidate(candidates, candidate_count, skill->attribute_ids[attribute_slot], SKILL_FOCUS_MAX_STEPS);
     }
 }
 
@@ -1019,15 +1058,15 @@ static void fill_attribute_pool_costs(int step_costs[ATTRIBUTE_COUNT][ATTRIBUTE_
 }
 
 /* The pool's nth point costs what buying n points cheapest-first costs over buying n - 1. */
-static void add_attribute_pool_candidate(BuffFocusInput *input) {
+static void add_attribute_pool_candidate(BuffFocusCandidate *candidates, int *candidate_count) {
     int step_costs[ATTRIBUTE_COUNT][ATTRIBUTE_POOL_MAX_POINTS];
     BuffFocusCandidate *candidate;
     int previous_total = 0;
     int point_count;
 
-    if (input->candidate_count >= BUFF_FOCUS_MAX_CANDIDATES) return;
+    if (*candidate_count >= BUFF_FOCUS_MAX_CANDIDATES) return;
     fill_attribute_pool_costs(step_costs);
-    candidate = &input->candidates[input->candidate_count++];
+    candidate = &candidates[(*candidate_count)++];
     candidate->raise_index = BUFF_FOCUS_ATTRIBUTE_POOL;
     candidate->max_points = FOOL_POOL_MAX_POINTS;
     for (point_count = 1; point_count <= BUFF_FOCUS_MAX_POINTS; point_count++) {
@@ -1091,16 +1130,18 @@ static void build_buff_focus_input(BuffFocusInput *input, const int skill_positi
         input->spell_raise_index[kind] = spell_known(kind) ? STAT_RAISE_SKILL_BASE + position : -1;
     }
 
-    add_buff_candidate(input, input->focused_raise_index, 1);
+    BuffFocusCandidate *candidates = input->candidates;
+    int *candidate_count = &input->candidate_count;
+    add_focus_candidate(candidates, candidate_count, input->focused_raise_index, 1);
     if (tarot_set_has(input->model.tarot_cards, TAROT_FOOL_REVERSED) != 0) {
-        add_attribute_pool_candidate(input);
+        add_attribute_pool_candidate(candidates, candidate_count);
     } else {
-        add_skill_attribute_candidates(input, &input->focused);
-        add_skill_attribute_candidates(input, &input->model.spell_skills[BUFF_KIND_BLESS]);
-        add_buff_candidate(input, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
-        add_buff_candidate(input, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
+        add_skill_attribute_candidates(candidates, candidate_count, &input->focused);
+        add_skill_attribute_candidates(candidates, candidate_count, &input->model.spell_skills[BUFF_KIND_BLESS]);
+        add_focus_candidate(candidates, candidate_count, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
+        add_focus_candidate(candidates, candidate_count, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
     }
-    add_buff_candidate(input, STAT_RAISE_SKILL_BASE + bless_position, BUFF_FOCUS_MAX_POINTS);
+    add_focus_candidate(candidates, candidate_count, STAT_RAISE_SKILL_BASE + bless_position, BUFF_FOCUS_MAX_POINTS);
 }
 
 /* The search is costly, so it only runs again when something it reads has changed. */
@@ -1119,6 +1160,78 @@ static const BuffFocusResult *cached_buff_focus(const int skill_position) {
         cached_result.direct = expand_attribute_pool(&cached_result.direct);
         cached_result.through_attributes = expand_attribute_pool(&cached_result.through_attributes);
         cached_result.through_bless = expand_attribute_pool(&cached_result.through_bless);
+        has_cached = true;
+    }
+    return &cached_result;
+}
+
+static bool spell_shown(const int kind) {
+    return spell_known(kind) && buff_state.planned_input.show_buffed[kind] != 0;
+}
+
+static void add_spell_candidates(CombatFocusInput *input, const int kind, const bool attribute_pool) {
+    if (!spell_shown(kind)) return;
+    add_focus_candidate(input->candidates, &input->candidate_count, input->spell_raise_index[kind],
+                        BUFF_FOCUS_MAX_POINTS);
+    if (attribute_pool) return;
+    add_skill_attribute_candidates(input->candidates, &input->candidate_count, &input->model.spell_skills[kind]);
+    /* Spell power is capped by Spell Aptitude, which follows Willpower and Intuition. */
+    add_focus_candidate(input->candidates, &input->candidate_count, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
+    add_focus_candidate(input->candidates, &input->candidate_count, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
+}
+
+static bool build_combat_focus_input(CombatFocusInput *input, const CombatStat stat) {
+    const bool attribute_pool = tarot_set_has(buff_state.planned_input.tarot_cards, TAROT_FOOL_REVERSED) != 0;
+    int affects[COMBAT_SKILL_COUNT];
+    int skill_id;
+    int kind;
+
+    memset(input, 0, sizeof(*input));
+    if (!build_combat_model_input(&input->combat)) return false;
+    input->model = buff_state.planned_input;
+    input->stat = stat;
+    for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
+        input->spell_raise_index[kind] = spell_known(kind) ? STAT_RAISE_SKILL_BASE + spell_skill_position(kind) : -1;
+    }
+    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
+        const int skill_position = skill_position_for_number(COMBAT_SKILL_NUMBERS[skill_id]);
+
+        input->combat_raise_index[skill_id] = -1;
+        if (input->combat.known[skill_id] == 0) continue;
+        input->combat_skills[skill_id] =
+                model_skill_for(skill_position, stat_raised[STAT_RAISE_SKILL_BASE + skill_position]);
+        input->combat_raise_index[skill_id] = STAT_RAISE_SKILL_BASE + skill_position;
+    }
+
+    combat_model_skills_affecting(&input->combat, stat, affects);
+    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
+        if (affects[skill_id] == 0) continue;
+        add_focus_candidate(input->candidates, &input->candidate_count, input->combat_raise_index[skill_id],
+                            BUFF_FOCUS_MAX_POINTS);
+        if (!attribute_pool) {
+            add_skill_attribute_candidates(input->candidates, &input->candidate_count, &input->combat_skills[skill_id]);
+        }
+    }
+    if (attribute_pool) add_attribute_pool_candidate(input->candidates, &input->candidate_count);
+    add_spell_candidates(input, BUFF_KIND_BLESS, attribute_pool);
+    if (stat == COMBAT_STAT_WEAPON) add_spell_candidates(input, BUFF_KIND_ENHANCE, attribute_pool);
+    if (stat == COMBAT_STAT_ARMOR) add_spell_candidates(input, BUFF_KIND_PROTECT, attribute_pool);
+    return true;
+}
+
+/* NULL while the Combat block can only show the server's values. */
+static const CombatFocusResult *cached_combat_focus(const CombatStat stat) {
+    static CombatFocusInput cached_input;
+    static CombatFocusResult cached_result;
+    static bool has_cached = false;
+    CombatFocusInput input;
+
+    if (!build_combat_focus_input(&input, stat)) return NULL;
+    /* The input is memset before it is filled, so its padding is always zero and a byte compare is exact. */
+    if (!has_cached || memcmp(&input, &cached_input, sizeof(input)) != 0) {
+        cached_input = input;
+        cached_result = combat_focus_search(&input);
+        cached_result.best = expand_attribute_pool(&cached_result.best);
         has_cached = true;
     }
     return &cached_result;
@@ -1238,6 +1351,35 @@ static void buff_focus_panel_render(const EnhancedSkillLayout *layout, const cha
     if (plan_button_render(layout, result->best.total_cost)) plan_buff_route(&result->best);
 }
 
+static void combat_focus_panel_render(const EnhancedSkillLayout *layout) {
+    const CombatStat stat = (CombatStat) focused_combat_stat;
+    const CombatFocusResult *result = cached_combat_focus(stat);
+    const char *stat_name = COMBAT_STAT_NAMES[stat];
+    char label_text[LABEL_TEXT_SIZE];
+    char value_text[VALUE_TEXT_SIZE];
+
+    if (result == NULL) {
+        enhanced_skill_window_clear_focus();
+        panel_row_render(layout, 2, GOLD_FONT_COLOR, "Click a skill or combat stat to focus it", NULL);
+        return;
+    }
+
+    snprintf(label_text, sizeof(label_text), "%s  %d -> %d", stat_name, result->current_value,
+             result->current_value + 1);
+    panel_row_render(layout, 2, PREVIEW_CHANGED_COLOR, label_text, NULL);
+
+    if (result->best.available == 0) {
+        snprintf(label_text, sizeof(label_text), "%s can't be raised further", stat_name);
+        panel_row_render(layout, 2, GOLD_FONT_COLOR, label_text, NULL);
+        return;
+    }
+
+    snprintf(value_text, sizeof(value_text), "%d exp", result->best.total_cost);
+    panel_row_render(layout, 2, GOLD_FONT_COLOR, "Cheapest +1", value_text);
+    buff_route_lines_render(layout, &result->best);
+    if (plan_button_render(layout, result->best.total_cost)) plan_buff_route(&result->best);
+}
+
 static void focus_panel_render(const EnhancedSkillLayout *layout) {
     const char *skill_name;
     StatRowView focused_row;
@@ -1251,9 +1393,13 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
 
     section_label_render(layout, "Focus");
 
+    if (focused_combat_stat >= 0) {
+        combat_focus_panel_render(layout);
+        return;
+    }
     if (focused_skill_position >= 0 && !is_focusable(focused_skill_position)) enhanced_skill_window_clear_focus();
     if (focused_skill_position < 0) {
-        panel_row_render(layout, 2, GOLD_FONT_COLOR, "Click a skill to focus it", NULL);
+        panel_row_render(layout, 2, GOLD_FONT_COLOR, "Click a skill or combat stat to focus it", NULL);
         return;
     }
 
