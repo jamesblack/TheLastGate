@@ -595,7 +595,7 @@ static void draw_drag_preview(const WorldmapPanelState *panel, AnnotationSet *se
     if (!panel->left_press_active || !panel->press_inside_world || !drawing_segment(panel)) return;
     if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) || !mouse_dragged(ImGuiMouseButton_Left)) return;
 
-    int category_id = panel->current_category_id;
+    int category_id = panel->pending_segment_count > 0 ? panel->pending_category_id : panel->current_category_id;
     if (panel->editing) {
         AnnotationCategory *owner = NULL;
         if (annotation_find(set, panel->edit_annotation_id, &owner)) category_id = owner->id;
