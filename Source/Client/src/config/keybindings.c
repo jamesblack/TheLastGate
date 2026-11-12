@@ -290,6 +290,8 @@ const char *keybinding_to_string(Keybinding kb, char *buffer, int buffer_size) {
 }
 
 BindingDescriptor *binding_find(SDL_Keycode key, int sdl_modstate) {
+    if (key == SDLK_UNKNOWN) return NULL;
+
     bool has_shift = (sdl_modstate & KMOD_SHIFT) != 0;
     bool has_ctrl = (sdl_modstate & KMOD_CTRL) != 0;
     bool has_alt = (sdl_modstate & KMOD_ALT) != 0;
