@@ -184,10 +184,6 @@ static const EnhancedSkillLayout *get_layout(void) {
     return &LAYOUT_LIGHT;
 }
 
-static int attribute_divisor_for_player(void) {
-    return skill_preview_attribute_divisor(race_gamemode(okey.race) == 1 ? 1 : 0);
-}
-
 typedef struct {
     const char *name;
     int base;
@@ -748,7 +744,7 @@ static bool build_buff_model_input(BuffModelInput *input) {
         input->base_attributes[attribute_id] = pl.attrib[attribute_id][0];
         input->planned_attributes[attribute_id] = stat_raised[attribute_id];
     }
-    input->divisor = attribute_divisor_for_player();
+    input->divisor = game_ui_attribute_divisor();
     input->spell_multiplier = multiplier;
     input->spell_bonus = bonus;
     input->spell_aptitude = aptitude;
@@ -863,7 +859,7 @@ static void math_block_render(const EnhancedSkillLayout *layout) {
 
     imgui_dummy(layout->column_width, layout->row_height);
     math_header_render(layout);
-    if (race_gamemode(okey.race) == 1) math_line_render(layout, "Hard Mode");
+    if (game_ui_hard_mode()) math_line_render(layout, "Hard Mode");
     for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
         if (spell_known(kind) && spell_toggle_on(kind)) {
             math_line_render(layout, skilltab[spell_skill_position(kind)].name);
@@ -938,7 +934,7 @@ static SkillFocusInput build_focus_input(const int skill_position) {
                                     : SKILL_FOCUS_NO_COST;
         }
     }
-    input.divisor = attribute_divisor_for_player();
+    input.divisor = game_ui_attribute_divisor();
     input.direct_cost = to_focus_cost(stat_raise_cost(STAT_RAISE_SKILL_BASE + skill_position));
     input.fool_reversed = tarot_set_has(chosen.tarot_cards, TAROT_FOOL_REVERSED);
     for (slot_index = 0; slot_index < ATTRIBUTE_COUNT; slot_index++) {
@@ -1267,7 +1263,7 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
         buff_focus_panel_render(layout, skill_name);
         return;
     }
-    focused_row = build_skill_row(focused_skill_position, attribute_divisor_for_player());
+    focused_row = build_skill_row(focused_skill_position, game_ui_attribute_divisor());
     input = build_focus_input(focused_skill_position);
     suggestion = skill_focus_suggest(&input);
 
@@ -1335,7 +1331,7 @@ static void left_column_render(const EnhancedSkillLayout *layout) {
 }
 
 static void skill_column_render(const EnhancedSkillLayout *layout, const float column_height) {
-    const int attribute_divisor = attribute_divisor_for_player();
+    const int attribute_divisor = game_ui_attribute_divisor();
     int skill_position;
 
     const float column_top = imgui_get_cursor_pos_y();

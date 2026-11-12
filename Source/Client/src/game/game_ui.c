@@ -7,6 +7,8 @@
 #include "engine.h"
 #include "inter.h"
 #include "net/tick_pacer.h"
+#include "options.h"
+#include "planner/skill_preview.h"
 #include "ui/states/perf_window_state.h"
 #include "util/perf.h"
 
@@ -66,4 +68,12 @@ void ui_calculate_quick_stats_window_state(void) {
         float percentage = ((float) pl.points_tot - starting_experience) / (ending_experience - starting_experience);
         game_ui_state.quick_stat_state.experience_bar_progress = percentage;
     }
+}
+
+bool game_ui_hard_mode(void) {
+    return race_gamemode(okey.race) == 1;
+}
+
+int game_ui_attribute_divisor(void) {
+    return skill_preview_attribute_divisor(game_ui_hard_mode() ? 1 : 0);
 }
