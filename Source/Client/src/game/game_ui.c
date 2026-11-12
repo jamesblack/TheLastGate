@@ -22,11 +22,7 @@ GameUiState game_ui_state = {
     .hud_mode = HUD_MODE_LIST_SKILLS,
 
     /* Window Settings */
-    .tutorial = {
-        .page = 0,
-        .open = 0,
-        .count = 0
-    },
+    .tutorial = {.page = 0, .open = 0, .count = 0},
 
     .show_waypoints = false,
     .show_options = false,
