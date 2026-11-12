@@ -252,14 +252,15 @@ static void test_wrong_version_gives_blank_map(void) {
 
 static void write_rgb555_file(const unsigned short *packed_tiles) {
     const char magic[4] = {'T', 'L', 'G', 'M'};
-    const uLong packed_size = TEST_WIDTH * TEST_HEIGHT * sizeof(unsigned short);
+    const uLong packed_size = sizeof(unsigned short) * TEST_WIDTH * TEST_HEIGHT;
     unsigned char compressed[TEST_WIDTH * TEST_HEIGHT * 4];
     uLongf compressed_size = sizeof(compressed);
     uint32_t header[4];
     FILE *file;
 
-    if (compress2(compressed, &compressed_size, (const Bytef *) packed_tiles, packed_size, Z_BEST_SPEED) != Z_OK)
+    if (compress2(compressed, &compressed_size, (const Bytef *) packed_tiles, packed_size, Z_BEST_SPEED) != Z_OK) {
         return;
+    }
     header[0] = 1;
     header[1] = TEST_WIDTH;
     header[2] = TEST_HEIGHT;

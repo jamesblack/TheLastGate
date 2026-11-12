@@ -22,7 +22,7 @@ static const char base64_alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmno
 static char *code_from_bytes(const unsigned char *bytes, const size_t size) {
     uLongf compressed_size = compressBound((uLong) size);
     unsigned char *compressed = malloc(compressed_size);
-    char *code = malloc(strlen(ANNOTATION_CODE_PREFIX) + compressed_size * 2 + 8);
+    char *code = malloc(strlen(ANNOTATION_CODE_PREFIX) + (size_t) compressed_size * 2 + 8);
     size_t position, written;
     compress2(compressed, &compressed_size, bytes, (uLong) size, 9);
     strcpy(code, ANNOTATION_CODE_PREFIX);

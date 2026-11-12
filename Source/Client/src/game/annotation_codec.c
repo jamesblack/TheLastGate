@@ -98,8 +98,9 @@ int annotation_category_encode(const AnnotationCategory *category, ByteBuffer *b
         for (segment_index = 0; segment_index < annotation->segment_count; segment_index++) {
             const AnnotationSegment *segment = &annotation->segments[segment_index];
             if (!write_point(buffer, &cursor_x, &cursor_y, segment->start_x, segment->start_y) ||
-                !write_point(buffer, &cursor_x, &cursor_y, segment->end_x, segment->end_y))
+                !write_point(buffer, &cursor_x, &cursor_y, segment->end_x, segment->end_y)) {
                 return 0;
+            }
         }
     }
     return 1;
@@ -150,8 +151,9 @@ static int read_path(const Reader *reader, int *cursor_x, int *cursor_y, Annotat
     for (segment_index = 0; segment_index < segment_count; segment_index++) {
         AnnotationSegment *segment = &annotation->segments[segment_index];
         if (!read_point(reader, cursor_x, cursor_y, &segment->start_x, &segment->start_y) ||
-            !read_point(reader, cursor_x, cursor_y, &segment->end_x, &segment->end_y))
+            !read_point(reader, cursor_x, cursor_y, &segment->end_x, &segment->end_y)) {
             return 0;
+        }
     }
     annotation->tile_x = annotation->segments[0].start_x;
     annotation->tile_y = annotation->segments[0].start_y;
@@ -177,8 +179,9 @@ int annotation_category_decode(const unsigned char *bytes, const size_t size, si
     category->visible = 1;
     category->show_labels = 1;
     if (!read_text(&reader, category->name, ANNOTATION_CATEGORY_NAME_MAX) || !read_byte(&reader, &colour_index) ||
-        !annotation_varint_read(bytes, size, offset, &annotation_count))
+        !annotation_varint_read(bytes, size, offset, &annotation_count)) {
         goto failed;
+    }
     if (category->name[0] == '\0') annotation_copy_text(category->name, sizeof(category->name), "Imported");
     category->colour_index = colour_index >= ANNOTATION_PALETTE_SIZE ? 0 : (int) colour_index;
     if (annotation_count > ANNOTATION_MAX_PER_CATEGORY) {

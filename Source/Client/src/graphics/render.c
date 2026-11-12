@@ -62,8 +62,8 @@ void alphaeffect_magic(int nr, int str, int xpos, int ypos, int xoff, int yoff) 
     sdl_alphaeffect_magic(nr, str, xpos, ypos, xoff, yoff);
 }
 
-void show_map(const MinimapColour *src, int xo, int yo, int magnify) {
-    sdl_show_map(src, xo, yo, magnify);
+void show_map(const MinimapColour *src, int origin_tile_x, int origin_tile_y, int magnify) {
+    sdl_show_map(src, origin_tile_x, origin_tile_y, magnify);
 }
 
 int isvisible(void) {

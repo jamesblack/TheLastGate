@@ -92,7 +92,7 @@ static BindingDescriptor binding_registry[] = {
     },
     {
         "World Map", TOGGLE_WORLDMAP_HOTKEY, BINDING_CATEGORY_WINDOW, {SDLK_UNKNOWN, KEYBIND_MOD_NONE},
-        {SDLK_UNKNOWN, KEYBIND_MOD_NONE}
+        {SDLK_UNKNOWN, KEYBIND_MOD_NONE},
     },
 
     /* General Hotkeys */

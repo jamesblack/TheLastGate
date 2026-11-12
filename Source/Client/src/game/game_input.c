@@ -588,9 +588,11 @@ void game_handle_input(const SDL_Event *e) {
                     }
                     break;
                 case MINIMAP:
-                    if (delta > 0 && game_ui_state.minimap_magnification < 4) game_ui_state.minimap_magnification++;
-                    else if (delta < 0 && game_ui_state.minimap_magnification > 1)
+                    if (delta > 0 && game_ui_state.minimap_magnification < 4) {
+                        game_ui_state.minimap_magnification++;
+                    } else if (delta < 0 && game_ui_state.minimap_magnification > 1) {
                         game_ui_state.minimap_magnification--;
+                    }
                     break;
                 default: break;
             }

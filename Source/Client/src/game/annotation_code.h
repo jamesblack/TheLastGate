@@ -13,7 +13,7 @@ typedef enum {
     ANNOTATION_CODE_OK,
     ANNOTATION_CODE_NOT_A_CODE,
     ANNOTATION_CODE_DAMAGED,
-    ANNOTATION_CODE_TOO_LARGE
+    ANNOTATION_CODE_TOO_LARGE,
 } AnnotationCodeStatus;
 
 char *annotation_code_export(const AnnotationCategory *category);

@@ -26,7 +26,7 @@ enum WorldmapTool {
     WORLDMAP_TOOL_PIN,
     WORLDMAP_TOOL_LINE,
     WORLDMAP_TOOL_TEXT,
-    WORLDMAP_TOOL_COUNT
+    WORLDMAP_TOOL_COUNT,
 };
 
 enum LabelPurpose { LABEL_PURPOSE_NONE, LABEL_PURPOSE_PIN, LABEL_PURPOSE_TEXT, LABEL_PURPOSE_PATH };
@@ -416,11 +416,15 @@ static void draw_dotted_diamond(ImDrawList *draw_list, ImVec2 centre, int radius
 }
 
 static void draw_dotted_rect(ImDrawList *draw_list, ImVec2 rect_min, ImVec2 rect_max, ImU32 colour) {
-    for (float column = rect_min.x; column < rect_max.x; column += 2.0F) {
+    const int width = (int) ceilf(rect_max.x - rect_min.x);
+    const int height = (int) ceilf(rect_max.y - rect_min.y);
+    for (int column_offset = 0; column_offset < width; column_offset += 2) {
+        const float column = rect_min.x + (float) column_offset;
         draw_pixel(draw_list, column, rect_min.y, colour);
         draw_pixel(draw_list, column, rect_max.y - 1.0F, colour);
     }
-    for (float row = rect_min.y; row < rect_max.y; row += 2.0F) {
+    for (int row_offset = 0; row_offset < height; row_offset += 2) {
+        const float row = rect_min.y + (float) row_offset;
         draw_pixel(draw_list, rect_min.x, row, colour);
         draw_pixel(draw_list, rect_max.x - 1.0F, row, colour);
     }
@@ -436,7 +440,10 @@ static void draw_dashed_line(ImDrawList *draw_list, ImVec2 start, ImVec2 end, Im
     const float delta_y = end.y - start.y;
     const float length = sqrtf(delta_x * delta_x + delta_y * delta_y);
     if (length < 1.0F) return;
-    for (float distance = 0.0F; distance < length; distance += DASH_LENGTH + DASH_GAP) {
+    const float dash_step = DASH_LENGTH + DASH_GAP;
+    const int dash_count = (int) ceilf(length / dash_step);
+    for (int dash_index = 0; dash_index < dash_count; dash_index++) {
+        const float distance = (float) dash_index * dash_step;
         const float dash_end = fminf(distance + DASH_LENGTH, length);
         draw_list->AddLine(ImVec2(start.x + delta_x * distance / length, start.y + delta_y * distance / length),
                            ImVec2(start.x + delta_x * dash_end / length, start.y + delta_y * dash_end / length), colour,
@@ -451,7 +458,10 @@ static void draw_chevrons(ImDrawList *draw_list, ImVec2 start, ImVec2 end, ImU32
     if (length < CHEVRON_SPACING) return;
     const float along_x = delta_x / length;
     const float along_y = delta_y / length;
-    for (float distance = CHEVRON_SPACING / 2.0F; distance < length - CHEVRON_SIZE; distance += CHEVRON_SPACING) {
+    const float first_distance = CHEVRON_SPACING / 2.0F;
+    const int chevron_count = (int) ceilf((length - CHEVRON_SIZE - first_distance) / CHEVRON_SPACING);
+    for (int chevron_index = 0; chevron_index < chevron_count; chevron_index++) {
+        const float distance = first_distance + (float) chevron_index * CHEVRON_SPACING;
         const ImVec2 middle(start.x + along_x * distance, start.y + along_y * distance);
         const ImVec2 points[3] = {
             ImVec2(middle.x - along_x * CHEVRON_SIZE - along_y * CHEVRON_SIZE,
@@ -555,6 +565,7 @@ static void draw_annotations(const WorldmapPanelState *panel, AnnotationSet *set
                              pin_label_shown(panel, category, annotation));
                     break;
                 case ANNOTATION_TEXT: draw_text_label(panel, area, draw_list, annotation, colour, selected); break;
+                case ANNOTATION_NONE: break;
             }
         }
     }
@@ -893,8 +904,10 @@ static void render_map_area(WorldmapPanelState *panel, AnnotationSet *set, float
     const float inset = (float) WINDOW_SPRITE_BORDER_WIDTH;
     const ImVec2 child_origin = ImGui::GetCursorScreenPos();
     const ImVec2 child_size = ImGui::GetContentRegionAvail();
-    MapArea area = {ImVec2(child_origin.x + inset, child_origin.y + inset),
-                    ImVec2(child_size.x - inset * 2.0F, child_size.y - inset * 2.0F)};
+    MapArea area = {
+        ImVec2(child_origin.x + inset, child_origin.y + inset),
+        ImVec2(child_size.x - inset * 2.0F, child_size.y - inset * 2.0F),
+    };
     if (area.size.x >= 1.0F && area.size.y >= 1.0F) {
         ImGui::SetCursorScreenPos(area.origin);
         if (game_ui_state.worldmap_centre_on_player) {
@@ -933,6 +946,7 @@ static const char *annotation_kind_prefix(AnnotationKind kind) {
         case ANNOTATION_PIN: return "Pin: ";
         case ANNOTATION_TEXT: return "Text: ";
         case ANNOTATION_PATH: return "Path: ";
+        case ANNOTATION_NONE: break;
     }
     return "";
 }
@@ -980,8 +994,11 @@ static void render_category_list_header(void) {
     for (int column = 0; column < 3; column++) {
         float header_x = category_list_column_x(row_start_x, column);
         if (column < 2) header_x += (checkbox_column_width() - ImGui::CalcTextSize(headers[column]).x) / 2.0F;
-        if (column > 0) ImGui::SameLine(header_x);
-        else ImGui::SetCursorPosX(header_x);
+        if (column > 0) {
+            ImGui::SameLine(header_x);
+        } else {
+            ImGui::SetCursorPosX(header_x);
+        }
         ImGui::TextDisabled("%s", headers[column]);
     }
 }
@@ -1502,8 +1519,9 @@ void worldmap_minimap_tooltip_render(void) {
     const float offset_left = io.MousePos.x - MINIMAP_SCREEN_LEFT;
     const float offset_top = io.MousePos.y - MINIMAP_SCREEN_TOP;
     if (offset_left < 0.0F || offset_top < 0.0F || offset_left >= MINIMAP_SCREEN_SIZE ||
-        offset_top >= MINIMAP_SCREEN_SIZE)
+        offset_top >= MINIMAP_SCREEN_SIZE) {
         return;
+    }
 
     // The minimap runs map x down the screen and map y across it
     const Annotation *pin = minimap_overlay_pin_at(

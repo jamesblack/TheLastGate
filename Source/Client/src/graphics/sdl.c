@@ -1120,7 +1120,7 @@ unsigned int sdl_worldmap_texture(const MinimapColour *tile_colours, const unsig
     return worldmap_gl_texture;
 }
 
-void sdl_show_map(const MinimapColour *src, int xo, int yo, int magnify) {
+void sdl_show_map(const MinimapColour *src, int origin_tile_x, int origin_tile_y, int magnify) {
     // Flush sprite batch before rendering minimap
     sdl_batch_flush();
 
@@ -1136,8 +1136,8 @@ void sdl_show_map(const MinimapColour *src, int xo, int yo, int magnify) {
     // Convert RGB555 source data to RGBA8888
     for (int y = 0; y < 128; y++) {
         for (int x = 0; x < 128; x++) {
-            int src_x = (x / magnify) + xo;
-            int src_y = (y / magnify) + yo;
+            int src_x = (x / magnify) + origin_tile_x;
+            int src_y = (y / magnify) + origin_tile_y;
 
             // Clamp to map bounds
             if (src_x < 0 || src_x >= MAPX_MAX ||
@@ -1153,7 +1153,7 @@ void sdl_show_map(const MinimapColour *src, int xo, int yo, int magnify) {
         }
     }
 
-    minimap_overlay_paint(pixels, 128, xo, yo, magnify, worldmap_annotations());
+    minimap_overlay_paint(pixels, 128, origin_tile_x, origin_tile_y, magnify, worldmap_annotations());
 
     // Upload to GPU
     glBindTexture(GL_TEXTURE_2D, minimap_gl_texture);

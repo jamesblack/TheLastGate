@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const unsigned int palette[ANNOTATION_PALETTE_SIZE] = {0x4FC3FF, 0xFFD34D, 0xFF6B6B, 0x7CFC8A,
-                                                              0xD58CFF, 0xFFA040, 0xFFFFFF, 0x40E0D0};
+static const unsigned int palette[ANNOTATION_PALETTE_SIZE] = {
+    0x4FC3FF, 0xFFD34D, 0xFF6B6B, 0x7CFC8A, 0xD58CFF, 0xFFA040, 0xFFFFFF, 0x40E0D0,
+};
 
 unsigned int annotation_palette_rgb(const int colour_index) {
     if (colour_index < 0 || colour_index >= ANNOTATION_PALETTE_SIZE) return palette[0];
@@ -35,8 +36,9 @@ static int segments_valid(const AnnotationSegment *segments, const int segment_c
     if (segments == NULL || segment_count < 1 || segment_count > ANNOTATION_MAX_SEGMENTS) return 0;
     for (index = 0; index < segment_count; index++) {
         if (!tile_in_range(segments[index].start_x) || !tile_in_range(segments[index].start_y) ||
-            !tile_in_range(segments[index].end_x) || !tile_in_range(segments[index].end_y))
+            !tile_in_range(segments[index].end_x) || !tile_in_range(segments[index].end_y)) {
             return 0;
+        }
     }
     return 1;
 }
@@ -267,8 +269,9 @@ int annotation_replace(AnnotationSet *set, const int annotation_id, const Annota
     if (annotation->kind == ANNOTATION_PATH) {
         if (!segments_valid(edited->segments, edited->segment_count)) return 0;
         if (annotation_category_segment_total(owner) - annotation->segment_count + edited->segment_count >
-            ANNOTATION_MAX_SEGMENTS_PER_CATEGORY)
+            ANNOTATION_MAX_SEGMENTS_PER_CATEGORY) {
             return 0;
+        }
         copied = duplicate_segments(edited->segments, edited->segment_count);
         if (copied == NULL) return 0;
     } else if (!tile_in_range(edited->tile_x) || !tile_in_range(edited->tile_y)) {

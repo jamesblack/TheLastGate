@@ -15,7 +15,7 @@ extern "C" {
 #define ANNOTATION_TILE_LIMIT 2048
 #define ANNOTATION_PALETTE_SIZE 8
 
-typedef enum { ANNOTATION_PIN = 1, ANNOTATION_TEXT = 2, ANNOTATION_PATH = 3 } AnnotationKind;
+typedef enum { ANNOTATION_NONE = 0, ANNOTATION_PIN = 1, ANNOTATION_TEXT = 2, ANNOTATION_PATH = 3 } AnnotationKind;
 
 typedef struct {
     unsigned short start_x, start_y, end_x, end_y;
@@ -53,7 +53,7 @@ void annotation_copy_text(char *destination, size_t destination_size, const char
 void annotation_set_init(AnnotationSet *set);
 void annotation_set_release(AnnotationSet *set);
 int annotation_category_add(AnnotationSet *set, const char *name, int colour_index);
-int annotation_category_adopt(AnnotationSet *set, AnnotationCategory *category);
+int annotation_category_adopt(AnnotationSet *set, AnnotationCategory *detached);
 int annotation_category_remove(AnnotationSet *set, int category_id);
 AnnotationCategory *annotation_category_find(AnnotationSet *set, int category_id);
 void annotation_category_release(AnnotationCategory *category);

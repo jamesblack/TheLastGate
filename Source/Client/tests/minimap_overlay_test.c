@@ -135,8 +135,9 @@ static void test_out_of_view_is_clipped(void) {
 static unsigned int reference[VIEW_SIZE * VIEW_SIZE];
 
 static void reference_put_pixel(const int pixel_x, const int pixel_y) {
-    if (pixel_x >= 0 && pixel_y >= 0 && pixel_x < VIEW_SIZE && pixel_y < VIEW_SIZE)
+    if (pixel_x >= 0 && pixel_y >= 0 && pixel_x < VIEW_SIZE && pixel_y < VIEW_SIZE) {
         reference[pixel_x * VIEW_SIZE + pixel_y] = PAINTED;
+    }
 }
 
 static void reference_paint_segment(const AnnotationSegment *segment, const int origin_tile_x, const int origin_tile_y,
@@ -269,8 +270,9 @@ static void test_many_long_segments_paint_quickly(void) {
     }
     for (category_index = 0; category_index < 16; category_index++) {
         const int category = annotation_category_add(&set, "Flood", 0);
-        for (path_index = 0; path_index < 8; path_index++)
+        for (path_index = 0; path_index < 8; path_index++) {
             annotation_add_path(&set, category, segments, ANNOTATION_MAX_SEGMENTS, "flood");
+        }
     }
     set.show_on_minimap = 1;
     memset(view, 0, sizeof(view));

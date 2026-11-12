@@ -81,7 +81,7 @@ void sdl_showbar(int xf,int yf,int xs,int ys,unsigned short col);
 void sdl_shadow(int nr,int xpos,int ypos,int xoff,int yoff);
 void sdl_shadow_clear(void);
 int sdl_isvisible(void);
-void sdl_show_map(const MinimapColour *src, int xo, int yo, int magnify);
+void sdl_show_map(const MinimapColour *src, int origin_tile_x, int origin_tile_y, int magnify);
 unsigned int sdl_worldmap_texture(const MinimapColour *tile_colours, unsigned int revision);
 int sdl_get_avgcol(int nr);
 

@@ -30,7 +30,7 @@ void shadow(int nr, int xpos, int ypos, int xoff, int yoff);
 
 void alphaeffect_magic(int nr, int str, int xpos, int ypos, int xoff, int yoff);
 
-void show_map(const MinimapColour *src, int xo, int yo, int magnify);
+void show_map(const MinimapColour *src, int origin_tile_x, int origin_tile_y, int magnify);
 
 int isvisible(void);
 

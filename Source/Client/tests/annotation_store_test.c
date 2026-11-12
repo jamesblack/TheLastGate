@@ -163,8 +163,12 @@ static void test_save_clears_changed(void) {
 }
 
 static void write_word(FILE *file, const unsigned int value) {
-    const unsigned char bytes[4] = {(unsigned char) (value & 0xff), (unsigned char) ((value >> 8) & 0xff),
-                                    (unsigned char) ((value >> 16) & 0xff), (unsigned char) ((value >> 24) & 0xff)};
+    const unsigned char bytes[4] = {
+        (unsigned char) (value & 0xff),
+        (unsigned char) ((value >> 8) & 0xff),
+        (unsigned char) ((value >> 16) & 0xff),
+        (unsigned char) ((value >> 24) & 0xff),
+    };
     fwrite(bytes, 1, sizeof(bytes), file);
 }
 
