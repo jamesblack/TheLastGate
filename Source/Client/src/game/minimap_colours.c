@@ -6,6 +6,8 @@
 // the cursor. The saved map keeps the real colour, so removing an entry restores those tiles.
 static const MinimapRgb hidden_colours[] = {
     {36, 36, 36},
+    {33, 34, 33},
+    {53, 13, 8},
 };
 
 static unsigned char hidden_bits[COLOUR_COUNT / 8];
