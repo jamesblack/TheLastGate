@@ -59,6 +59,7 @@ struct WorldmapPanelState {
     Annotation edit_copy;
 
     const char *popup_request;
+    bool dismiss_popups;
     LabelPurpose label_purpose;
     char label_text[ANNOTATION_LABEL_MAX];
     int point_category_id;
@@ -859,15 +860,23 @@ static void frame_current_window(void) {
     ui_game_frame(position.x, position.y, position.x + size.x, position.y + size.y);
 }
 
+// ImGui keeps popups open while their window is hidden, so popups left open when the map closed are shut here
+static bool close_if_dismissed(void) {
+    if (!panel_state.dismiss_popups) return false;
+    ImGui::CloseCurrentPopup();
+    ImGui::EndPopup();
+    return true;
+}
+
 static bool begin_game_menu(const char *popup_id) {
-    if (!ImGui::BeginPopup(popup_id)) return false;
+    if (!ImGui::BeginPopup(popup_id) || close_if_dismissed()) return false;
     frame_current_window();
     return true;
 }
 
 static bool begin_game_modal(const char *popup_id) {
     const ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar;
-    if (!ImGui::BeginPopupModal(popup_id, NULL, flags)) return false;
+    if (!ImGui::BeginPopupModal(popup_id, NULL, flags) || close_if_dismissed()) return false;
     frame_current_window();
     const char *title_end = strstr(popup_id, "###");
     ImGui::TextUnformatted(popup_id, title_end);
@@ -1385,7 +1394,9 @@ static void drop_interrupted_work(WorldmapPanelState *panel) {
         panel->active_tool = WORLDMAP_TOOL_LINE;
     }
     panel->label_purpose = LABEL_PURPOSE_NONE;
-    if (panel->popup_request == LABEL_POPUP_ID) panel->popup_request = NULL;
+    panel->popup_request = NULL;
+    panel->dismiss_popups = true;
+    release_import(panel);
     panel->left_press_active = false;
     panel->right_press_active = false;
 }
@@ -1495,6 +1506,7 @@ void worldmap_window_render(void) {
         render_map_area(panel, set, body_height);
         render_bottom_bar(panel, set);
         render_popups(panel, set);
+        panel->dismiss_popups = false;
         draw_resize_grip();
     }
     ImGui::End();
