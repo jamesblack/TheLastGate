@@ -312,7 +312,7 @@ void game_handle_input(const SDL_Event *e) {
                     }
                     if (game_ui_state.show_worldmap) {
                         // The first Escape while drawing a path discards the path; the next closes the map
-                        if (!worldmap_window_discard_pending_path()) game_ui_state.show_worldmap = false;
+                        if (!worldmap_window_discard_pending_path()) worldmap_window_close();
                         closed_window = true;
                     }
                     if (!g_config.ui.escape_closes_menu_first || !closed_window) cmd(CL_CMD_RESET, 0, 0);

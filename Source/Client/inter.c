@@ -15,6 +15,7 @@
 #include "mods/use_queue.h"
 #include "ui/imgui/imgui_wrapper.h"
 #include "ui/option_window.hpp"
+#include "ui/worldmap_window.hpp"
 #include "util/math_util.h"
 #include "util/nearest_to_mouse.h"
 
@@ -86,11 +87,10 @@ void toggle_worldmap(void)
 {
 	if (game_ui_state.show_worldmap)
 	{
-		game_ui_state.show_worldmap = false;
+		worldmap_window_close();
 		return;
 	}
-	game_ui_state.show_worldmap = true;
-	game_ui_state.worldmap_centre_on_player = true;
+	open_worldmap_at_player();
 }
 
 void open_worldmap_at_player(void)

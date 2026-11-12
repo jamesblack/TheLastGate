@@ -1468,15 +1468,10 @@ static void draw_resize_grip(void) {
 }
 
 void worldmap_window_render(void) {
-    static int last_rendered_frame = -1;
     WorldmapPanelState *panel = &panel_state;
     AnnotationSet *set = worldmap_annotations();
     bool open = true;
 
-    // A gap in rendered frames means the window was hidden (e.g. by its hotkey) since the last render.
-    const int frame = ImGui::GetFrameCount();
-    if (last_rendered_frame >= 0 && frame > last_rendered_frame + 1) drop_interrupted_work(panel);
-    last_rendered_frame = frame;
     show_set_aside_notice(panel);
 
     panel->hovered_tile_valid = false;
@@ -1508,10 +1503,7 @@ void worldmap_window_render(void) {
     ImGui::End();
     ui_pop_game_window_style();
 
-    if (!open) {
-        drop_interrupted_work(panel);
-        game_ui_state.show_worldmap = false;
-    }
+    if (!open) worldmap_window_close();
 }
 
 void worldmap_minimap_tooltip_render(void) {
@@ -1531,6 +1523,11 @@ void worldmap_minimap_tooltip_render(void) {
             game_ui_state.minimap_magnification < 1 ? 1 : game_ui_state.minimap_magnification, (int) offset_top,
             (int) offset_left);
     if (pin && pin->label[0] != '\0') ui_tooltip(pin->label);
+}
+
+void worldmap_window_close(void) {
+    drop_interrupted_work(&panel_state);
+    game_ui_state.show_worldmap = false;
 }
 
 bool worldmap_window_finish_pending_path(void) {
