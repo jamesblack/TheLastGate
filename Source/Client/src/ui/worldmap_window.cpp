@@ -256,10 +256,6 @@ static void save_edit(WorldmapPanelState *panel, AnnotationSet *set) {
         annotation_remove(set, panel->edit_annotation_id);
         if (panel->selected_annotation_id == panel->edit_annotation_id) panel->selected_annotation_id = 0;
     } else {
-        if (edited->kind == ANNOTATION_PATH) {
-            edited->tile_x = edited->segments[0].start_x;
-            edited->tile_y = edited->segments[0].start_y;
-        }
         annotation_replace(set, panel->edit_annotation_id, edited);
     }
     worldmap_save_annotations();

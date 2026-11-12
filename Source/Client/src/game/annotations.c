@@ -281,8 +281,8 @@ int annotation_replace(AnnotationSet *set, const int annotation_id, const Annota
     }
     annotation_release(annotation);
     annotation_copy_text(annotation->label, sizeof(annotation->label), edited->label);
-    annotation->tile_x = edited->tile_x;
-    annotation->tile_y = edited->tile_y;
+    annotation->tile_x = copied != NULL ? copied[0].start_x : edited->tile_x;
+    annotation->tile_y = copied != NULL ? copied[0].start_y : edited->tile_y;
     annotation->segments = copied;
     annotation->segment_count = copied != NULL ? edited->segment_count : 0;
     set->changed = 1;

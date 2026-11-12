@@ -185,6 +185,29 @@ static void test_copy_and_replace_round_trip(void) {
     annotation_set_release(&set);
 }
 
+static void test_replace_moves_path_anchor_to_first_segment(void) {
+    AnnotationSet set;
+    AnnotationSegment segments[2] = {{1, 2, 3, 4}, {3, 4, 5, 6}};
+    int category_id, path_id;
+    Annotation edited;
+    const Annotation *stored;
+    annotation_set_init(&set);
+    category_id = annotation_category_add(&set, "Routes", 0);
+    path_id = annotation_add_path(&set, category_id, segments, 2, "route");
+    CHECK(annotation_copy(&edited, annotation_find(&set, path_id, NULL)) == 1);
+    edited.segments[0] = edited.segments[1];
+    edited.segment_count = 1;
+    CHECK(annotation_replace(&set, path_id, &edited) == 1);
+    stored = annotation_find(&set, path_id, NULL);
+    CHECK(stored != NULL);
+    if (stored != NULL) {
+        CHECK(stored->tile_x == 3);
+        CHECK(stored->tile_y == 4);
+    }
+    annotation_release(&edited);
+    annotation_set_release(&set);
+}
+
 static void test_remove_category_removes_its_annotations(void) {
     AnnotationSet set;
     int keep_id, doomed_id, pin_id;
@@ -317,6 +340,7 @@ int main(void) {
     test_adopt_renames_duplicate_category();
     test_long_utf8_label_is_cut_on_character_boundary();
     test_copy_and_replace_round_trip();
+    test_replace_moves_path_anchor_to_first_segment();
     test_remove_category_removes_its_annotations();
     test_changed_flag_set_on_mutation();
     test_palette_wraps_invalid_index();
