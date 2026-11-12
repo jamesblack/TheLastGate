@@ -184,6 +184,7 @@ int annotation_add_point(AnnotationSet *set, const int category_id, const Annota
     Annotation *annotation;
     if (category == NULL || (kind != ANNOTATION_PIN && kind != ANNOTATION_TEXT)) return 0;
     if (!tile_in_range(tile_x) || !tile_in_range(tile_y)) return 0;
+    if (kind == ANNOTATION_TEXT && (label == NULL || label[0] == '\0')) return 0;
     annotation = append_annotation(category);
     if (annotation == NULL) return 0;
     memset(annotation, 0, sizeof(*annotation));
@@ -266,6 +267,7 @@ int annotation_replace(AnnotationSet *set, const int annotation_id, const Annota
     Annotation *annotation = annotation_find(set, annotation_id, &owner);
     AnnotationSegment *copied = NULL;
     if (annotation == NULL) return 0;
+    if (annotation->kind == ANNOTATION_TEXT && edited->label[0] == '\0') return 0;
     if (annotation->kind == ANNOTATION_PATH) {
         if (!segments_valid(edited->segments, edited->segment_count)) return 0;
         if (annotation_category_segment_total(owner) - annotation->segment_count + edited->segment_count >

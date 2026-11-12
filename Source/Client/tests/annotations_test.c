@@ -53,6 +53,25 @@ static void test_add_point_rejects_unknown_category_and_out_of_range(void) {
     annotation_set_release(&set);
 }
 
+static void test_text_needs_a_label(void) {
+    AnnotationSet set;
+    Annotation edited;
+    int category_id, text_id;
+    annotation_set_init(&set);
+    category_id = annotation_category_add(&set, "Notes", 0);
+    CHECK(annotation_add_point(&set, category_id, ANNOTATION_TEXT, 1, 1, "") == 0);
+    CHECK(annotation_add_point(&set, category_id, ANNOTATION_TEXT, 1, 1, NULL) == 0);
+    CHECK(annotation_add_point(&set, category_id, ANNOTATION_PIN, 1, 1, "") != 0);
+    text_id = annotation_add_point(&set, category_id, ANNOTATION_TEXT, 1, 1, "Gate");
+    CHECK(text_id != 0);
+    CHECK(annotation_copy(&edited, annotation_find(&set, text_id, NULL)));
+    edited.label[0] = '\0';
+    CHECK(annotation_replace(&set, text_id, &edited) == 0);
+    CHECK(strcmp(annotation_find(&set, text_id, NULL)->label, "Gate") == 0);
+    annotation_release(&edited);
+    annotation_set_release(&set);
+}
+
 static void test_add_path_copies_segments(void) {
     AnnotationSet set;
     AnnotationSegment segments[2] = {{1, 2, 3, 4}, {3, 4, 5, 6}};
@@ -292,6 +311,7 @@ static void test_replace_refuses_growing_past_segment_total(void) {
 int main(void) {
     test_ids_are_unique_and_start_at_one();
     test_add_point_rejects_unknown_category_and_out_of_range();
+    test_text_needs_a_label();
     test_add_path_copies_segments();
     test_per_category_limit();
     test_adopt_renames_duplicate_category();
