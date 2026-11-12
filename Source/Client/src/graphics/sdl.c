@@ -1142,7 +1142,7 @@ void sdl_show_map(const MinimapColour *src, int origin_tile_x, int origin_tile_y
             // Clamp to map bounds
             if (src_x < 0 || src_x >= MAPX_MAX ||
                 src_y < 0 || src_y >= MAPY_MAX) {
-                pixels[y * 128 + x] = 0xFF000000; // Black (opaque)
+                pixels[x * 128 + y] = 0xFF000000; // Black (opaque)
                 continue;
             }
 
