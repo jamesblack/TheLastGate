@@ -9,7 +9,7 @@
 #include "common.h"
 #include "mods/buff_watch.h"
 
-struct cplayer pl;
+struct cplayer pl; // NOLINT(readability-identifier-length)
 
 static int say_count;
 static char said_text[100];

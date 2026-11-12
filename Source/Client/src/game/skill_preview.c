@@ -19,7 +19,7 @@ int skill_preview_attribute_gain(const int attribute_values[SKILL_PREVIEW_ATTRIB
     }
 
     /* Truncating each share separately matches how the game rounds the skill value. */
-    return raised_sum / divisor - current_sum / divisor;
+    return (raised_sum / divisor) - (current_sum / divisor);
 }
 
 int skill_preview_uses_raised_attribute(const int attribute_raises[SKILL_PREVIEW_ATTRIBUTE_COUNT]) {

@@ -49,6 +49,7 @@ typedef struct {
     unsigned int background_color;
 } EnhancedSkillLayout;
 
+// NOLINTBEGIN(readability-magic-numbers)
 static const EnhancedSkillLayout LAYOUT_LIGHT = {
     .window_position = {326, 25},
     .window_size = {628, 670},
@@ -100,6 +101,12 @@ static const unsigned int SECTION_LABEL_COLOR_32 = 0xFFE2BC49;
 static const unsigned int RAISED_ROW_HIGHLIGHT_32 = 0x386ADBF3;
 static const float ATTRIBUTE_MARKER_WIDTH = 2;
 static const unsigned int COST_TEXT_COLOR_32 = 0xFFB0B0A8;
+static const unsigned int GLYPH_HOVER_COLOR_32 = 0xFFFFFFFF;
+static const unsigned int FRAME_TINT_COLOR_32 = 0xFFFFFFFF;
+// NOLINTEND(readability-magic-numbers)
+
+#define VALUE_TEXT_SIZE 32
+#define LABEL_TEXT_SIZE 64
 
 /* skilltab position of the skill the suggestion panel works on, or -1. */
 static int focused_skill_position = -1;
@@ -140,6 +147,7 @@ typedef struct {
 
 static PlannerBuffState buff_state;
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static BuffModelSkill model_skill_for(const int skill_position, const int planned) {
     const struct skilltab *skill_entry = &skilltab[skill_position];
     BuffModelSkill skill;
@@ -148,7 +156,9 @@ static BuffModelSkill model_skill_for(const int skill_position, const int planne
     skill.server_total = sk_score(skill_entry->nr);
     skill.planned = planned;
     for (attribute_slot = 0; attribute_slot < BUFF_MODEL_SKILL_ATTRIBUTES; attribute_slot++) {
-        const int attribute_id = skill_entry->attrib[attribute_slot];
+        /* attrib is a signed char where -1 marks an unused slot. */
+        // NOLINTNEXTLINE(bugprone-signed-char-misuse)
+        const int attribute_id = (int) skill_entry->attrib[attribute_slot];
         skill.attribute_ids[attribute_slot] =
                 attribute_id >= 0 && attribute_id < STAT_RAISE_ATTRIBUTE_COUNT ? attribute_id : -1;
     }
@@ -190,7 +200,8 @@ static void fill_raise_state(StatRowView *row_view, const int raise_index) {
     row_view->skill_position = raise_index >= STAT_RAISE_SKILL_BASE ? raise_index - STAT_RAISE_SKILL_BASE : -1;
     row_view->direct_raise = stat_raised[raise_index];
     row_view->cost = stat_raise_cost(raise_index);
-    row_view->can_raise = row_view->cost != HIGH_VAL && row_view->cost <= pl.points - stat_points_used;
+    row_view->can_raise = row_view->cost != HIGH_VAL && // NOLINT(bugprone-signed-bitwise)
+                          row_view->cost <= pl.points - stat_points_used;
     row_view->can_lower = stat_raised[raise_index] > 0;
 }
 
@@ -208,6 +219,7 @@ static StatRowView build_attribute_row(const int attribute_id) {
     return row_view;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static StatRowView build_vital_row(const char *name, const int current, const int raise_index) {
     StatRowView row_view = {0};
 
@@ -217,6 +229,7 @@ static StatRowView build_vital_row(const char *name, const int current, const in
     return row_view;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static StatRowView build_skill_row(const int skill_position, const int attribute_divisor) {
     const struct skilltab *skill_entry = &skilltab[skill_position];
     const int raise_index = STAT_RAISE_SKILL_BASE + skill_position;
@@ -226,7 +239,9 @@ static StatRowView build_skill_row(const int skill_position, const int attribute
     int attribute_slot;
 
     for (attribute_slot = 0; attribute_slot < SKILL_PREVIEW_ATTRIBUTE_COUNT; attribute_slot++) {
-        const int attribute_id = skill_entry->attrib[attribute_slot];
+        /* attrib is a signed char where -1 marks an unused slot. */
+        // NOLINTNEXTLINE(bugprone-signed-char-misuse)
+        const int attribute_id = (int) skill_entry->attrib[attribute_slot];
         const bool valid_attribute = attribute_id >= 0 && attribute_id < STAT_RAISE_ATTRIBUTE_COUNT;
 
         attribute_values[attribute_slot] = valid_attribute ? at_score(attribute_id) : 0;
@@ -258,9 +273,10 @@ static float text_width(const char *text) {
 }
 
 /* Draws text at a row-relative position, vertically centred in the row. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void row_text(const EnhancedSkillLayout *layout, const float row_left, const float row_top, const float offset,
                      const unsigned int color, const char *text) {
-    imgui_set_cursor_pos(row_left + offset, row_top + (layout->row_height - imgui_get_text_line_height()) / 2);
+    imgui_set_cursor_pos(row_left + offset, row_top + ((layout->row_height - imgui_get_text_line_height()) / 2));
     imgui_text_colored_32(color, text);
 }
 
@@ -282,13 +298,15 @@ static bool glyph_button(const EnhancedSkillLayout *layout, const float row_left
         row_text(layout, row_left, row_top, offset + 2, HINT_GREY_FONT_COLOR_32, glyph);
         return false;
     }
-    row_text(layout, row_left, row_top, offset + 2, hovered ? 0xFFFFFFFF : GOLD_FONT_COLOR_32, glyph);
+    row_text(layout, row_left, row_top, offset + 2, hovered ? GLYPH_HOVER_COLOR_32 : GOLD_FONT_COLOR_32, glyph);
     return clicked;
 }
 
 static int click_multiplier(void) {
     const int key_mods = imgui_get_key_mods();
-    return stat_raise_click_multiplier((key_mods & KMOD_SHIFT) != 0, (key_mods & (KMOD_CTRL | KMOD_ALT)) != 0);
+    const int shift_held = (key_mods & KMOD_SHIFT) != 0 ? 1 : 0; // NOLINT(bugprone-signed-bitwise)
+    const int ctrl_or_alt_held = (key_mods & (KMOD_CTRL | KMOD_ALT)) != 0 ? 1 : 0; // NOLINT(bugprone-signed-bitwise)
+    return stat_raise_click_multiplier(shift_held, ctrl_or_alt_held);
 }
 
 static void apply_clicks(const int raise_index, const bool raise) {
@@ -297,7 +315,7 @@ static void apply_clicks(const int raise_index, const bool raise) {
 
     for (click_number = 0; click_number < click_count; click_number++) {
         const int applied = raise ? stat_raise_try_raise(raise_index) : stat_raise_try_lower(raise_index);
-        if (!applied) break;
+        if (applied == 0) break;
     }
 }
 
@@ -309,7 +327,7 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
     void *draw_list = imgui_get_window_draw_list();
     const float screen_left = imgui_get_window_pos_x() + row_left - imgui_get_scroll_x();
     const float screen_top = imgui_get_window_pos_y() + row_top - imgui_get_scroll_y();
-    char value_text[32];
+    char value_text[VALUE_TEXT_SIZE];
 
     /* Rows you bought points for get the gold band; rows fed by a raised attribute get a blue edge marker. */
     if (row_view->direct_raise != 0) {
@@ -369,7 +387,7 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
         row_text(layout, row_left, row_top, preview_offset, ATTRIBUTE_GAIN_COLOR_32, value_text);
     }
 
-    if (row_view->cost == HIGH_VAL) {
+    if (row_view->cost == HIGH_VAL) { // NOLINT(bugprone-signed-bitwise)
         snprintf(value_text, sizeof(value_text), "-");
     } else {
         snprintf(value_text, sizeof(value_text), "%d", row_view->cost);
@@ -392,6 +410,7 @@ static void section_label_render(const EnhancedSkillLayout *layout, const char *
     imgui_dummy(layout->column_width, layout->row_height);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void value_row_render(const EnhancedSkillLayout *layout, const char *label, const char *value) {
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
@@ -412,6 +431,7 @@ static MetaLookup meta_lookups[] = {
     {"Hit Score", -1}, {"Parry Score", -1}, {"Spell Multiplier", -1}, {"Spell Aptitude", -1}, {"Spell Bonus", -1},
 };
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum { META_HIT, META_PARRY, META_SPELL_MULTIPLIER, META_SPELL_APTITUDE, META_SPELL_BONUS, META_LOOKUP_COUNT };
 
 static const struct MetaStat *find_meta(const int lookup_id) {
@@ -430,6 +450,8 @@ static const struct MetaStat *find_meta(const int lookup_id) {
     return &meta_stats[lookup->index];
 }
 
+#define META_DECIMAL_SCALE 100
+
 /* The meta stat's raw value (hundredths for decimal stats); false while it hasn't arrived. */
 static bool meta_value(const int lookup_id, int *value) {
     const struct MetaStat *meta = find_meta(lookup_id);
@@ -446,8 +468,9 @@ static void format_meta_value(const int lookup_id, char *text, const size_t text
         snprintf(text, text_size, "-");
         return;
     }
-    if (meta->flag) {
-        snprintf(text, text_size, "%d.%02d%s", meta->value / 100, meta->value % 100, meta->affix);
+    if (meta->flag != 0) {
+        snprintf(text, text_size, "%d.%02d%s", meta->value / META_DECIMAL_SCALE, meta->value % META_DECIMAL_SCALE,
+                 meta->affix);
     } else {
         snprintf(text, text_size, "%d%s", meta->value, meta->affix);
     }
@@ -462,6 +485,7 @@ static const int COMBAT_SKILL_NUMBERS[COMBAT_SKILL_COUNT] = {
 #define COMBO_LABEL_WIDTH 46
 #define COMBO_WIDTH 92
 #define OFFHAND_LABEL_LEFT 146
+#define OFFHAND_COMBO_GAP 6
 
 #define PLANNER_CHOICES_FILE "TLGPlanner.dat"
 
@@ -495,9 +519,9 @@ static int count_empty_gear_slots(void) {
 }
 
 static CombatGearClass combat_gear_class(void) {
-    if (IS_SKALD) return COMBAT_GEAR_SKALD;
-    if (IS_ARCHTEMPLAR) return COMBAT_GEAR_ARCHTEMPLAR;
-    if (IS_TEMPLAR || IS_BRAVER) return COMBAT_GEAR_TEMPLAR_OR_BRAVER;
+    if (IS_SKALD) return COMBAT_GEAR_SKALD; // NOLINT(bugprone-signed-bitwise)
+    if (IS_ARCHTEMPLAR) return COMBAT_GEAR_ARCHTEMPLAR; // NOLINT(bugprone-signed-bitwise)
+    if (IS_TEMPLAR || IS_BRAVER) return COMBAT_GEAR_TEMPLAR_OR_BRAVER; // NOLINT(bugprone-signed-bitwise)
     return COMBAT_GEAR_OTHER;
 }
 
@@ -512,10 +536,10 @@ static bool build_combat_model_input(CombatModelInput *input) {
         const int skill_number = COMBAT_SKILL_NUMBERS[skill_id];
         const int skill_position = skill_position_for_number(skill_number);
 
-        input->known[skill_id] = skill_position >= 0 && pl.skill[skill_number][0] > 0;
+        input->known[skill_id] = skill_position >= 0 && pl.skill[skill_number][0] > 0 ? 1 : 0;
         input->current[skill_id] = sk_score(skill_number);
         input->shown[skill_id] = input->current[skill_id];
-        if (input->known[skill_id]) {
+        if (input->known[skill_id] != 0) {
             const BuffModelSkill skill =
                     model_skill_for(skill_position, stat_raised[STAT_RAISE_SKILL_BASE + skill_position]);
             input->shown[skill_id] =
@@ -536,8 +560,8 @@ static bool build_combat_model_input(CombatModelInput *input) {
     input->weapon = (CombatWeapon) chosen.weapon;
     input->offhand = (CombatOffhand) chosen.offhand;
     input->gear_class = combat_gear_class();
-    input->rampart = IS_ARCHTEMPLAR && T_ARTM_SK(10);
-    input->lycan = IS_LYCANTH ? 1 : 0;
+    input->rampart = IS_ARCHTEMPLAR && T_ARTM_SK(10); // NOLINT(bugprone-signed-bitwise)
+    input->lycan = IS_LYCANTH ? 1 : 0; // NOLINT(bugprone-signed-bitwise)
     input->empty_slots = count_empty_gear_slots();
     input->base_weapon = buff_state.planned.weapon;
     input->base_armor = buff_state.planned.armor;
@@ -545,6 +569,7 @@ static bool build_combat_model_input(CombatModelInput *input) {
 }
 
 /* A dropdown over `names`; returns the picked index, or -1 when nothing was picked this frame. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static int choice_combo_render(const char *combo_id, const char *const *names, const int name_count,
                                const int selected) {
     int current = selected;
@@ -571,7 +596,7 @@ static void equipment_row_render(const EnhancedSkillLayout *layout, const Combat
     }
 
     row_text(layout, row_left, row_top, OFFHAND_LABEL_LEFT, GOLD_FONT_COLOR_32, "Off-hand");
-    imgui_set_cursor_pos(row_left + OFFHAND_LABEL_LEFT + COMBO_LABEL_WIDTH + 6, row_top);
+    imgui_set_cursor_pos(row_left + OFFHAND_LABEL_LEFT + COMBO_LABEL_WIDTH + OFFHAND_COMBO_GAP, row_top);
     picked = choice_combo_render("##combat_offhand", COMBAT_OFFHAND_NAMES, COMBAT_OFFHAND_COUNT, input->offhand);
     if (picked >= 0 && picked != chosen.offhand) {
         chosen.offhand = picked;
@@ -588,7 +613,7 @@ static void planned_value_row_render(const EnhancedSkillLayout *layout, const ch
                                      const int shown) {
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
-    char value_text[32];
+    char value_text[VALUE_TEXT_SIZE];
 
     snprintf(value_text, sizeof(value_text), "%d", current);
     value_row_render(layout, label, value_text);
@@ -607,7 +632,7 @@ static void planned_value_row_render(const EnhancedSkillLayout *layout, const ch
 static void combat_block_render(const EnhancedSkillLayout *layout) {
     CombatModelInput input;
     CombatModelResult result;
-    char value_text[32];
+    char value_text[VALUE_TEXT_SIZE];
     int server_aptitude = 0;
 
     if (!build_combat_model_input(&input) || !meta_value(META_SPELL_APTITUDE, &server_aptitude)) {
@@ -656,10 +681,11 @@ static bool spell_known(const int kind) {
 
 /* A buff that is on the player can only be modelled once its power has been read. */
 static bool buff_reading_ready(const int kind) {
-    return !buff_watch_is_active((BuffKind) kind) || buff_watch_reading((BuffKind) kind) != NULL;
+    return buff_watch_is_active((BuffKind) kind) == 0 || buff_watch_reading((BuffKind) kind) != NULL;
 }
 
 /* How strongly the class turns Willpower and Intuition into spell aptitude, in percent. */
+// NOLINTBEGIN(readability-magic-numbers, bugprone-signed-bitwise)
 static int spell_race_modifier(void) {
     if (IS_TEMPLAR) return 75;
     if (IS_MERCENARY) return 100;
@@ -675,6 +701,7 @@ static int spell_race_modifier(void) {
     if (IS_LYCANTH) return 100;
     return 100;
 }
+// NOLINTEND(readability-magic-numbers, bugprone-signed-bitwise)
 
 static bool build_buff_model_input(BuffModelInput *input) {
     int multiplier;
@@ -692,12 +719,12 @@ static bool build_buff_model_input(BuffModelInput *input) {
         input->base_attributes[attribute_id] = pl.attrib[attribute_id][0];
         input->planned_attributes[attribute_id] = stat_raised[attribute_id];
     }
-    input->divisor = skill_preview_attribute_divisor(race_gamemode(okey.race) == 1);
+    input->divisor = skill_preview_attribute_divisor(race_gamemode(okey.race) == 1 ? 1 : 0);
     input->spell_multiplier = multiplier;
     input->spell_bonus = bonus;
     input->spell_aptitude = aptitude;
     input->race_modifier = spell_race_modifier();
-    input->reduced_item_buffs = IS_SEYAN_DU || IS_BRAVER;
+    input->reduced_item_buffs = IS_SEYAN_DU || IS_BRAVER; // NOLINT(bugprone-signed-bitwise)
     input->server_weapon = pl.weapon;
     input->server_armor = pl.armor;
 
@@ -705,7 +732,7 @@ static bool build_buff_model_input(BuffModelInput *input) {
         const int skill_position = spell_skill_position(kind);
         const BuffReading *reading = buff_watch_reading((BuffKind) kind);
 
-        input->spell_known[kind] = spell_known(kind);
+        input->spell_known[kind] = spell_known(kind) ? 1 : 0;
         if (skill_position >= 0) {
             input->spell_skills[kind] =
                     model_skill_for(skill_position, stat_raised[STAT_RAISE_SKILL_BASE + skill_position]);
@@ -716,8 +743,11 @@ static bool build_buff_model_input(BuffModelInput *input) {
         }
         if (reading != NULL) input->active[kind] = *reading;
         /* A buff from a spell you don't know stays in the numbers; it has no toggle. */
-        input->show_buffed[kind] = input->spell_known[kind] ? show_buffed_toggle[kind] && buff_reading_ready(kind)
-                                                            : buff_watch_is_active((BuffKind) kind);
+        if (input->spell_known[kind] != 0) {
+            input->show_buffed[kind] = show_buffed_toggle[kind] && buff_reading_ready(kind) ? 1 : 0;
+        } else {
+            input->show_buffed[kind] = buff_watch_is_active((BuffKind) kind);
+        }
     }
     return true;
 }
@@ -746,7 +776,7 @@ static void buff_row_render(const EnhancedSkillLayout *layout, const int kind) {
     const bool ready = buff_state.available && buff_reading_ready(kind);
     const BuffReading *reading = buff_watch_reading((BuffKind) kind);
     const char *spell_name = skilltab[spell_skill_position(kind)].name;
-    char label_text[64];
+    char label_text[LABEL_TEXT_SIZE];
 
     snprintf(label_text, sizeof(label_text), ready ? "%s" : "%s (reading buffs...)", spell_name);
     imgui_set_cursor_pos(row_left + 2, row_top);
@@ -787,6 +817,8 @@ static void buffs_block_render(const EnhancedSkillLayout *layout) {
     }
 }
 
+#define LEGEND_TEXT_LEFT 24
+
 static void legend_render(const EnhancedSkillLayout *layout) {
     const float row_left = imgui_get_cursor_pos_x();
     float row_top = imgui_get_cursor_pos_y();
@@ -800,26 +832,26 @@ static void legend_render(const EnhancedSkillLayout *layout) {
                                     screen_top + layout->row_height, RAISED_ROW_HIGHLIGHT_32, 0, 0);
     row_top = imgui_get_cursor_pos_y();
     row_text(layout, row_left, row_top, 2, DIRECT_RAISE_COLOR_32, "+N");
-    row_text(layout, row_left, row_top, 24, GOLD_FONT_COLOR_32, "points you bought for it");
+    row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR_32, "points you bought for it");
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
 
     imgui_draw_list_add_rect_filled(draw_list, screen_left, screen_top + layout->row_height,
-                                    screen_left + ATTRIBUTE_MARKER_WIDTH, screen_top + layout->row_height * 2,
+                                    screen_left + ATTRIBUTE_MARKER_WIDTH, screen_top + (layout->row_height * 2),
                                     ATTRIBUTE_GAIN_COLOR_32, 0, 0);
     row_top = imgui_get_cursor_pos_y();
     row_text(layout, row_left, row_top, 2, ATTRIBUTE_GAIN_COLOR_32, "+N");
-    row_text(layout, row_left, row_top, 24, GOLD_FONT_COLOR_32, "from raised attributes");
+    row_text(layout, row_left, row_top, LEGEND_TEXT_LEFT, GOLD_FONT_COLOR_32, "from raised attributes");
     imgui_set_cursor_pos(row_left, row_top);
     imgui_dummy(layout->column_width, layout->row_height);
 }
 
 static int attribute_divisor_for_player(void) {
-    return skill_preview_attribute_divisor(race_gamemode(okey.race) == 1);
+    return skill_preview_attribute_divisor(race_gamemode(okey.race) == 1 ? 1 : 0);
 }
 
 static int to_focus_cost(const int stat_cost) {
-    return stat_cost == HIGH_VAL ? SKILL_FOCUS_NO_COST : stat_cost;
+    return stat_cost == HIGH_VAL ? SKILL_FOCUS_NO_COST : stat_cost; // NOLINT(bugprone-signed-bitwise)
 }
 
 static SkillFocusInput build_focus_input(const int skill_position) {
@@ -829,17 +861,23 @@ static SkillFocusInput build_focus_input(const int skill_position) {
     int step_index;
 
     for (slot_index = 0; slot_index < SKILL_FOCUS_SLOT_COUNT; slot_index++) {
-        const int attribute_id = skill_entry->attrib[slot_index];
+        /* attrib is a signed char where -1 marks an unused slot. */
+        // NOLINTNEXTLINE(bugprone-signed-char-misuse)
+        const int attribute_id = (int) skill_entry->attrib[slot_index];
         const bool valid_attribute = attribute_id >= 0 && attribute_id < STAT_RAISE_ATTRIBUTE_COUNT;
 
         input.attribute_ids[slot_index] = valid_attribute ? attribute_id : -1;
         /* The values the rows show, so the suggested +1 is a +1 in the preview. */
-        const int shown_value = !valid_attribute       ? 0
-                                : buff_state.available ? buff_state.planned.attributes[attribute_id]
-                                                       : at_score(attribute_id) + stat_raised[attribute_id];
+        int shown_value = 0;
+        if (valid_attribute && buff_state.available) {
+            shown_value = buff_state.planned.attributes[attribute_id];
+        } else if (valid_attribute) {
+            shown_value = at_score(attribute_id) + stat_raised[attribute_id];
+        }
         input.attribute_values[slot_index] = shown_value;
         for (step_index = 0; step_index < SKILL_FOCUS_MAX_STEPS; step_index++) {
             input.attribute_step_costs[slot_index][step_index] =
+                    // NOLINTNEXTLINE(readability-suspicious-call-argument)
                     valid_attribute ? to_focus_cost(stat_raise_cost_after(attribute_id, step_index))
                                     : SKILL_FOCUS_NO_COST;
         }
@@ -850,8 +888,10 @@ static SkillFocusInput build_focus_input(const int skill_position) {
 }
 
 /* A panel row with a label at an offset and an optional right-aligned value. */
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 static void panel_row_render(const EnhancedSkillLayout *layout, const float label_offset, const unsigned int color,
                              const char *label, const char *value) {
+    // NOLINTEND(bugprone-easily-swappable-parameters)
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
 
@@ -867,7 +907,7 @@ static void plan_suggestion(const SkillFocusSuggestion *suggestion, const int sk
     int entry_count = 0;
     int raise_number;
 
-    if (suggestion->use_direct) {
+    if (suggestion->use_direct != 0) {
         raise_indices[0] = STAT_RAISE_SKILL_BASE + skill_position;
         point_counts[0] = 1;
         entry_count = 1;
@@ -937,6 +977,8 @@ static const BuffFocusResult *cached_buff_focus(const int skill_position) {
     BuffFocusInput input;
 
     build_buff_focus_input(&input, skill_position);
+    /* The input is memset before it is filled, so its padding is always zero and a byte compare is exact. */
+    // NOLINTNEXTLINE(bugprone-suspicious-memory-comparison)
     if (!has_cached || memcmp(&input, &cached_input, sizeof(input)) != 0) {
         cached_input = input;
         cached_result = buff_focus_search(&input);
@@ -951,8 +993,8 @@ static const char *raise_name(const int raise_index) {
 }
 
 static void buff_route_lines_render(const EnhancedSkillLayout *layout, const BuffFocusRoute *route) {
-    char label_text[64];
-    char value_text[32];
+    char label_text[LABEL_TEXT_SIZE];
+    char value_text[VALUE_TEXT_SIZE];
     int raise_number;
 
     for (raise_number = 0; raise_number < route->raise_count; raise_number++) {
@@ -978,7 +1020,7 @@ static void plan_buff_route(const BuffFocusRoute *route) {
     stat_raise_try_raise_bundle(raise_indices, point_counts, route->raise_count);
 }
 
-typedef enum { ROUTE_DIRECT, ROUTE_ATTRIBUTES, ROUTE_BLESS } RouteKind;
+typedef enum { ROUTE_DIRECT, ROUTE_ATTRIBUTES, ROUTE_BLESS } RouteKind; // NOLINT(performance-enum-size)
 
 static bool focused_is_bless(void) {
     return focused_skill_position == spell_skill_position(BUFF_KIND_BLESS);
@@ -999,10 +1041,10 @@ static RouteKind route_kind(const BuffFocusRoute *route) {
 }
 
 static void other_route_render(const EnhancedSkillLayout *layout, const char *label, const BuffFocusRoute *route) {
-    char label_text[64];
-    char value_text[32];
+    char label_text[LABEL_TEXT_SIZE];
+    char value_text[VALUE_TEXT_SIZE];
 
-    if (route->available) {
+    if (route->available != 0) {
         snprintf(value_text, sizeof(value_text), "%d exp", route->total_cost);
         panel_row_render(layout, 2, COST_TEXT_COLOR_32, label, value_text);
     } else {
@@ -1014,14 +1056,14 @@ static void other_route_render(const EnhancedSkillLayout *layout, const char *la
 /* Focus panel body while Bless is shown: the search may spend points on Bless and what feeds it. */
 static void buff_focus_panel_render(const EnhancedSkillLayout *layout, const char *skill_name) {
     const BuffFocusResult *result = cached_buff_focus(focused_skill_position);
-    char label_text[64];
-    char value_text[32];
+    char label_text[LABEL_TEXT_SIZE];
+    char value_text[VALUE_TEXT_SIZE];
 
     snprintf(label_text, sizeof(label_text), "%s  %d -> %d", skill_name, result->current_value,
              result->current_value + 1);
     panel_row_render(layout, 2, PREVIEW_CHANGED_COLOR_32, label_text, NULL);
 
-    if (!result->best.available) {
+    if (result->best.available == 0) {
         snprintf(label_text, sizeof(label_text), "%s can't be raised further", skill_name);
         panel_row_render(layout, 2, GOLD_FONT_COLOR_32, label_text, NULL);
         return;
@@ -1033,7 +1075,7 @@ static void buff_focus_panel_render(const EnhancedSkillLayout *layout, const cha
 
     /* One line for each kind of route that didn't win. */
     const RouteKind winning_kind = route_kind(&result->best);
-    char direct_label[64];
+    char direct_label[LABEL_TEXT_SIZE];
     snprintf(direct_label, sizeof(direct_label), "Direct (+1 %s)", skill_name);
     if (winning_kind != ROUTE_DIRECT) other_route_render(layout, direct_label, &result->direct);
     if (winning_kind != ROUTE_ATTRIBUTES) other_route_render(layout, "Through attributes", &result->through_attributes);
@@ -1058,8 +1100,8 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     SkillFocusSuggestion suggestion;
     const SkillFocusRoute *winning_route;
     const SkillFocusRoute *other_route;
-    char label_text[64];
-    char value_text[32];
+    char label_text[LABEL_TEXT_SIZE];
+    char value_text[VALUE_TEXT_SIZE];
     int raise_number;
 
     section_label_render(layout, "Focus");
@@ -1071,7 +1113,8 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     }
 
     skill_name = skilltab[focused_skill_position].name;
-    if (buff_state.available && spell_known(BUFF_KIND_BLESS) && buff_state.planned_input.show_buffed[BUFF_KIND_BLESS]) {
+    if (buff_state.available && spell_known(BUFF_KIND_BLESS) &&
+        buff_state.planned_input.show_buffed[BUFF_KIND_BLESS] != 0) {
         buff_focus_panel_render(layout, skill_name);
         return;
     }
@@ -1084,18 +1127,18 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     snprintf(label_text, sizeof(label_text), "%s  %d -> %d", skill_name, preview, preview + 1);
     panel_row_render(layout, 2, PREVIEW_CHANGED_COLOR_32, label_text, NULL);
 
-    if (!suggestion.any_available) {
+    if (suggestion.any_available == 0) {
         snprintf(label_text, sizeof(label_text), "%s can't be raised further", skill_name);
         panel_row_render(layout, 2, GOLD_FONT_COLOR_32, label_text, NULL);
         return;
     }
 
-    winning_route = suggestion.use_direct ? &suggestion.direct : &suggestion.attributes;
-    other_route = suggestion.use_direct ? &suggestion.attributes : &suggestion.direct;
+    winning_route = suggestion.use_direct != 0 ? &suggestion.direct : &suggestion.attributes;
+    other_route = suggestion.use_direct != 0 ? &suggestion.attributes : &suggestion.direct;
 
     snprintf(value_text, sizeof(value_text), "%d exp", winning_route->total_cost);
     panel_row_render(layout, 2, GOLD_FONT_COLOR_32, "Cheapest +1", value_text);
-    if (suggestion.use_direct) {
+    if (suggestion.use_direct != 0) {
         snprintf(label_text, sizeof(label_text), "+1 %s", skill_name);
         snprintf(value_text, sizeof(value_text), "%d", winning_route->total_cost);
         panel_row_render(layout, layout->raise_line_indent, DIRECT_RAISE_COLOR_32, label_text, value_text);
@@ -1108,12 +1151,12 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
         }
     }
 
-    if (suggestion.use_direct) {
+    if (suggestion.use_direct != 0) {
         snprintf(label_text, sizeof(label_text), "Through attributes");
     } else {
         snprintf(label_text, sizeof(label_text), "Direct (+1 %s)", skill_name);
     }
-    if (other_route->available) {
+    if (other_route->available != 0) {
         snprintf(value_text, sizeof(value_text), "%d exp", other_route->total_cost);
         panel_row_render(layout, 2, COST_TEXT_COLOR_32, label_text, value_text);
     } else {
@@ -1131,6 +1174,8 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     }
 }
 
+#define VITAL_TOTAL_INDEX 5
+
 static void left_column_render(const EnhancedSkillLayout *layout) {
     StatRowView row_view;
     int attribute_id;
@@ -1141,9 +1186,9 @@ static void left_column_render(const EnhancedSkillLayout *layout) {
         stat_row_render(layout, &row_view);
     }
 
-    row_view = build_vital_row("Hitpoints", pl.hp[5], STAT_RAISE_HITPOINTS);
+    row_view = build_vital_row("Hitpoints", pl.hp[VITAL_TOTAL_INDEX], STAT_RAISE_HITPOINTS);
     stat_row_render(layout, &row_view);
-    row_view = build_vital_row("Mana", pl.mana[5], STAT_RAISE_MANA);
+    row_view = build_vital_row("Mana", pl.mana[VITAL_TOTAL_INDEX], STAT_RAISE_MANA);
     stat_row_render(layout, &row_view);
 
     imgui_dummy(layout->column_width, layout->row_height);
@@ -1155,7 +1200,7 @@ static void left_column_render(const EnhancedSkillLayout *layout) {
 }
 
 static void skill_column_render(const EnhancedSkillLayout *layout, const float column_height) {
-    const int attribute_divisor = skill_preview_attribute_divisor(race_gamemode(okey.race) == 1);
+    const int attribute_divisor = skill_preview_attribute_divisor(race_gamemode(okey.race) == 1 ? 1 : 0);
     int skill_position;
 
     const float column_top = imgui_get_cursor_pos_y();
@@ -1178,25 +1223,27 @@ static void skill_column_render(const EnhancedSkillLayout *layout, const float c
     imgui_end_child();
 }
 
+#define COMMAND_BUTTON_GAP 4
+
 static void header_render(const EnhancedSkillLayout *layout) {
     const float header_top = imgui_get_cursor_pos_y();
     /* Whole pixels only: a half-pixel offset clips the button sprite's top border. */
-    const float button_top = (float) (int) (header_top + (layout->header_height - BUTTON_SPRITE_HEIGHT) / 2);
+    const float button_top = (float) (int) (header_top + ((layout->header_height - BUTTON_SPRITE_HEIGHT) / 2));
     const float content_right = layout->window_size.x - layout->window_padding;
-    char header_text[64];
+    char header_text[LABEL_TEXT_SIZE];
 
     snprintf(header_text, sizeof(header_text), "Exp left %d    Planned %d", pl.points - stat_points_used,
              stat_points_used);
     imgui_set_cursor_pos(layout->window_padding + 2,
-                         header_top + (layout->header_height - imgui_get_text_line_height()) / 2);
+                         header_top + ((layout->header_height - imgui_get_text_line_height()) / 2));
     imgui_text_colored_32(GOLD_FONT_COLOR_32, header_text);
 
-    imgui_set_cursor_pos(content_right - layout->command_button_width * 3 - 8, button_top);
+    imgui_set_cursor_pos(content_right - (layout->command_button_width * 3) - (COMMAND_BUTTON_GAP * 2), button_top);
     if (ui_button("Commit", layout->command_button_width, BUTTON_SPRITE_HEIGHT)) {
         stat_raise_commit_all();
         enhanced_skill_window_clear_focus();
     }
-    imgui_set_cursor_pos(content_right - layout->command_button_width * 2 - 4, button_top);
+    imgui_set_cursor_pos(content_right - (layout->command_button_width * 2) - COMMAND_BUTTON_GAP, button_top);
     if (ui_button("Reset", layout->command_button_width, BUTTON_SPRITE_HEIGHT)) stat_raise_reset_all();
     imgui_set_cursor_pos(content_right - layout->command_button_width, button_top);
     if (ui_button("Close", layout->command_button_width, BUTTON_SPRITE_HEIGHT)) {
@@ -1219,10 +1266,11 @@ static void frame_render(const EnhancedSkillLayout *layout) {
 
     sdl_load_sprite(WINDOW_SPRITE_ID);
     frame = &sprite_data[WINDOW_SPRITE_ID];
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
     imgui_draw_list_add_image_9_slice(draw_list, (void *) (intptr_t) frame->gl_texture, left, top, right, bottom,
                                       layout->frame_border, layout->frame_border, layout->frame_border,
-                                      layout->frame_border, frame->pixel_width, frame->pixel_height, frame->uv0.u,
-                                      frame->uv0.v, frame->uv1.u, frame->uv1.v, 0xFFFFFFFF);
+                                      layout->frame_border, (float) frame->pixel_width, (float) frame->pixel_height,
+                                      frame->uv0.u, frame->uv0.v, frame->uv1.u, frame->uv1.v, FRAME_TINT_COLOR_32);
 }
 
 void enhanced_skill_window_render(void) {
@@ -1241,10 +1289,12 @@ void enhanced_skill_window_render(void) {
     imgui_push_style_var_vec2(IMGUI_STYLE_VAR_ITEM_SPACING, 0, 0);
     imgui_push_style_var_vec2(IMGUI_STYLE_VAR_ITEM_INNER_SPACING, 0, 0);
 
-    if (imgui_begin("Skill Planner", NULL,
-                    IMGUI_WINDOW_FLAG_NO_TITLE_BAR | IMGUI_WINDOW_FLAG_NO_RESIZE | IMGUI_WINDOW_FLAG_NO_MOVE |
-                            IMGUI_WINDOW_FLAG_NO_BACKGROUND | IMGUI_WINDOW_FLAG_NO_SCROLLBAR |
-                            IMGUI_WINDOW_FLAG_NO_SCROLL_WITH_MOUSE | IMGUI_WINDOW_FLAG_NO_COLLAPSE)) {
+    // NOLINTBEGIN(bugprone-signed-bitwise)
+    const int window_flags = IMGUI_WINDOW_FLAG_NO_TITLE_BAR | IMGUI_WINDOW_FLAG_NO_RESIZE | IMGUI_WINDOW_FLAG_NO_MOVE |
+                             IMGUI_WINDOW_FLAG_NO_BACKGROUND | IMGUI_WINDOW_FLAG_NO_SCROLLBAR |
+                             IMGUI_WINDOW_FLAG_NO_SCROLL_WITH_MOUSE | IMGUI_WINDOW_FLAG_NO_COLLAPSE;
+    // NOLINTEND(bugprone-signed-bitwise)
+    if (imgui_begin("Skill Planner", NULL, window_flags)) {
         frame_render(layout);
 
         imgui_set_cursor_pos(0, layout->window_padding);

@@ -60,6 +60,7 @@ static void finish_capture(void) {
     retries_left = BUFF_WATCH_RETRY_LIMIT;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void buff_watch_spell_packet(const int slot, const int old_sprite, const int old_active, const int new_sprite,
                              const int new_active) {
     const int unchanged = old_sprite == new_sprite && old_active == new_active;
@@ -110,8 +111,9 @@ void buff_watch_end_of_tick(void) {
         request_failed();
     }
     if (!fetch_pending || request_in_flight) return;
-    if (tick_now - last_send_tick < (readings_fresh ? BUFF_WATCH_REFRESH_GAP_TICKS : BUFF_WATCH_MISSING_GAP_TICKS))
+    if (tick_now - last_send_tick < (readings_fresh ? BUFF_WATCH_REFRESH_GAP_TICKS : BUFF_WATCH_MISSING_GAP_TICKS)) {
         return;
+    }
 
     memset(command_text, 0, sizeof(command_text));
     strcpy(command_text, BUFF_WATCH_COMMAND);

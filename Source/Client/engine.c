@@ -1417,10 +1417,15 @@ void eng_display_win(int plr_sprite, int init) {
         }
         if (g_config.ui.skill_planner && (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS ||
                                           game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS_AND_META)) {
+            unsigned short planner_fill = GUI_BUTTON_FILL;
+            unsigned short planner_edge = GUI_BUTTON_EDGE;
+            if (do_darkmode) {
+                planner_fill = GUI_BUTTON_FILL_DARK;
+                planner_edge = GUI_BUTTON_EDGE_DARK;
+            }
             showbar(GUI_PLANNER_BOX_X + 1, GUI_PLANNER_BOX_Y + 1, GUI_PLANNER_BOX_W - 1, GUI_PLANNER_BOX_H - 1,
-                    (unsigned short) (do_darkmode ? GUI_BUTTON_FILL_DARK : GUI_BUTTON_FILL));
-            showbox(GUI_PLANNER_BOX_X, GUI_PLANNER_BOX_Y, GUI_PLANNER_BOX_W, GUI_PLANNER_BOX_H,
-                    (unsigned short) (do_darkmode ? GUI_BUTTON_EDGE_DARK : GUI_BUTTON_EDGE));
+                    planner_fill);
+            showbox(GUI_PLANNER_BOX_X, GUI_PLANNER_BOX_Y, GUI_PLANNER_BOX_W, GUI_PLANNER_BOX_H, planner_edge);
             xputtext(GUI_PLANNER_X, GUI_UPDATE_Y, 1, "Planner");
         }
         if (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS_AND_META)

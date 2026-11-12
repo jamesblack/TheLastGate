@@ -18,6 +18,11 @@
 #include "util/math_util.h"
 #include "util/nearest_to_mouse.h"
 
+#define BUTTON_SKILL_PLANNER 48
+#define STATBOX_ROW_HITPOINTS 5
+#define STATBOX_ROW_MANA 6
+#define STATBOX_ROW_BLANK 7
+
 // Zarro 2020 - Define gui rectangles as arrays - easier to find and change them here (sort of)
 int gui_inv_up[] 	= { 600,   5, 612,  35 };
 int gui_inv_down[]	= { 600,  76, 612, 106 };
@@ -26,7 +31,7 @@ int gui_skl_up[]	= { 233, 117, 245, 152 };
 int gui_skl_down[]	= { 233, 222, 245, 256 };
 int gui_update[]	= { 136, 257, 185, 270 };
 int gui_skl_pm[]	= { 160,   6, 184, 255 };
-int gui_planner[]	= {   7, 257,  60, 270 };
+int gui_planner[]	= {   7, 257,  60, 270 }; // NOLINT(readability-magic-numbers)
 int gui_skl_names[]	= {   6, 118, 135, 255 };
 
 int gui_f_col[]		= {1083,1035 };
@@ -68,7 +73,7 @@ int got_meta=0;
 
 void toggle_skill_planner(void)
 {
-	game_ui_state.show_enhanced_skills = !game_ui_state.show_enhanced_skills;
+	game_ui_state.show_enhanced_skills = (bool) !game_ui_state.show_enhanced_skills;
 	// The planner shows meta stats by name, which the server only sends on request
 	if (game_ui_state.show_enhanced_skills && !got_meta)
 	{
@@ -227,7 +232,7 @@ int trans_button(int x,int y)
 	if (	x>gui_planner[RECT_X1] && y>gui_planner[RECT_Y1]
 		&&  x<gui_planner[RECT_X2] && y<gui_planner[RECT_Y2]
 		&& (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS || game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS_AND_META)
-		&& g_config.ui.skill_planner) return 48;
+		&& g_config.ui.skill_planner) return BUTTON_SKILL_PLANNER;
 
 	return -1;
 }
@@ -389,7 +394,7 @@ void button_command(int nr)
 			}
 			break;
 
-		case 48:
+		case BUTTON_SKILL_PLANNER:
 			toggle_skill_planner();
 			break;
 
@@ -552,7 +557,7 @@ void button_help(int nr)
 		case 46:
 			xlog(1,"Makes the left panel display Defense-related statistics, such as eHP and regeneration rates.");
 			break;
-		case 48:
+		case BUTTON_SKILL_PLANNER:
 			xlog(1,"Open the skill planner.");
 			break;
 
@@ -740,18 +745,19 @@ int mouse_buttonbox(int x,int y,int state)
 /* Maps a clicked stat box row to its stat_raised slot, or -1 when that row cannot be raised. */
 static int statbox_raise_index(int row)
 {
-	if (row<7 && game_ui_state.hud_mode != HUD_MODE_LIST_SKILLS) return -1;
-	if (row<5) return row;
-	if (row==5) return STAT_RAISE_HITPOINTS;
-	if (row==6) return STAT_RAISE_MANA;
-	if (row==7) return -1;
+	if (row<STATBOX_ROW_BLANK && game_ui_state.hud_mode != HUD_MODE_LIST_SKILLS) return -1;
+	if (row<STAT_RAISE_ATTRIBUTE_COUNT) return row;
+	if (row==STATBOX_ROW_HITPOINTS) return STAT_RAISE_HITPOINTS;
+	if (row==STATBOX_ROW_MANA) return STAT_RAISE_MANA;
+	if (row==STATBOX_ROW_BLANK) return -1;
 	if (game_ui_state.hud_mode == HUD_MODE_LIST_OFFENSES || game_ui_state.hud_mode == HUD_MODE_LIST_DEFENSES) return -1;
 	return row+game_ui_state.skill_scroll;
 }
 
 int _mouse_statbox(int x,int y,int state)
 {
-	int n,raise_index;
+	int n; // NOLINT(readability-identifier-length)
+	int raise_index;
 
 	/* ***
 	if (screen_windowed == 1) {
@@ -797,7 +803,7 @@ int _mouse_statbox(int x,int y,int state)
 		}
 		if (state!=MS_LB_UP) return 1;
 
-		if (n==7) return 1;
+		if (n==STATBOX_ROW_BLANK) return 1;
 		raise_index=statbox_raise_index(n);
 		if (raise_index<0) return 0;
 		stat_raise_try_raise(raise_index);
@@ -815,7 +821,7 @@ int _mouse_statbox(int x,int y,int state)
 		}
 		if (state!=MS_LB_UP) return 1;
 
-		if (n==7) return 1;
+		if (n==STATBOX_ROW_BLANK) return 1;
 		raise_index=statbox_raise_index(n);
 		if (raise_index<0) return 0;
 		stat_raise_try_lower(raise_index);
@@ -826,13 +832,20 @@ int _mouse_statbox(int x,int y,int state)
 
 int mouse_statbox(int x,int y,int state)
 {
-	int n,m,ret=0;
+	int n; // NOLINT(readability-identifier-length)
+	int m; // NOLINT(readability-identifier-length)
+	int ret=0;
 	SDL_Keymod mods = SDL_GetModState();
 
 	if (state==MS_LB_UP)
+	{
+		// NOLINTNEXTLINE(bugprone-signed-bitwise)
 		m=stat_raise_click_multiplier((mods & KMOD_SHIFT)!=0, (mods & (KMOD_CTRL|KMOD_ALT))!=0);
+	}
 	else
+	{
 		m=1;
+	}
 	
 	if (game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS || game_ui_state.hud_mode == HUD_MODE_LIST_SKILLS_AND_META)
 	{

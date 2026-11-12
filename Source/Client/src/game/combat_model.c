@@ -2,6 +2,11 @@
 
 #define COMBAT_WEAPON_SKILL_CAP 300
 #define COMBAT_STAT_MAX 999
+#define TACTICS_HIT_PARRY_DIVISOR 6
+#define RAMPART_SHIELD_DIVISOR 8
+#define GEAR_MASTERY_DIVISOR_TEMPLAR_OR_BRAVER 5
+#define GEAR_MASTERY_DIVISOR_OTHER 10
+#define FEROCITY_EMPTY_SLOT_DIVISOR 10
 
 const char *const COMBAT_WEAPON_NAMES[COMBAT_WEAPON_COUNT] = {
     "Unarmed", "Claw", "Dagger", "Sword", "Axe", "Staff", "Two-Handed", "Spear", "Greataxe",
@@ -88,29 +93,32 @@ static int weapon_term(const CombatModelInput *input, const int skills[COMBAT_SK
 }
 
 static int hit_term(const CombatModelInput *input, const int skills[COMBAT_SKILL_COUNT]) {
-    int term = weapon_term(input, skills) + skill_value(input, skills, COMBAT_SKILL_TACTICS) / 6;
+    int term =
+            weapon_term(input, skills) + (skill_value(input, skills, COMBAT_SKILL_TACTICS) / TACTICS_HIT_PARRY_DIVISOR);
 
     if (input->offhand == COMBAT_OFFHAND_DUAL) term += capped_skill(skill_value(input, skills, COMBAT_SKILL_DUAL)) / 4;
     return term;
 }
 
 static int parry_term(const CombatModelInput *input, const int skills[COMBAT_SKILL_COUNT]) {
-    int term = weapon_term(input, skills) + skill_value(input, skills, COMBAT_SKILL_TACTICS) / 6;
+    int term =
+            weapon_term(input, skills) + (skill_value(input, skills, COMBAT_SKILL_TACTICS) / TACTICS_HIT_PARRY_DIVISOR);
 
     if (input->offhand == COMBAT_OFFHAND_SHIELD) {
         const int shield = capped_skill(skill_value(input, skills, COMBAT_SKILL_SHIELD));
 
-        term += input->rampart ? shield / 4 + shield / 8 : shield / 4;
+        term += input->rampart ? (shield / 4) + (shield / RAMPART_SHIELD_DIVISOR) : shield / 4;
     }
     return term;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static int gear_mastery_divisor(const CombatGearClass gear_class, const int for_armor) {
     switch (gear_class) {
-        case COMBAT_GEAR_TEMPLAR_OR_BRAVER: return 5;
+        case COMBAT_GEAR_TEMPLAR_OR_BRAVER: return GEAR_MASTERY_DIVISOR_TEMPLAR_OR_BRAVER;
         case COMBAT_GEAR_ARCHTEMPLAR: return for_armor ? 3 : 4;
         case COMBAT_GEAR_SKALD: return for_armor ? 4 : 3;
-        default: return 10;
+        default: return GEAR_MASTERY_DIVISOR_OTHER;
     }
 }
 
@@ -118,11 +126,11 @@ static int ferocity_term(const CombatModelInput *input, const int skills[COMBAT_
     const int ferocity = skill_value(input, skills, COMBAT_SKILL_FEROCITY);
 
     if (!input->lycan) return 0;
-    return (ferocity / 2 + ferocity * input->empty_slots / 10) / 4;
+    return ((ferocity / 2) + (ferocity * input->empty_slots / FEROCITY_EMPTY_SLOT_DIVISOR)) / 4;
 }
 
 static int weapon_value_term(const CombatModelInput *input, const int skills[COMBAT_SKILL_COUNT]) {
-    int term = skill_value(input, skills, COMBAT_SKILL_GEARMAST) / gear_mastery_divisor(input->gear_class, 0) +
+    int term = (skill_value(input, skills, COMBAT_SKILL_GEARMAST) / gear_mastery_divisor(input->gear_class, 0)) +
                ferocity_term(input, skills);
 
     if (input->weapon == COMBAT_WEAPON_UNARMED) term += skill_value(input, skills, COMBAT_SKILL_HAND) / 4;
@@ -130,7 +138,7 @@ static int weapon_value_term(const CombatModelInput *input, const int skills[COM
 }
 
 static int armor_value_term(const CombatModelInput *input, const int skills[COMBAT_SKILL_COUNT]) {
-    return skill_value(input, skills, COMBAT_SKILL_GEARMAST) / gear_mastery_divisor(input->gear_class, 1) +
+    return (skill_value(input, skills, COMBAT_SKILL_GEARMAST) / gear_mastery_divisor(input->gear_class, 1)) +
            ferocity_term(input, skills);
 }
 

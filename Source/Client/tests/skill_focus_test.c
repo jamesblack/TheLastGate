@@ -16,6 +16,7 @@ static int failures = 0;
         }                                                                        \
     } while (0)
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static SkillFocusInput make_input(const int first_id, const int second_id, const int third_id, const int divisor) {
     SkillFocusInput input;
     int slot_index;
@@ -35,6 +36,7 @@ static SkillFocusInput make_input(const int first_id, const int second_id, const
     return input;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void set_values(SkillFocusInput *input, const int first, const int second, const int third) {
     input->attribute_values[0] = first;
     input->attribute_values[1] = second;
@@ -50,8 +52,9 @@ static int total_points(const SkillFocusRoute *route) {
     int point_sum = 0;
     int raise_index;
 
-    for (raise_index = 0; raise_index < route->raise_count; raise_index++)
+    for (raise_index = 0; raise_index < route->raise_count; raise_index++) {
         point_sum += route->raises[raise_index].points;
+    }
     return point_sum;
 }
 
@@ -115,7 +118,7 @@ static void set_doubled_costs(SkillFocusInput *input, const int doubled_cost) {
     for (step_index = 0; step_index < SKILL_FOCUS_MAX_STEPS; step_index++) {
         input->attribute_step_costs[0][step_index] = doubled_cost;
         input->attribute_step_costs[1][step_index] = doubled_cost;
-        input->attribute_step_costs[2][step_index] = 50 + step_index * 10;
+        input->attribute_step_costs[2][step_index] = 50 + (step_index * 10);
     }
 }
 

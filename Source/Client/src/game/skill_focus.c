@@ -54,6 +54,7 @@ static int prefix_cost(const int *step_costs, const int point_count) {
     return total;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static SkillFocusRoute cheapest_attribute_route(const SkillFocusInput *input) {
     DistinctAttribute distinct[SKILL_FOCUS_SLOT_COUNT];
     const int distinct_count = collect_distinct_attributes(input, distinct);
@@ -73,7 +74,7 @@ static SkillFocusRoute cheapest_attribute_route(const SkillFocusInput *input) {
     for (slot_index = 0; slot_index < SKILL_FOCUS_SLOT_COUNT; slot_index++) {
         if (input->attribute_ids[slot_index] >= 0) attribute_sum += input->attribute_values[slot_index];
     }
-    needed = input->divisor - attribute_sum % input->divisor;
+    needed = input->divisor - (attribute_sum % input->divisor);
 
     /* Every combination of 0..max_points per distinct attribute; unused positions stay at 0. */
     for (point_counts[0] = 0; point_counts[0] <= max_points; point_counts[0]++) {

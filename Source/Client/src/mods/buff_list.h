@@ -25,7 +25,7 @@ typedef enum {
     BUFF_KIND_BLESS = 0,
     BUFF_KIND_ENHANCE = 1,
     BUFF_KIND_PROTECT = 2,
-    BUFF_KIND_COUNT = 3
+    BUFF_KIND_COUNT = 3,
 } BuffKind;
 
 typedef struct {

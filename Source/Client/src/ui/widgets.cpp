@@ -257,13 +257,15 @@ static constexpr DropdownPalette GAME_DROPDOWN_PALETTE = {
 
 /* Options and descriptions are gold in every look. */
 static constexpr ImU32 DROPDOWN_GOLD_TEXT_COLOR = 0xFF6ADBF3;
-static const ImVec2 DROPDOWN_LIST_PADDING = ImVec2(4, 4);
+static constexpr ImVec2 DROPDOWN_LIST_PADDING = ImVec2(4, 4);
+static constexpr float DROPDOWN_DESCRIPTION_WRAP_FONT_SIZES = 25.0F;
 /* Spacing the dropdown sets for itself, so a window's own spacing doesn't squash it. */
-static const ImVec2 DROPDOWN_FRAME_PADDING = ImVec2(4, 3);
-static const ImVec2 DROPDOWN_ITEM_SPACING = ImVec2(8, 4);
+static constexpr ImVec2 DROPDOWN_FRAME_PADDING = ImVec2(4, 3);
+static constexpr ImVec2 DROPDOWN_ITEM_SPACING = ImVec2(8, 4);
 
 static void dropdown_description_render(const char *description) {
     if (description == nullptr) return;
+    // NOLINTNEXTLINE(bugprone-signed-bitwise)
     if (!ImGui::IsItemHovered(ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayNormal |
                               ImGuiHoveredFlags_AllowWhenDisabled)) {
         return;
@@ -271,7 +273,7 @@ static void dropdown_description_render(const char *description) {
 
     ImGui::PushStyleColor(ImGuiCol_Text, DROPDOWN_GOLD_TEXT_COLOR);
     ImGui::BeginTooltip();
-    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 25.0f);
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * DROPDOWN_DESCRIPTION_WRAP_FONT_SIZES);
     ImGui::TextUnformatted(description);
     ImGui::PopTextWrapPos();
     ImGui::EndTooltip();

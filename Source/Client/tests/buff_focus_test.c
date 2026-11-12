@@ -21,6 +21,7 @@ static int failures = 0;
 #define FOCUSED_SLOT 8
 #define BLESS_SLOT 9
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void set_skill(BuffModelSkill *skill, const int server_total, const int first_id, const int second_id,
                       const int third_id) {
     skill->server_total = server_total;
@@ -50,6 +51,7 @@ static void set_model(BuffModelInput *model) {
     model->show_buffed[BUFF_KIND_BLESS] = 1;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void add_candidate(BuffFocusInput *input, const int raise_index, const int max_points, const int cost) {
     BuffFocusCandidate *candidate = &input->candidates[input->candidate_count++];
     int step_index;

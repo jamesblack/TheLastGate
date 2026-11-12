@@ -15,6 +15,8 @@
 #include "config/config.h"
 #include "config/keybindings.h"
 
+#define EXTENDED_VERSION_SKILL_PLANNER 7
+
 extern int screen_width, screen_height, screen_tilexoff, screen_tileyoff, screen_viewsize, view_subedges;
 //extern int screen_overlay_sprite;
 extern int xwalk_nx, xwalk_ny, xwalk_ex, xwalk_ey, xwalk_sx, xwalk_sy, xwalk_wx, xwalk_wy;
@@ -159,7 +161,7 @@ void load_extended_options(void)
 	g_config.audio.sound_volume = 10;
 	g_config.gameplay.give_more = 0;
 	g_config.gameplay.use_queue = 0;
-	g_config.ui.skill_planner = 0;
+	g_config.ui.skill_planner = false;
 	g_config.gameplay.adaptive_tick_pacing = 0;
 
 	handle = open("TLGExtended.dat", O_RDONLY|O_BINARY);
@@ -253,7 +255,7 @@ void load_extended_options(void)
 			if (read(handle, &g_config.ui.expanded_quick_stats, sizeof(g_config.ui.expanded_quick_stats)) != sizeof(g_config.ui.expanded_quick_stats)) return;
 		}
 
-		if (version >= 7) {
+		if (version >= EXTENDED_VERSION_SKILL_PLANNER) {
 			if (read(handle, &g_config.ui.skill_planner, sizeof(g_config.ui.skill_planner)) != sizeof(g_config.ui.skill_planner)) return;
 		}
 

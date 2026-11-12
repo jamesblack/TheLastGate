@@ -34,6 +34,7 @@ static CombatModelInput fixture(void) {
     return input;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void set_skill(CombatModelInput *input, const CombatSkill skill_id, const int current, const int shown) {
     input->current[skill_id] = current;
     input->shown[skill_id] = shown;
@@ -171,6 +172,7 @@ static void test_unknown_skill_adds_nothing(void) {
     CHECK(result.parry == 90);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void check_gear_mastery(const CombatGearClass gear_class, const int weapon, const int armor) {
     CombatModelInput input = fixture();
     CombatModelResult result;

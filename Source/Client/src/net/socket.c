@@ -512,7 +512,7 @@ void sv_setchar_spell(unsigned char *buf) {
         return;
     }
     const int old_sprite = pl.spell[n];
-    const int old_active = pl.active[n];
+    const int old_active = (int) pl.active[n];
     pl.spell[n] = *(short int *) (buf + 5);
     pl.active[n] = *(short int *) (buf + 7);
     buff_watch_spell_packet(n, old_sprite, old_active, pl.spell[n], pl.active[n]);
@@ -704,7 +704,7 @@ void sv_log(unsigned char *buf, int font) {
     for (n = cnt; n < cnt + 15; n++)
         if (text[n] == 10) {
             text[n] = 0;
-            if (!buff_watch_capture_line(text, font) && !item_tooltip_capture_line(text, font)) tlog(text, font);
+            if (!buff_watch_capture_line(text, font) && !item_tooltip_capture_line(text, font)) tlog(text, (char) font);
             cnt = 0;
             return;
         }

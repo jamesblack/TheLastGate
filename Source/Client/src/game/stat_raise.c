@@ -22,7 +22,7 @@ static int cost_at_planned(const int raise_index, const int planned) {
         const int skill_id = skilltab[raise_index - STAT_RAISE_SKILL_BASE].nr;
         return skill_needed(skill_id, pl.skill[skill_id][0] + planned);
     }
-    return HIGH_VAL;
+    return HIGH_VAL; // NOLINT(bugprone-signed-bitwise)
 }
 
 int stat_raise_cost(const int raise_index) {
@@ -30,14 +30,14 @@ int stat_raise_cost(const int raise_index) {
 }
 
 int stat_raise_cost_after(const int raise_index, const int extra_points) {
-    if (!is_valid_index(raise_index) || extra_points < 0) return HIGH_VAL;
+    if (!is_valid_index(raise_index) || extra_points < 0) return HIGH_VAL; // NOLINT(bugprone-signed-bitwise)
     return cost_at_planned(raise_index, stat_raised[raise_index] + extra_points);
 }
 
 int stat_raise_try_raise(const int raise_index) {
     const int cost = stat_raise_cost(raise_index);
 
-    if (cost == HIGH_VAL || cost > pl.points - stat_points_used) return 0;
+    if (cost == HIGH_VAL || cost > pl.points - stat_points_used) return 0; // NOLINT(bugprone-signed-bitwise)
     stat_points_used += cost;
     stat_raised[raise_index]++;
     return 1;
@@ -50,6 +50,7 @@ int stat_raise_try_lower(const int raise_index) {
     return 1;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 int stat_raise_try_raise_bundle(const int raise_indices[], const int point_counts[], const int entry_count) {
     int entry_index;
     int point_index;
@@ -116,6 +117,7 @@ int stat_raise_skill_list_version(void) {
     return skill_list_version;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 int stat_raise_click_multiplier(const int shift_held, const int ctrl_or_alt_held) {
     if (ctrl_or_alt_held) return CTRL_CLICK_MULTIPLIER;
     if (shift_held) return SHIFT_CLICK_MULTIPLIER;

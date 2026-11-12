@@ -9,6 +9,8 @@
  * weapon and off-hand. */
 #define PLANNER_CHOICES_FORMAT 1
 #define PLANNER_CHOICES_MAX_RECORDS 256
+#define CARD_WORD_BITS 32U
+#define CARD_WORD_MASK 0xFFFFFFFFU
 
 typedef struct {
     uint32_t character_number;

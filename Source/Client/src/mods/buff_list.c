@@ -5,10 +5,12 @@
 
 #define POWER_MARKER " power of "
 #define BONUS_PREFIX " : "
+#define DECIMAL_BASE 10
 
 static const char *const BUFF_NAMES[BUFF_KIND_COUNT] = {"Bless", "Enhance", "Protect"};
-static const char *const ATTRIBUTE_NAMES[BUFF_ATTRIBUTE_COUNT] = {"Braveness", "Willpower", "Intuition", "Agility",
-                                                                  "Strength"};
+static const char *const ATTRIBUTE_NAMES[BUFF_ATTRIBUTE_COUNT] = {
+    "Braveness", "Willpower", "Intuition", "Agility", "Strength",
+};
 
 BuffKind buff_list_sprite_kind(const int sprite) {
     if (sprite == BUFF_SPRITE_BLESS) return BUFF_KIND_BLESS;
@@ -44,7 +46,7 @@ static int read_power_line(BuffListParser *parser, const char *text) {
             BuffReading *reading = &parser->readings[kind];
             memset(reading, 0, sizeof(*reading));
             reading->known = 1;
-            reading->power = (int) strtol(marker + strlen(POWER_MARKER), NULL, 10);
+            reading->power = (int) strtol(marker + strlen(POWER_MARKER), NULL, DECIMAL_BASE);
             parser->current_kind = kind;
         }
     }
@@ -60,7 +62,7 @@ static void read_bonus_line(BuffListParser *parser, const char *text) {
 
     if (parser->current_kind == BUFF_KIND_NONE) return;
     if (strncmp(text, BONUS_PREFIX, strlen(BONUS_PREFIX)) != 0) return;
-    amount = (int) strtol(text + strlen(BONUS_PREFIX), &stat_name, 10);
+    amount = (int) strtol(text + strlen(BONUS_PREFIX), &stat_name, DECIMAL_BASE);
     if (*stat_name != ' ') return;
     stat_name++;
 
@@ -90,9 +92,11 @@ int buff_list_parser_feed(BuffListParser *parser, const char *text) {
     return 1;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 int buff_list_slot_needs_fetch(const int old_sprite, const int old_active, const int new_sprite, const int new_active) {
-    if (buff_list_sprite_kind(old_sprite) == BUFF_KIND_NONE && buff_list_sprite_kind(new_sprite) == BUFF_KIND_NONE)
+    if (buff_list_sprite_kind(old_sprite) == BUFF_KIND_NONE && buff_list_sprite_kind(new_sprite) == BUFF_KIND_NONE) {
         return 0;
+    }
     if (old_sprite != new_sprite) return 1;
     return new_active >= old_active;
 }

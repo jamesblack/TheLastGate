@@ -18,6 +18,7 @@ static int failures = 0;
         }                                                                        \
     } while (0)
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static void set_skill(BuffModelSkill *skill, const int server_total, const int first_id, const int second_id,
                       const int third_id) {
     skill->server_total = server_total;

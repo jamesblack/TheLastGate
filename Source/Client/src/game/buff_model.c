@@ -3,6 +3,11 @@
 #define ATTRIBUTE_WILLPOWER 1
 #define ATTRIBUTE_INTUITION 2
 #define ITEM_BONUS_CAP 127
+#define PERCENT_BASE 100
+#define BLESS_BONUS_DIVISOR 5
+#define ITEM_BONUS_DIVISOR 4
+#define REDUCED_ITEM_BONUS_DIVISOR 6
+#define APTITUDE_ATTRIBUTE_FACTOR 5
 
 static int smaller(const int first, const int second) {
     return first < second ? first : second;
@@ -14,13 +19,14 @@ static int larger(const int first, const int second) {
 
 int buff_model_bless_bonus(const int power, const int attribute_id) {
     if (power <= 0) return 0;
-    return smaller(ITEM_BONUS_CAP, ((power * 2 / 3) - attribute_id) / 5 + 3);
+    return smaller(ITEM_BONUS_CAP, (((power * 2 / 3) - attribute_id) / BLESS_BONUS_DIVISOR) + 3);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 int buff_model_item_bonus(const int power, const int reduced) {
     if (power <= 0) return 0;
-    if (reduced) return smaller(ITEM_BONUS_CAP, power / 6 + 3);
-    return smaller(ITEM_BONUS_CAP, power / 4 + 4);
+    if (reduced) return smaller(ITEM_BONUS_CAP, (power / REDUCED_ITEM_BONUS_DIVISOR) + 3);
+    return smaller(ITEM_BONUS_CAP, (power / ITEM_BONUS_DIVISOR) + 4);
 }
 
 static int attribute_sum(const BuffModelSkill *skill, const int attributes[BUFF_ATTRIBUTE_COUNT]) {
@@ -36,12 +42,12 @@ static int attribute_sum(const BuffModelSkill *skill, const int attributes[BUFF_
 
 int buff_model_skill_value(const BuffModelInput *input, const BuffModelSkill *skill,
                            const int attributes[BUFF_ATTRIBUTE_COUNT]) {
-    return skill->server_total + skill->planned + attribute_sum(skill, attributes) / input->divisor -
-           attribute_sum(skill, input->server_attributes) / input->divisor;
+    return skill->server_total + skill->planned + (attribute_sum(skill, attributes) / input->divisor) -
+           (attribute_sum(skill, input->server_attributes) / input->divisor);
 }
 
 static int aptitude_term(const BuffModelInput *input, const int willpower, const int intuition) {
-    return (willpower + intuition) * 5 / input->divisor * input->race_modifier / 100;
+    return (willpower + intuition) * APTITUDE_ATTRIBUTE_FACTOR / input->divisor * input->race_modifier / PERCENT_BASE;
 }
 
 static int planned_aptitude(const BuffModelInput *input) {
@@ -65,6 +71,7 @@ static int active_bless_bonus(const BuffReading *active, const int attribute_id)
     return buff_model_bless_bonus(active->power, attribute_id);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static int active_item_bonus(const BuffReading *active, const int exact_bonus, const int reduced) {
     if (!active->known) return 0;
     if (active->has_exact) return exact_bonus;
