@@ -174,7 +174,8 @@ static void test_corruptors_round_trip(void) {
 
 static void test_format_two_loads_without_corruptors(void) {
     const uint32_t file_words[] = {
-        2, 1, 7, (uint32_t) COMBAT_WEAPON_SWORD, (uint32_t) COMBAT_OFFHAND_SHIELD, 0x5, 0x400000, 0x800};
+        2, 1, 7, (uint32_t) COMBAT_WEAPON_SWORD, (uint32_t) COMBAT_OFFHAND_SHIELD, 0x5, 0x400000, 0x800,
+    };
     PlannerChoices loaded;
     int corruptor;
 
@@ -227,22 +228,24 @@ static void test_items_round_trip(void) {
 }
 
 static void test_format_three_loads_without_items(void) {
-    const uint32_t file_words[] = {3,
-                                   1,
-                                   7,
-                                   (uint32_t) COMBAT_WEAPON_SWORD,
-                                   (uint32_t) COMBAT_OFFHAND_SHIELD,
-                                   0x5,
-                                   0x400000,
-                                   0x800,
-                                   0x3,
-                                   0x0402,
-                                   0,
-                                   0,
-                                   0,
-                                   0,
-                                   0,
-                                   0};
+    const uint32_t file_words[] = {
+        3,
+        1,
+        7,
+        (uint32_t) COMBAT_WEAPON_SWORD,
+        (uint32_t) COMBAT_OFFHAND_SHIELD,
+        0x5,
+        0x400000,
+        0x800,
+        0x3,
+        0x0402,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    };
     PlannerChoices loaded;
     int enchant;
 

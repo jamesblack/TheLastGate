@@ -223,8 +223,9 @@ static void test_tactician_is_listed_not_modelled(void) {
 }
 
 static void test_server_numbers(void) {
-    static const int EXPECTED[CORRUPTOR_COUNT] = {20, 32, 68, 80, 92, 44, 56, 19, 33, 67, 81, 91, 5,
-                                                  11, 89, 23, 7,  35, 71, 66, 53, 9,  52, 95, 96};
+    static const int EXPECTED[CORRUPTOR_COUNT] = {
+        20, 32, 68, 80, 92, 44, 56, 19, 33, 67, 81, 91, 5, 11, 89, 23, 7, 35, 71, 66, 53, 9, 52, 95, 96,
+    };
     int corruptor;
 
     for (corruptor = 0; corruptor < CORRUPTOR_COUNT; corruptor++) {
