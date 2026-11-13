@@ -886,12 +886,14 @@ static void add_tree_rows(PlannerAdvancedView *view) {
         if (tree_effects_node_learned(effects_input.tree_points, node) == 0) continue;
         if (corruptor_number == 0) {
             if (tree_effects_node_in_math(effects_input.tree_class, node) == 0) continue;
-            row->name = sk_tree[0][node - 1].name;
+            snprintf(tree_row_names[node - 1], sizeof(tree_row_names[node - 1]), "%.*s (skill tree)",
+                     (int) sizeof(sk_tree[0][node - 1].name), sk_tree[0][node - 1].name);
+            row->name = tree_row_names[node - 1];
             row->effect = sk_tree[0][node - 1].dsc1;
         } else {
             corruptor = tree_effects_corruptor_for_server_number(corruptor_number);
             if (corruptor < 0) continue;
-            snprintf(tree_row_names[node - 1], sizeof(tree_row_names[node - 1]), "%s (tree)",
+            snprintf(tree_row_names[node - 1], sizeof(tree_row_names[node - 1]), "%s (skill tree)",
                      CORRUPTOR_INFO[corruptor].name);
             row->name = tree_row_names[node - 1];
             row->effect =
@@ -946,12 +948,16 @@ static void math_line_render(const EnhancedSkillLayout *layout, const char *name
     imgui_dummy(layout->column_width, layout->row_height);
 }
 
-static void math_block_render(const EnhancedSkillLayout *layout) {
+#define MATH_VISIBLE_LINES 5
+
+static void math_lines_render(const EnhancedSkillLayout *layout) {
+    PlannerAdvancedView tree_view;
+    char corruptor_text[LABEL_TEXT_SIZE];
     int kind;
     int card_index;
+    int row_index;
+    int corruptor;
 
-    imgui_dummy(layout->column_width, layout->row_height);
-    math_header_render(layout);
     if (game_ui_hard_mode()) math_line_render(layout, "Hard Mode");
     for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
         if (spell_known(kind) && spell_toggle_on(kind)) {
@@ -962,6 +968,27 @@ static void math_block_render(const EnhancedSkillLayout *layout) {
         const int card = TAROT_MODELLED_CARDS[card_index];
         if (tarot_set_has(chosen.tarot_cards, card) != 0) math_line_render(layout, planner_card_name(card));
     }
+    memset(&tree_view, 0, sizeof(tree_view));
+    add_tree_rows(&tree_view);
+    for (row_index = 0; row_index < tree_view.tree_row_count; row_index++) {
+        math_line_render(layout, tree_view.tree_rows[row_index].name);
+    }
+    for (corruptor = 0; corruptor < CORRUPTOR_COUNT; corruptor++) {
+        const int count = chosen.corruptor_counts[corruptor];
+
+        if ((chosen.corruptor_ticks & (1U << (unsigned int) corruptor)) == 0 || count == 0) continue;
+        snprintf(corruptor_text, sizeof(corruptor_text), "%s x%d", CORRUPTOR_INFO[corruptor].name, count);
+        math_line_render(layout, corruptor_text);
+    }
+}
+
+static void math_block_render(const EnhancedSkillLayout *layout) {
+    imgui_dummy(layout->column_width, layout->row_height);
+    math_header_render(layout);
+    if (imgui_begin_child("Planner Math", layout->column_width, MATH_VISIBLE_LINES * layout->row_height, false, 0)) {
+        math_lines_render(layout);
+    }
+    imgui_end_child();
 }
 
 #define LEGEND_TEXT_LEFT 24
