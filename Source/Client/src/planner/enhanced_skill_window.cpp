@@ -1305,7 +1305,6 @@ static int spell_raise_index_for(const int kind) {
     return spell_known(kind) ? STAT_RAISE_SKILL_BASE + spell_skill_position(kind) : -1;
 }
 
-/* Spell power is capped by Spell Aptitude, which follows Willpower and Intuition. */
 static void add_aptitude_candidates(BuffFocusCandidate *candidates, int *candidate_count) {
     add_focus_candidate(candidates, candidate_count, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
     add_focus_candidate(candidates, candidate_count, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
@@ -1320,7 +1319,6 @@ static void add_spell_candidates(BuffFocusCandidate *candidates, int *candidate_
     add_aptitude_candidates(candidates, candidate_count);
 }
 
-/* Tachi adds Spell Bonus to WV, Odachi to AV. */
 static bool item_value_takes_spell_bonus(const CombatStat stat) {
     const PlannerEffects *effects = &buff_state.planned_input.effects;
 
@@ -1351,7 +1349,6 @@ static bool spell_bonus_feeds_combat_stat(const CombatStat stat) {
     }
 }
 
-/* Gorn and Nei add a hundredth of the uncapped Hitpoints or Mana to Spell Bonus. */
 static void add_pool_candidates(BuffFocusCandidate *candidates, int *candidate_count) {
     const PlannerEffects *effects = &buff_state.planned_input.effects;
 
@@ -1408,7 +1405,6 @@ static void add_combat_stat_candidates(BuffFocusCandidate *candidates, int *cand
     }
 }
 
-/* Armor to Resistance and Armor to Immunity add a tenth of the shown Armor Value to the skill. */
 static bool armor_feeds_skill(const int skill_position) {
     const PlannerEffects *effects = &buff_state.planned_input.effects;
     const int skill_number = skilltab[skill_position].nr;

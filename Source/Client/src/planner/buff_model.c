@@ -216,7 +216,7 @@ static void server_attributes_before_boosts(const BuffModelInput *input, int att
  */
 static void attributes_with_changes(const BuffModelInput *input, const int changes[ATTRIBUTE_COUNT],
                                     int attributes[ATTRIBUTE_COUNT]) {
-    int strength_changes[ATTRIBUTE_COUNT];
+    int changes_with_ajax[ATTRIBUTE_COUNT];
     int before_boosts[ATTRIBUTE_COUNT];
     int planned[ATTRIBUTE_COUNT];
     int boosted_planned[ATTRIBUTE_COUNT];
@@ -225,14 +225,16 @@ static void attributes_with_changes(const BuffModelInput *input, const int chang
     int attribute_id;
 
     for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
-        strength_changes[attribute_id] = changes[attribute_id];
+        changes_with_ajax[attribute_id] = changes[attribute_id];
     }
     if (input->effects.brave_into_strength) {
-        strength_changes[ATTRIBUTE_STRENGTH] +=
+        changes_with_ajax[ATTRIBUTE_STRENGTH] +=
                 changes[ATTRIBUTE_BRAVENESS] - input->planned_attributes[ATTRIBUTE_BRAVENESS];
     }
 
-    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) change_sum += strength_changes[attribute_id];
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        change_sum += changes_with_ajax[attribute_id];
+    }
     server_attributes_before_boosts(input, before_boosts);
     for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
         const int server_value = before_boosts[attribute_id];
@@ -240,7 +242,7 @@ static void attributes_with_changes(const BuffModelInput *input, const int chang
         const int unscaled_value = server_value * PERCENT_BASE / percent_scale;
         const int raw_change = tarot_set_has(input->tarot_cards, TAROT_FOOL_REVERSED)
                                        ? tarot_fool_reversed_total(unscaled_value, change_sum) - unscaled_value
-                                       : strength_changes[attribute_id];
+                                       : changes_with_ajax[attribute_id];
 
         planned[attribute_id] =
                 server_value + tarot_scaled_change(server_value, raw_change, percent_scale, PERCENT_BASE);
