@@ -894,7 +894,8 @@ static void add_tree_rows(PlannerAdvancedView *view) {
             snprintf(tree_row_names[node - 1], sizeof(tree_row_names[node - 1]), "%s (tree)",
                      CORRUPTOR_INFO[corruptor].name);
             row->name = tree_row_names[node - 1];
-            row->effect = CORRUPTOR_INFO[corruptor].one_copy;
+            row->effect =
+                    CORRUPTOR_INFO[corruptor].modelled != 0 ? CORRUPTOR_INFO[corruptor].one_copy : "(not modelled)";
         }
         view->tree_row_count++;
     }
@@ -1176,6 +1177,22 @@ static bool spell_shown(const int kind) {
     return spell_known(kind) && buff_state.planned_input.show_buffed[kind] != 0;
 }
 
+/* The tree's extra percents add attributes the skill doesn't list, chosen by the skill's group. */
+static void add_extra_percent_candidates(BuffFocusCandidate *candidates, int *candidate_count,
+                                         const BuffModelSkill *skill, const TreeEffects *effects) {
+    static const int GROUP_OF_ATTRIBUTE[ATTRIBUTE_COUNT] = {
+        SKILL_GROUP_PASSIVE,      SKILL_GROUP_ACTIVE_SPELL, SKILL_GROUP_ACTIVE_SPELL,
+        SKILL_GROUP_ACTIVE_MELEE, SKILL_GROUP_ACTIVE_MELEE,
+    };
+    int attribute_id;
+
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        if (effects->skill_extra_percent[attribute_id] == 0) continue;
+        if ((skill->skill_groups & GROUP_OF_ATTRIBUTE[attribute_id]) == 0) continue;
+        add_focus_candidate(candidates, candidate_count, attribute_id, SKILL_FOCUS_MAX_STEPS);
+    }
+}
+
 static void build_buff_focus_input(BuffFocusInput *input, const int skill_position) {
     int kind;
 
@@ -1195,9 +1212,12 @@ static void build_buff_focus_input(BuffFocusInput *input, const int skill_positi
         add_attribute_pool_candidate(candidates, candidate_count);
     } else {
         add_skill_attribute_candidates(candidates, candidate_count, &input->focused);
-        add_skill_attribute_candidates(candidates, candidate_count, &input->model.spell_skills[BUFF_KIND_BLESS]);
-        add_focus_candidate(candidates, candidate_count, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
-        add_focus_candidate(candidates, candidate_count, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
+        add_extra_percent_candidates(candidates, candidate_count, &input->focused, &input->model.effects);
+        if (spell_shown(BUFF_KIND_BLESS)) {
+            add_skill_attribute_candidates(candidates, candidate_count, &input->model.spell_skills[BUFF_KIND_BLESS]);
+            add_focus_candidate(candidates, candidate_count, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
+            add_focus_candidate(candidates, candidate_count, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
+        }
     }
     if (spell_shown(BUFF_KIND_BLESS)) {
         add_focus_candidate(candidates, candidate_count, input->spell_raise_index[BUFF_KIND_BLESS],
@@ -1390,7 +1410,7 @@ static bool plan_button_render(const EnhancedSkillLayout *layout, const int tota
     return ui_button_enabled("Plan it", layout->plan_button_width, BUTTON_SPRITE_HEIGHT, affordable);
 }
 
-/* Focus panel body while Bless is shown: the search may spend points on Bless and what feeds it. */
+/* Focus panel body while Bless is shown or tree effects apply: the search follows the full buff model. */
 static void buff_focus_panel_render(const EnhancedSkillLayout *layout, const char *skill_name) {
     const BuffFocusResult *result = cached_buff_focus(focused_skill_position);
     char label_text[LABEL_TEXT_SIZE];

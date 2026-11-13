@@ -1,8 +1,9 @@
 #pragma once
 
 /*
- * The planner's Weapon and Off-hand picks, kept per character in a small file
- * so they survive between sessions.
+ * The planner's picks (Weapon and Off-hand, spell toggles, tarot cards and
+ * corruptors), kept per character in a small file so they survive between
+ * sessions.
  */
 
 #include "planner/tarot_math.h"
