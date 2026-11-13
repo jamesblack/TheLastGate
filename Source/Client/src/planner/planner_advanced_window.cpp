@@ -23,7 +23,14 @@
 #define CARDS_PER_COLUMN 22
 #define TICKBOX_LABEL_GAP 4
 #define CARD_ROW_ID_BASE 100
-#define SECTION_GAP (ADVANCED_ROW_HEIGHT / 2.0F)
+#define CORRUPTOR_ROW_ID_BASE 200
+#define CORRUPTOR_MAX_COPIES 20
+#define OTHER_VISIBLE_ROWS 6
+#define OTHER_EFFECT_LEFT 170
+#define OTHER_COUNT_LEFT 300
+#define OTHER_COUNT_WIDTH 80
+#define OTHER_TREE_LEFT 388
+#define SECTION_GAP(ADVANCED_ROW_HEIGHT / 2.0F)
 
 static const char *const CARD_NUMERALS[CARDS_PER_COLUMN] = {
     "0",  "I",   "II",   "III", "IV", "V",   "VI",   "VII",   "VIII", "IX", "X",
@@ -173,6 +180,74 @@ static float cards_render(const float top, PlannerChoices *choices, const Planne
     return rows_top + (CARDS_PER_COLUMN * ADVANCED_ROW_HEIGHT);
 }
 
+static void corruptor_count_render(const int corruptor, const bool ticked, PlannerChoices *choices, int *changed) {
+    int count = choices->corruptor_counts[corruptor];
+
+    imgui_push_id_int(CORRUPTOR_ROW_ID_BASE + corruptor);
+    imgui_begin_disabled(!ticked);
+    imgui_push_item_width(OTHER_COUNT_WIDTH);
+    if (imgui_input_int("##count", &count)) {
+        if (count < 1) count = 1;
+        if (count > CORRUPTOR_MAX_COPIES) count = CORRUPTOR_MAX_COPIES;
+        choices->corruptor_counts[corruptor] = (unsigned char) count;
+        *changed = 1;
+    }
+    imgui_pop_item_width();
+    if (imgui_is_item_hovered_flag(IMGUI_HOVERED_FLAGS_ALLOW_WHEN_DISABLED)) {
+        imgui_set_tooltip(
+                "Copies on tarot cards and sinbinder rings. A sinbinder with a Sign of Symmetry counts twice.");
+    }
+    imgui_end_disabled();
+    imgui_pop_id();
+}
+
+static void corruptor_row_render(const float row_top, const int corruptor, PlannerChoices *choices,
+                                 const PlannerAdvancedView *view, int *changed) {
+    const unsigned int tick_bit = 1U << (unsigned int) corruptor;
+    const CorruptorInfo *info = &CORRUPTOR_INFO[corruptor];
+    const bool ticked = (choices->corruptor_ticks & tick_bit) != 0;
+    char tree_text[LABEL_TEXT_SIZE];
+
+    if (tickbox_row(0, row_top, CORRUPTOR_ROW_ID_BASE + corruptor, ticked, true, GOLD_FONT_COLOR, info->name)) {
+        choices->corruptor_ticks ^= tick_bit;
+        if (!ticked && choices->corruptor_counts[corruptor] == 0) choices->corruptor_counts[corruptor] = 1;
+        *changed = 1;
+    }
+    text_at(OTHER_EFFECT_LEFT, row_top, HINT_GREY_FONT_COLOR, info->modelled != 0 ? info->one_copy : "(not modelled)");
+    imgui_set_cursor_pos(OTHER_COUNT_LEFT, row_top - 1);
+    corruptor_count_render(corruptor, ticked, choices, changed);
+    if (view->tree_copies[corruptor] > 0) {
+        snprintf(tree_text, sizeof(tree_text), "+%d tree", view->tree_copies[corruptor]);
+        text_at(OTHER_TREE_LEFT, row_top, HINT_GREY_FONT_COLOR, tree_text);
+    }
+}
+
+static void other_render(const float top, PlannerChoices *choices, const PlannerAdvancedView *view, int *changed) {
+    const float rows_top = section_render(top, "Other");
+    float row_top = 0;
+    int row_index;
+    int corruptor;
+
+    imgui_set_cursor_pos(ADVANCED_PADDING, rows_top);
+    if (imgui_begin_child("other_rows", ADVANCED_WIDTH - (2 * ADVANCED_PADDING),
+                          OTHER_VISIBLE_ROWS * ADVANCED_ROW_HEIGHT, false, 0)) {
+        for (row_index = 0; row_index < view->tree_row_count; row_index++) {
+            const unsigned int grey = HINT_GREY_FONT_COLOR;
+
+            text_at(ADVANCED_ROW_HEIGHT + TICKBOX_LABEL_GAP, row_top, grey, view->tree_rows[row_index].name);
+            text_at(OTHER_EFFECT_LEFT, row_top, grey, view->tree_rows[row_index].effect);
+            row_top += ADVANCED_ROW_HEIGHT;
+        }
+        for (corruptor = 0; corruptor < CORRUPTOR_COUNT; corruptor++) {
+            corruptor_row_render(row_top, corruptor, choices, view, changed);
+            row_top += ADVANCED_ROW_HEIGHT;
+        }
+        imgui_set_cursor_pos(0, row_top);
+        imgui_dummy(1, 1);
+    }
+    imgui_end_child();
+}
+
 int planner_advanced_window_render(PlannerChoices *choices, const PlannerAdvancedView *view) {
     int changed = 0;
 
@@ -195,7 +270,7 @@ int planner_advanced_window_render(PlannerChoices *choices, const PlannerAdvance
 
         row_top = spells_render(ADVANCED_PADDING + ADVANCED_HEADER_HEIGHT, choices, view, &changed);
         row_top = cards_render(row_top + SECTION_GAP, choices, view, &changed);
-        section_render(row_top + SECTION_GAP, "Other");
+        other_render(row_top + SECTION_GAP, choices, view, &changed);
     }
     imgui_end();
     imgui_pop_style_var(2);

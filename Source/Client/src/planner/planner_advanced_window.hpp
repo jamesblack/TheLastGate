@@ -1,6 +1,7 @@
 #pragma once
 
 #include "planner/planner_choices.h"
+#include "planner/tree_effects.h"
 #include "mods/buff_list.h"
 
 typedef struct {
@@ -11,7 +12,15 @@ typedef struct {
 } PlannerAdvancedSpell;
 
 typedef struct {
+    const char *name;
+    const char *effect;
+} PlannerAdvancedTreeRow;
+
+typedef struct {
     PlannerAdvancedSpell spells[BUFF_KIND_COUNT];
+    int tree_row_count;
+    PlannerAdvancedTreeRow tree_rows[TREE_NODE_COUNT];
+    int tree_copies[CORRUPTOR_COUNT];
 } PlannerAdvancedView;
 
 const char *planner_card_name(int card_index);

@@ -871,6 +871,37 @@ static const char *spell_warning(const int kind) {
     return spell_warnings[kind];
 }
 
+static char tree_row_names[TREE_NODE_COUNT][LABEL_TEXT_SIZE];
+
+static void add_tree_rows(PlannerAdvancedView *view) {
+    const TreeEffectsInput effects_input = tree_effects_input();
+    int node;
+    int corruptor;
+
+    for (node = 1; node <= TREE_NODE_COUNT; node++) {
+        const int corruptor_number = effects_input.tree_node[node - 1];
+        PlannerAdvancedTreeRow *row = &view->tree_rows[view->tree_row_count];
+
+        if (tree_effects_node_learned(effects_input.tree_points, node) == 0) continue;
+        if (corruptor_number == 0) {
+            if (tree_effects_node_in_math(effects_input.tree_class, node) == 0) continue;
+            row->name = sk_tree[0][node - 1].name;
+            row->effect = sk_tree[0][node - 1].dsc1;
+        } else {
+            corruptor = tree_effects_corruptor_for_server_number(corruptor_number);
+            if (corruptor < 0) continue;
+            snprintf(tree_row_names[node - 1], sizeof(tree_row_names[node - 1]), "%s (tree)",
+                     CORRUPTOR_INFO[corruptor].name);
+            row->name = tree_row_names[node - 1];
+            row->effect = CORRUPTOR_INFO[corruptor].one_copy;
+        }
+        view->tree_row_count++;
+    }
+    for (corruptor = 0; corruptor < CORRUPTOR_COUNT; corruptor++) {
+        view->tree_copies[corruptor] = tree_effects_tree_copies(&effects_input, (Corruptor) corruptor);
+    }
+}
+
 static PlannerAdvancedView build_advanced_view(void) {
     PlannerAdvancedView view;
     int kind;
@@ -883,6 +914,7 @@ static PlannerAdvancedView build_advanced_view(void) {
         view.spells[kind].name = skilltab[spell_skill_position(kind)].name;
         view.spells[kind].warning = spell_warning(kind);
     }
+    add_tree_rows(&view);
     return view;
 }
 
