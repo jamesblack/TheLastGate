@@ -1237,6 +1237,24 @@ static void add_spell_candidates(CombatFocusInput *input, const int kind, const 
     add_focus_candidate(input->candidates, &input->candidate_count, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
 }
 
+/* Determination adds the attribute sum to WV and AV, Brilliance to the Spell Bonus behind Enhance and Protect. */
+static bool attribute_sum_feeds_item_value(const CombatStat stat) {
+    const TreeEffects *effects = &buff_state.planned_input.effects;
+    const int item_buff = stat == COMBAT_STAT_WEAPON ? BUFF_KIND_ENHANCE : BUFF_KIND_PROTECT;
+
+    if (stat != COMBAT_STAT_WEAPON && stat != COMBAT_STAT_ARMOR) return false;
+    if (effects->determination != 0 || effects->determination_nodes != 0) return true;
+    return (effects->brilliance != 0 || effects->brilliance_nodes != 0) && spell_shown(item_buff);
+}
+
+static void add_all_attribute_candidates(CombatFocusInput *input) {
+    int attribute_id;
+
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        add_focus_candidate(input->candidates, &input->candidate_count, attribute_id, SKILL_FOCUS_MAX_STEPS);
+    }
+}
+
 static bool build_combat_focus_input(CombatFocusInput *input, const CombatStat stat) {
     const bool attribute_pool = tarot_set_has(buff_state.planned_input.tarot_cards, TAROT_FOOL_REVERSED) != 0;
     int affects[COMBAT_SKILL_COUNT];
@@ -1270,6 +1288,7 @@ static bool build_combat_focus_input(CombatFocusInput *input, const CombatStat s
         }
     }
     if (attribute_pool) add_attribute_pool_candidate(input->candidates, &input->candidate_count);
+    if (!attribute_pool && attribute_sum_feeds_item_value(stat)) add_all_attribute_candidates(input);
     add_spell_candidates(input, BUFF_KIND_BLESS, attribute_pool);
     if (stat == COMBAT_STAT_WEAPON) add_spell_candidates(input, BUFF_KIND_ENHANCE, attribute_pool);
     if (stat == COMBAT_STAT_ARMOR) add_spell_candidates(input, BUFF_KIND_PROTECT, attribute_pool);
