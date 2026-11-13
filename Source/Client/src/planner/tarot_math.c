@@ -49,7 +49,13 @@ int tarot_scaled_change(const int server_value, const int raw_change, const int 
     return ((raw_value + raw_change) * numerator / denominator) - (raw_value * numerator / denominator);
 }
 
-CombatValues tarot_combat_shown(const TarotSet cards, const CombatValues server, const CombatValues raw_change) {
+static int percent_scaled_change(const int server_value, const int raw_change, const int increased_percent) {
+    if (increased_percent == 0) return raw_change;
+    return tarot_scaled_change(server_value, raw_change, PERCENT_BASE + increased_percent, PERCENT_BASE);
+}
+
+CombatValues tarot_combat_shown(const TarotSet cards, const CombatValues increased_percent, const CombatValues server,
+                                const CombatValues raw_change) {
     CombatValues change = raw_change;
     CombatValues shown;
     int weapon_numerator = 1;
@@ -58,6 +64,8 @@ CombatValues tarot_combat_shown(const TarotSet cards, const CombatValues server,
     if (tarot_set_has(cards, TAROT_LOVERS_REVERSED)) {
         change.hit = change.parry = tarot_floor_divide(change.hit + change.parry, 2);
     }
+    change.hit = percent_scaled_change(server.hit, change.hit, increased_percent.hit);
+    change.parry = percent_scaled_change(server.parry, change.parry, increased_percent.parry);
     if (tarot_set_has(cards, TAROT_STRENGTH_REVERSED)) {
         change.hit = tarot_scaled_change(server.hit, change.hit, STRENGTH_REVERSED_HIT_NUMERATOR,
                                          STRENGTH_REVERSED_HIT_DENOMINATOR);
@@ -86,6 +94,8 @@ CombatValues tarot_combat_shown(const TarotSet cards, const CombatValues server,
     if (weapon_numerator != weapon_denominator) {
         change.weapon = tarot_scaled_change(server.weapon, change.weapon, weapon_numerator, weapon_denominator);
     }
+    change.weapon = percent_scaled_change(server.weapon, change.weapon, increased_percent.weapon);
+    change.armor = percent_scaled_change(server.armor, change.armor, increased_percent.armor);
 
     shown.hit = server.hit + change.hit;
     shown.parry = server.parry + change.parry;

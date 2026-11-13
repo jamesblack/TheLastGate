@@ -25,6 +25,10 @@ static CombatValues combat_values(const int hit, const int parry, const int weap
     return values;
 }
 
+static CombatValues no_percent(void) {
+    return combat_values(0, 0, 0, 0);
+}
+
 static void test_set_has(void) {
     const TarotSet cards = card_bit(TAROT_HERMIT) | card_bit(43);
 
@@ -63,7 +67,8 @@ static void test_scaled_change(void) {
 }
 
 static void test_combat_no_cards_passes_changes_through(void) {
-    const CombatValues shown = tarot_combat_shown(0, combat_values(100, 90, 60, 50), combat_values(3, -2, 5, 7));
+    const CombatValues shown =
+            tarot_combat_shown(0, no_percent(), combat_values(100, 90, 60, 50), combat_values(3, -2, 5, 7));
 
     CHECK(shown.hit == 103);
     CHECK(shown.parry == 88);
@@ -72,24 +77,24 @@ static void test_combat_no_cards_passes_changes_through(void) {
 }
 
 static void test_combat_lovers_averages_weapon_and_armor(void) {
-    const CombatValues shown =
-            tarot_combat_shown(card_bit(TAROT_LOVERS), combat_values(0, 0, 50, 50), combat_values(0, 0, 4, 0));
+    const CombatValues shown = tarot_combat_shown(card_bit(TAROT_LOVERS), no_percent(), combat_values(0, 0, 50, 50),
+                                                  combat_values(0, 0, 4, 0));
 
     CHECK(shown.weapon == 52);
     CHECK(shown.armor == 52);
 }
 
 static void test_combat_lovers_reversed_averages_hit_and_parry(void) {
-    const CombatValues shown = tarot_combat_shown(card_bit(TAROT_LOVERS_REVERSED), combat_values(100, 100, 0, 0),
-                                                  combat_values(6, 0, 0, 0));
+    const CombatValues shown = tarot_combat_shown(card_bit(TAROT_LOVERS_REVERSED), no_percent(),
+                                                  combat_values(100, 100, 0, 0), combat_values(6, 0, 0, 0));
 
     CHECK(shown.hit == 103);
     CHECK(shown.parry == 103);
 }
 
 static void test_combat_strength_reversed(void) {
-    const CombatValues shown = tarot_combat_shown(card_bit(TAROT_STRENGTH_REVERSED), combat_values(100, 100, 60, 0),
-                                                  combat_values(10, 0, 10, 0));
+    const CombatValues shown = tarot_combat_shown(card_bit(TAROT_STRENGTH_REVERSED), no_percent(),
+                                                  combat_values(100, 100, 60, 0), combat_values(10, 0, 10, 0));
 
     CHECK(shown.weapon == 72);
     CHECK(shown.hit == 108);
@@ -97,15 +102,15 @@ static void test_combat_strength_reversed(void) {
 }
 
 static void test_combat_hermit_armor(void) {
-    const CombatValues shown =
-            tarot_combat_shown(card_bit(TAROT_HERMIT), combat_values(0, 0, 0, 115), combat_values(0, 0, 0, 20));
+    const CombatValues shown = tarot_combat_shown(card_bit(TAROT_HERMIT), no_percent(), combat_values(0, 0, 0, 115),
+                                                  combat_values(0, 0, 0, 20));
 
     CHECK(shown.armor == 138);
 }
 
 static void test_combat_temperance_reversed_uses_four_stacks(void) {
-    const CombatValues shown = tarot_combat_shown(card_bit(TAROT_TEMPERANCE_REVERSED), combat_values(0, 0, 140, 0),
-                                                  combat_values(0, 0, 10, 0));
+    const CombatValues shown = tarot_combat_shown(card_bit(TAROT_TEMPERANCE_REVERSED), no_percent(),
+                                                  combat_values(0, 0, 140, 0), combat_values(0, 0, 10, 0));
 
     CHECK(TAROT_TEMPERANCE_SICKNESS_STACKS == 4);
     CHECK(shown.weapon == 154);
@@ -115,9 +120,25 @@ static void test_combat_lovers_odd_and_negative_changes_round_down(void) {
     const TarotSet lovers = card_bit(TAROT_LOVERS);
     const CombatValues server = combat_values(0, 0, 50, 50);
 
-    CHECK(tarot_combat_shown(lovers, server, combat_values(0, 0, 3, 0)).weapon == 51);
-    CHECK(tarot_combat_shown(lovers, server, combat_values(0, 0, -3, 0)).weapon == 48);
-    CHECK(tarot_combat_shown(lovers, server, combat_values(0, 0, 0, 0)).weapon == 50);
+    CHECK(tarot_combat_shown(lovers, no_percent(), server, combat_values(0, 0, 3, 0)).weapon == 51);
+    CHECK(tarot_combat_shown(lovers, no_percent(), server, combat_values(0, 0, -3, 0)).weapon == 48);
+    CHECK(tarot_combat_shown(lovers, no_percent(), server, combat_values(0, 0, 0, 0)).weapon == 50);
+}
+
+static void test_hit_percent_after_lovers_reversed_before_strength_reversed(void) {
+    const CombatValues shown =
+            tarot_combat_shown(card_bit(TAROT_LOVERS_REVERSED) | card_bit(TAROT_STRENGTH_REVERSED),
+                               combat_values(4, 0, 0, 0), combat_values(100, 100, 0, 0), combat_values(10, 0, 0, 0));
+
+    CHECK(shown.hit == 104);
+    CHECK(shown.parry == 105);
+}
+
+static void test_weapon_armor_percent_last(void) {
+    const CombatValues shown = tarot_combat_shown(card_bit(TAROT_HERMIT), combat_values(0, 0, 0, 10),
+                                                  combat_values(0, 0, 0, 115), combat_values(0, 0, 0, 20));
+
+    CHECK(shown.armor == 140);
 }
 
 int main(void) {
@@ -133,6 +154,8 @@ int main(void) {
     test_combat_hermit_armor();
     test_combat_temperance_reversed_uses_four_stacks();
     test_combat_lovers_odd_and_negative_changes_round_down();
+    test_hit_percent_after_lovers_reversed_before_strength_reversed();
+    test_weapon_armor_percent_last();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

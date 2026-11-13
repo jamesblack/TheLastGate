@@ -35,7 +35,8 @@ int tarot_fool_reversed_total(int shown_total, int sum_change);
 
 int tarot_scaled_change(int server_value, int raw_change, int numerator, int denominator);
 
-CombatValues tarot_combat_shown(TarotSet cards, CombatValues server, CombatValues raw_change);
+CombatValues tarot_combat_shown(TarotSet cards, CombatValues increased_percent, CombatValues server,
+                                CombatValues raw_change);
 
 #ifdef __cplusplus
 }

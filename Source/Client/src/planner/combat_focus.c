@@ -102,6 +102,7 @@ static int stat_with_points(const CombatFocusInput *input, const int points[BUFF
     CombatValues raw;
     CombatValues server;
     CombatValues raw_change;
+    CombatValues increased_percent;
     CombatValues shown;
     int candidate_index;
     int skill_id;
@@ -142,7 +143,11 @@ static int stat_with_points(const CombatFocusInput *input, const int points[BUFF
     raw_change.parry = raw.parry - server.parry;
     raw_change.weapon = raw.weapon - server.weapon;
     raw_change.armor = raw.armor - server.armor;
-    shown = tarot_combat_shown(model.tarot_cards, server, raw_change);
+    increased_percent.hit = model.effects.hit_percent;
+    increased_percent.parry = model.effects.parry_percent;
+    increased_percent.weapon = model.effects.weapon_percent;
+    increased_percent.armor = model.effects.armor_percent;
+    shown = tarot_combat_shown(model.tarot_cards, increased_percent, server, raw_change);
     return combat_model_stat_value(&shown, input->stat);
 }
 
