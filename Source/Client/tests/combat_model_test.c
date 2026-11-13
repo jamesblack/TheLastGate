@@ -10,6 +10,8 @@
 
 static int failures = 0;
 
+#define WEAPON_SKILL_REACH 16
+
 #define CHECK(condition)                                                         \
     do {                                                                         \
         if (!(condition)) {                                                      \
@@ -226,20 +228,20 @@ static void test_skills_affecting_hit_and_parry(void) {
 
     input.weapon = COMBAT_WEAPON_SPEAR;
     input.offhand = COMBAT_OFFHAND_DUAL;
-    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, WEAPON_SKILL_REACH, affects);
     CHECK(affects[COMBAT_SKILL_DAGGER] && affects[COMBAT_SKILL_STAFF] && affects[COMBAT_SKILL_TACTICS]);
     CHECK(affects[COMBAT_SKILL_DUAL]);
     CHECK(!affects[COMBAT_SKILL_SWORD] && !affects[COMBAT_SKILL_SHIELD] && !affects[COMBAT_SKILL_GEARMAST]);
 
-    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, WEAPON_SKILL_REACH, affects);
     CHECK(!affects[COMBAT_SKILL_DUAL]);
 
     input.offhand = COMBAT_OFFHAND_SHIELD;
-    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, WEAPON_SKILL_REACH, affects);
     CHECK(affects[COMBAT_SKILL_SHIELD]);
 
     input.known[COMBAT_SKILL_TACTICS] = 0;
-    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, WEAPON_SKILL_REACH, affects);
     CHECK(!affects[COMBAT_SKILL_TACTICS]);
 }
 
@@ -248,12 +250,12 @@ static void test_skills_affecting_weapon_and_armor(void) {
     int affects[COMBAT_SKILL_COUNT];
 
     input.weapon = COMBAT_WEAPON_UNARMED;
-    combat_model_skills_affecting(&input, COMBAT_STAT_WEAPON, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_WEAPON, WEAPON_SKILL_REACH, affects);
     CHECK(affects[COMBAT_SKILL_GEARMAST] && affects[COMBAT_SKILL_HAND]);
     CHECK(!affects[COMBAT_SKILL_FEROCITY] && !affects[COMBAT_SKILL_TACTICS]);
 
     input.lycan = 1;
-    combat_model_skills_affecting(&input, COMBAT_STAT_ARMOR, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_ARMOR, WEAPON_SKILL_REACH, affects);
     CHECK(affects[COMBAT_SKILL_GEARMAST] && affects[COMBAT_SKILL_FEROCITY]);
     CHECK(!affects[COMBAT_SKILL_HAND]);
 }
@@ -281,22 +283,23 @@ static void test_best_weapon_skill_has_no_unarmed_weapon_value(void) {
     CHECK(result.weapon == 30 && result.hit == 140);
 }
 
-static void test_best_weapon_skill_marks_every_weapon_skill(void) {
+static void test_best_weapon_skill_marks_skills_within_reach(void) {
     CombatModelInput input = fixture();
     int affects[COMBAT_SKILL_COUNT];
 
     input.best_weapon_skill = 1;
-    input.known[COMBAT_SKILL_STAFF] = 0;
+    input.known[COMBAT_SKILL_TWOHAND] = 0;
     set_skill(&input, COMBAT_SKILL_HAND, 50, 50);
     set_skill(&input, COMBAT_SKILL_SWORD, 80, 80);
-    set_skill(&input, COMBAT_SKILL_AXE, 70, 78);
-    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, affects);
-    CHECK(affects[COMBAT_SKILL_SWORD] && affects[COMBAT_SKILL_AXE] && affects[COMBAT_SKILL_HAND]);
-    CHECK(affects[COMBAT_SKILL_DAGGER] && affects[COMBAT_SKILL_TWOHAND] && !affects[COMBAT_SKILL_STAFF]);
+    set_skill(&input, COMBAT_SKILL_AXE, 70, 64);
+    set_skill(&input, COMBAT_SKILL_TWOHAND, 79, 79);
+    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, WEAPON_SKILL_REACH, affects);
+    CHECK(affects[COMBAT_SKILL_SWORD] && affects[COMBAT_SKILL_AXE] && !affects[COMBAT_SKILL_HAND]);
+    CHECK(!affects[COMBAT_SKILL_DAGGER] && !affects[COMBAT_SKILL_STAFF] && !affects[COMBAT_SKILL_TWOHAND]);
     CHECK(affects[COMBAT_SKILL_TACTICS] && !affects[COMBAT_SKILL_GEARMAST]);
 
-    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, affects);
-    CHECK(affects[COMBAT_SKILL_HAND] && affects[COMBAT_SKILL_AXE] && !affects[COMBAT_SKILL_STAFF]);
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, 30, affects);
+    CHECK(affects[COMBAT_SKILL_HAND] && affects[COMBAT_SKILL_AXE] && !affects[COMBAT_SKILL_DAGGER]);
 }
 
 static void test_parry_feeds_hit_marks_shield_for_hit(void) {
@@ -304,15 +307,15 @@ static void test_parry_feeds_hit_marks_shield_for_hit(void) {
     int affects[COMBAT_SKILL_COUNT];
 
     input.offhand = COMBAT_OFFHAND_SHIELD;
-    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, WEAPON_SKILL_REACH, affects);
     CHECK(!affects[COMBAT_SKILL_SHIELD]);
 
     input.parry_feeds_hit = 1;
-    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, WEAPON_SKILL_REACH, affects);
     CHECK(affects[COMBAT_SKILL_SHIELD] && affects[COMBAT_SKILL_SWORD] && !affects[COMBAT_SKILL_DUAL]);
 
     input.offhand = COMBAT_OFFHAND_DUAL;
-    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, WEAPON_SKILL_REACH, affects);
     CHECK(!affects[COMBAT_SKILL_SHIELD] && affects[COMBAT_SKILL_DUAL]);
 }
 
@@ -321,15 +324,15 @@ static void test_hit_feeds_parry_marks_dual_for_parry(void) {
     int affects[COMBAT_SKILL_COUNT];
 
     input.offhand = COMBAT_OFFHAND_DUAL;
-    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, WEAPON_SKILL_REACH, affects);
     CHECK(!affects[COMBAT_SKILL_DUAL]);
 
     input.hit_feeds_parry = 1;
-    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, WEAPON_SKILL_REACH, affects);
     CHECK(affects[COMBAT_SKILL_DUAL] && affects[COMBAT_SKILL_SWORD] && !affects[COMBAT_SKILL_SHIELD]);
 
     input.known[COMBAT_SKILL_DUAL] = 0;
-    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, affects);
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, WEAPON_SKILL_REACH, affects);
     CHECK(!affects[COMBAT_SKILL_DUAL]);
 }
 
@@ -352,7 +355,7 @@ int main(void) {
     test_skills_affecting_weapon_and_armor();
     test_best_weapon_skill_uses_highest();
     test_best_weapon_skill_has_no_unarmed_weapon_value();
-    test_best_weapon_skill_marks_every_weapon_skill();
+    test_best_weapon_skill_marks_skills_within_reach();
     test_parry_feeds_hit_marks_shield_for_hit();
     test_hit_feeds_parry_marks_dual_for_parry();
 

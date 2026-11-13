@@ -1379,20 +1379,14 @@ static void add_combat_stat_candidates(BuffFocusCandidate *candidates, int *cand
     int affects[COMBAT_SKILL_COUNT];
     int skill_id;
 
-    combat_model_skills_affecting(combat, stat, affects);
+    combat_model_skills_affecting(combat, stat, BUFF_FOCUS_MAX_POINTS, affects);
     for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
-        if (affects[skill_id] == 0) continue;
-        add_focus_candidate(candidates, candidate_count, combat_raise_index[skill_id], BUFF_FOCUS_MAX_POINTS);
-        if (!attribute_pool) add_skill_attribute_candidates(candidates, candidate_count, &combat_skills[skill_id]);
+        if (affects[skill_id] != 0) {
+            add_focus_candidate(candidates, candidate_count, combat_raise_index[skill_id], BUFF_FOCUS_MAX_POINTS);
+        }
     }
     if (attribute_pool) add_attribute_pool_candidate(candidates, candidate_count);
-    if (!attribute_pool && attribute_sum_feeds_item_value(stat)) {
-        add_all_attribute_candidates(candidates, candidate_count);
-    }
-    /* Introspection turns aptitude into the Spell Bonus that Tachi and Odachi add. */
-    if (!attribute_pool && buff_state.planned_input.effects.introspection != 0 && item_value_takes_spell_bonus(stat)) {
-        add_aptitude_candidates(candidates, candidate_count);
-    }
+    /* Spells and pools go before the skills' attributes so the candidate cap drops attributes first. */
     add_spell_candidates(candidates, candidate_count, BUFF_KIND_BLESS, attribute_pool);
     if (stat == COMBAT_STAT_WEAPON) {
         add_spell_candidates(candidates, candidate_count, BUFF_KIND_ENHANCE, attribute_pool);
@@ -1401,6 +1395,17 @@ static void add_combat_stat_candidates(BuffFocusCandidate *candidates, int *cand
         add_spell_candidates(candidates, candidate_count, BUFF_KIND_PROTECT, attribute_pool);
     }
     if (spell_bonus_feeds_combat_stat(stat)) add_pool_candidates(candidates, candidate_count);
+    if (attribute_pool) return;
+    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
+        if (affects[skill_id] != 0) {
+            add_skill_attribute_candidates(candidates, candidate_count, &combat_skills[skill_id]);
+        }
+    }
+    if (attribute_sum_feeds_item_value(stat)) add_all_attribute_candidates(candidates, candidate_count);
+    /* Introspection turns aptitude into the Spell Bonus that Tachi and Odachi add. */
+    if (buff_state.planned_input.effects.introspection != 0 && item_value_takes_spell_bonus(stat)) {
+        add_aptitude_candidates(candidates, candidate_count);
+    }
 }
 
 /* Armor to Resistance and Armor to Immunity add a tenth of the shown Armor Value to the skill. */
@@ -1455,9 +1460,7 @@ static void build_buff_focus_input(BuffFocusInput *input, const int skill_positi
         add_combat_stat_candidates(candidates, candidate_count, &input->combat, input->combat_skills,
                                    input->combat_raise_index, COMBAT_STAT_ARMOR);
     }
-    if (spell_shown(BUFF_KIND_BLESS) || input->armor_feeds_focused != 0) {
-        add_pool_candidates(candidates, candidate_count);
-    }
+    if (spell_shown(BUFF_KIND_BLESS)) add_pool_candidates(candidates, candidate_count);
 }
 
 /* The search is costly, so it only runs again when something it reads has changed. */

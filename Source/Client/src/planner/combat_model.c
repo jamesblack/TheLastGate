@@ -170,10 +170,17 @@ int combat_model_stat_value(const CombatValues *values, const CombatStat stat) {
     }
 }
 
-static void mark_every_weapon_skill(int affects[COMBAT_SKILL_COUNT]) {
+/* A weapon skill that the route's points can lift to the best one's value can take over from it. */
+static void mark_weapon_skills_within_reach(const CombatModelInput *input, const int weapon_skill_reach,
+                                            int affects[COMBAT_SKILL_COUNT]) {
+    const int highest = highest_weapon_skill(input, input->shown);
     int entry;
 
-    for (entry = 0; entry < ARRAY_SIZE(DEFAULT_WEAPONS); entry++) affects[DEFAULT_WEAPONS[entry].skill_id] = 1;
+    for (entry = 0; entry < ARRAY_SIZE(DEFAULT_WEAPONS); entry++) {
+        const CombatSkill skill_id = DEFAULT_WEAPONS[entry].skill_id;
+
+        if (highest - input->shown[skill_id] <= weapon_skill_reach) affects[skill_id] = 1;
+    }
 }
 
 static void mark_weapon_skills(const CombatWeapon weapon, int affects[COMBAT_SKILL_COUNT]) {
@@ -195,7 +202,7 @@ static void mark_weapon_skills(const CombatWeapon weapon, int affects[COMBAT_SKI
     }
 }
 
-void combat_model_skills_affecting(const CombatModelInput *input, const CombatStat stat,
+void combat_model_skills_affecting(const CombatModelInput *input, const CombatStat stat, const int weapon_skill_reach,
                                    int affects[COMBAT_SKILL_COUNT]) {
     int skill_id;
 
@@ -203,9 +210,8 @@ void combat_model_skills_affecting(const CombatModelInput *input, const CombatSt
     switch (stat) {
         case COMBAT_STAT_HIT:
         case COMBAT_STAT_PARRY:
-            /* Any weapon skill can overtake the best one once points go into it. */
             if (input->best_weapon_skill) {
-                mark_every_weapon_skill(affects);
+                mark_weapon_skills_within_reach(input, weapon_skill_reach, affects);
             } else {
                 mark_weapon_skills(input->weapon, affects);
             }
