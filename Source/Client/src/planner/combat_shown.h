@@ -7,7 +7,6 @@
 extern "C" {
 #endif
 
-/* Hit, Parry, Weapon and Armor Value as shown: combat skills at their model values, then cards and item steps. */
 CombatValues combat_shown_values(const BuffModelInput *model, const BuffModelResult *buffed,
                                  const CombatModelInput *combat,
                                  const BuffModelSkill combat_skills[COMBAT_SKILL_COUNT]);
