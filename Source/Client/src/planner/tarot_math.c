@@ -11,6 +11,8 @@
 #define HERMIT_ARMOR_DENOMINATOR 20
 #define HANGED_REVERSED_WEAPON_PERCENT 85
 #define TEMPERANCE_REVERSED_PERCENT_PER_STACK 10
+#define ARMOR_ENCHANT_NUMERATOR 11
+#define ARMOR_ENCHANT_DENOMINATOR 10
 
 const int TAROT_MODELLED_CARDS[TAROT_MODELLED_CARD_COUNT] = {
     TAROT_MAGICIAN,        TAROT_LOVERS,
@@ -62,20 +64,33 @@ static int percent_scaled_change(const int server_value, const int raw_change, c
     return tarot_scaled_change(server_value, raw_change, PERCENT_BASE + increased_percent, PERCENT_BASE);
 }
 
-CombatValues tarot_combat_shown(const TarotSet cards, const CombatValues increased_percent, const CombatValues server,
+/* The Kwai steps come after every other Hit and Parry step, parry first and then hit from that parry. */
+static void apply_kwai(const PlannerEffects *effects, CombatValues *values) {
+    values->parry += values->hit * effects->hit_to_parry_percent / PERCENT_BASE;
+    values->hit += values->parry * effects->parry_to_hit_percent / PERCENT_BASE;
+}
+
+static void undo_kwai(const PlannerEffects *effects, CombatValues *values) {
+    values->hit -= values->parry * effects->parry_to_hit_percent / PERCENT_BASE;
+    values->parry -= values->hit * effects->hit_to_parry_percent / PERCENT_BASE;
+}
+
+CombatValues tarot_combat_shown(const TarotSet cards, const PlannerEffects *effects, const CombatValues server,
                                 const CombatValues raw_change) {
     CombatValues change = raw_change;
+    CombatValues before_kwai = server;
     CombatValues shown;
     int weapon_numerator = 1;
     int weapon_denominator = 1;
 
+    undo_kwai(effects, &before_kwai);
     if (tarot_set_has(cards, TAROT_LOVERS_REVERSED)) {
         change.hit = change.parry = tarot_floor_divide(change.hit + change.parry, 2);
     }
-    change.hit = percent_scaled_change(server.hit, change.hit, increased_percent.hit);
-    change.parry = percent_scaled_change(server.parry, change.parry, increased_percent.parry);
+    change.hit = percent_scaled_change(before_kwai.hit, change.hit, effects->hit_percent);
+    change.parry = percent_scaled_change(before_kwai.parry, change.parry, effects->parry_percent);
     if (tarot_set_has(cards, TAROT_STRENGTH_REVERSED)) {
-        change.hit = tarot_scaled_change(server.hit, change.hit, STRENGTH_REVERSED_HIT_NUMERATOR,
+        change.hit = tarot_scaled_change(before_kwai.hit, change.hit, STRENGTH_REVERSED_HIT_NUMERATOR,
                                          STRENGTH_REVERSED_HIT_DENOMINATOR);
     }
 
@@ -85,6 +100,10 @@ CombatValues tarot_combat_shown(const TarotSet cards, const CombatValues increas
     if (tarot_set_has(cards, TAROT_HERMIT)) {
         change.armor =
                 tarot_scaled_change(server.armor, change.armor, HERMIT_ARMOR_NUMERATOR, HERMIT_ARMOR_DENOMINATOR);
+    }
+    if (effects->armor_enchant) {
+        change.armor =
+                tarot_scaled_change(server.armor, change.armor, ARMOR_ENCHANT_NUMERATOR, ARMOR_ENCHANT_DENOMINATOR);
     }
 
     if (tarot_set_has(cards, TAROT_STRENGTH_REVERSED)) {
@@ -102,11 +121,12 @@ CombatValues tarot_combat_shown(const TarotSet cards, const CombatValues increas
     if (weapon_numerator != weapon_denominator) {
         change.weapon = tarot_scaled_change(server.weapon, change.weapon, weapon_numerator, weapon_denominator);
     }
-    change.weapon = percent_scaled_change(server.weapon, change.weapon, increased_percent.weapon);
-    change.armor = percent_scaled_change(server.armor, change.armor, increased_percent.armor);
+    change.weapon = percent_scaled_change(server.weapon, change.weapon, effects->weapon_percent);
+    change.armor = percent_scaled_change(server.armor, change.armor, effects->armor_percent);
 
-    shown.hit = server.hit + change.hit;
-    shown.parry = server.parry + change.parry;
+    shown.hit = before_kwai.hit + change.hit;
+    shown.parry = before_kwai.parry + change.parry;
+    apply_kwai(effects, &shown);
     shown.weapon = server.weapon + change.weapon;
     shown.armor = server.armor + change.armor;
     return shown;

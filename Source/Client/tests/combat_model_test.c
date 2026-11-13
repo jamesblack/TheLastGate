@@ -258,6 +258,42 @@ static void test_skills_affecting_weapon_and_armor(void) {
     CHECK(!affects[COMBAT_SKILL_HAND]);
 }
 
+static void test_best_weapon_skill_uses_highest(void) {
+    CombatModelInput input = fixture();
+    CombatValues result;
+
+    input.best_weapon_skill = 1;
+    set_skill(&input, COMBAT_SKILL_HAND, 50, 50);
+    set_skill(&input, COMBAT_SKILL_SWORD, 80, 80);
+    set_skill(&input, COMBAT_SKILL_AXE, 70, 90);
+    result = compute(&input);
+    CHECK(result.hit == 110 && result.parry == 100);
+}
+
+static void test_best_weapon_skill_has_no_unarmed_weapon_value(void) {
+    CombatModelInput input = fixture();
+    CombatValues result;
+
+    input.best_weapon_skill = 1;
+    input.weapon = COMBAT_WEAPON_UNARMED;
+    set_skill(&input, COMBAT_SKILL_HAND, 40, 80);
+    result = compute(&input);
+    CHECK(result.weapon == 30 && result.hit == 140);
+}
+
+static void test_best_weapon_skill_marks_tied_best(void) {
+    CombatModelInput input = fixture();
+    int affects[COMBAT_SKILL_COUNT];
+
+    input.best_weapon_skill = 1;
+    set_skill(&input, COMBAT_SKILL_HAND, 50, 50);
+    set_skill(&input, COMBAT_SKILL_SWORD, 80, 80);
+    set_skill(&input, COMBAT_SKILL_AXE, 70, 80);
+    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, affects);
+    CHECK(affects[COMBAT_SKILL_SWORD] && affects[COMBAT_SKILL_AXE] && !affects[COMBAT_SKILL_HAND]);
+    CHECK(affects[COMBAT_SKILL_TACTICS]);
+}
+
 int main(void) {
     test_default_weapon_highest_known();
     test_default_weapon_none_known();
@@ -275,6 +311,9 @@ int main(void) {
     test_ferocity();
     test_skills_affecting_hit_and_parry();
     test_skills_affecting_weapon_and_armor();
+    test_best_weapon_skill_uses_highest();
+    test_best_weapon_skill_has_no_unarmed_weapon_value();
+    test_best_weapon_skill_marks_tied_best();
 
     if (failures != 0) {
         printf("%d check(s) failed\n", failures);

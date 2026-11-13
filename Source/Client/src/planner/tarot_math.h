@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "planner/combat_model.h"
+#include "planner/tree_effects.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +40,7 @@ int tarot_fool_reversed_total(int shown_total, int sum_change);
 
 int tarot_scaled_change(int server_value, int raw_change, int numerator, int denominator);
 
-CombatValues tarot_combat_shown(TarotSet cards, CombatValues increased_percent, CombatValues server,
+CombatValues tarot_combat_shown(TarotSet cards, const PlannerEffects *effects, CombatValues server,
                                 CombatValues raw_change);
 
 #ifdef __cplusplus

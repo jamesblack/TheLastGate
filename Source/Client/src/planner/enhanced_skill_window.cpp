@@ -693,11 +693,7 @@ static void apply_tarot_to_combat(const CombatModelInput *input, CombatValues *r
         result->armor - server.armor,
     };
 
-    const PlannerEffects *effects = &buff_state.planned_input.effects;
-    const CombatValues increased_percent = {effects->hit_percent, effects->parry_percent, effects->weapon_percent,
-                                            effects->armor_percent};
-
-    *result = tarot_combat_shown(chosen.tarot_cards, increased_percent, server, raw_change);
+    *result = tarot_combat_shown(chosen.tarot_cards, &buff_state.planned_input.effects, server, raw_change);
 }
 
 static void combat_block_render(const EnhancedSkillLayout *layout) {

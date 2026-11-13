@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "planner/combat_shown.h"
 #include "planner/skill_focus.h"
-#include "planner/tarot_math.h"
 #include "util/math_util.h"
 
 /* A mix of points is a base-(BUFF_FOCUS_MAX_POINTS + 1) number with one digit per candidate. */
@@ -96,13 +96,8 @@ static int seen_add(SeenSet *seen, const uint64_t key) {
 
 static int stat_with_points(const CombatFocusInput *input, const int points[BUFF_FOCUS_MAX_CANDIDATES]) {
     BuffModelInput model = input->model;
-    CombatModelInput combat = input->combat;
     BuffModelSkill combat_skills[COMBAT_SKILL_COUNT];
     BuffModelResult buffed;
-    CombatValues raw;
-    CombatValues server;
-    CombatValues raw_change;
-    CombatValues increased_percent;
     CombatValues shown;
     int candidate_index;
     int skill_id;
@@ -126,28 +121,7 @@ static int stat_with_points(const CombatFocusInput *input, const int points[BUFF
     }
 
     buff_model_compute(&model, &buffed);
-    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
-        if (combat.known[skill_id]) {
-            combat.shown[skill_id] = buff_model_skill_value(&model, &combat_skills[skill_id], buffed.attributes);
-        }
-    }
-    combat.base_weapon = buffed.weapon;
-    combat.base_armor = buffed.armor;
-    combat_model_compute(&combat, &raw);
-
-    server.hit = combat.server_hit;
-    server.parry = combat.server_parry;
-    server.weapon = model.server_weapon;
-    server.armor = model.server_armor;
-    raw_change.hit = raw.hit - server.hit;
-    raw_change.parry = raw.parry - server.parry;
-    raw_change.weapon = raw.weapon - server.weapon;
-    raw_change.armor = raw.armor - server.armor;
-    increased_percent.hit = model.effects.hit_percent;
-    increased_percent.parry = model.effects.parry_percent;
-    increased_percent.weapon = model.effects.weapon_percent;
-    increased_percent.armor = model.effects.armor_percent;
-    shown = tarot_combat_shown(model.tarot_cards, increased_percent, server, raw_change);
+    shown = combat_shown_values(&model, &buffed, &input->combat, combat_skills);
     return combat_model_stat_value(&shown, input->stat);
 }
 

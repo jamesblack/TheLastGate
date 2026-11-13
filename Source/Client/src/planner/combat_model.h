@@ -66,6 +66,7 @@ typedef struct {
     int server_parry;
     int base_weapon; /* weapon value before skill changes, shown buffs included */
     int base_armor;
+    int best_weapon_skill; /* Hit and Parry use the highest weapon skill, whatever the weapon */
 } CombatModelInput;
 
 typedef struct {

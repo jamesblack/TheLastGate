@@ -60,10 +60,21 @@ static int skill_value(const CombatModelInput *input, const int skills[COMBAT_SK
     return input->known[skill_id] ? skills[skill_id] : 0;
 }
 
+static int highest_weapon_skill(const CombatModelInput *input, const int skills[COMBAT_SKILL_COUNT]) {
+    int highest = 0;
+    int entry;
+
+    for (entry = 0; entry < ARRAY_SIZE(DEFAULT_WEAPONS); entry++) {
+        highest = max(highest, skill_value(input, skills, DEFAULT_WEAPONS[entry].skill_id));
+    }
+    return highest;
+}
+
 /* What the weapon's skill adds to both Hit and Parry. */
 static int weapon_term(const CombatModelInput *input, const int skills[COMBAT_SKILL_COUNT]) {
     int value;
 
+    if (input->best_weapon_skill) return min(highest_weapon_skill(input, skills), COMBAT_WEAPON_SKILL_CAP);
     switch (input->weapon) {
         case COMBAT_WEAPON_DAGGER: value = skill_value(input, skills, COMBAT_SKILL_DAGGER); break;
         case COMBAT_WEAPON_SWORD: value = skill_value(input, skills, COMBAT_SKILL_SWORD); break;
@@ -124,7 +135,9 @@ static int weapon_value_term(const CombatModelInput *input, const int skills[COM
     int term = (skill_value(input, skills, COMBAT_SKILL_GEARMAST) / gear_mastery_divisor(input->gear_class, 0)) +
                ferocity_term(input, skills);
 
-    if (input->weapon == COMBAT_WEAPON_UNARMED) term += skill_value(input, skills, COMBAT_SKILL_HAND) / 4;
+    if (input->weapon == COMBAT_WEAPON_UNARMED && !input->best_weapon_skill) {
+        term += skill_value(input, skills, COMBAT_SKILL_HAND) / 4;
+    }
     return term;
 }
 
@@ -157,6 +170,17 @@ int combat_model_stat_value(const CombatValues *values, const CombatStat stat) {
     }
 }
 
+static void mark_best_weapon_skills(const CombatModelInput *input, int affects[COMBAT_SKILL_COUNT]) {
+    const int highest = highest_weapon_skill(input, input->shown);
+    int entry;
+
+    for (entry = 0; entry < ARRAY_SIZE(DEFAULT_WEAPONS); entry++) {
+        const CombatSkill skill_id = DEFAULT_WEAPONS[entry].skill_id;
+
+        if (input->shown[skill_id] == highest) affects[skill_id] = 1;
+    }
+}
+
 static void mark_weapon_skills(const CombatWeapon weapon, int affects[COMBAT_SKILL_COUNT]) {
     switch (weapon) {
         case COMBAT_WEAPON_DAGGER: affects[COMBAT_SKILL_DAGGER] = 1; break;
@@ -184,7 +208,11 @@ void combat_model_skills_affecting(const CombatModelInput *input, const CombatSt
     switch (stat) {
         case COMBAT_STAT_HIT:
         case COMBAT_STAT_PARRY:
-            mark_weapon_skills(input->weapon, affects);
+            if (input->best_weapon_skill) {
+                mark_best_weapon_skills(input, affects);
+            } else {
+                mark_weapon_skills(input->weapon, affects);
+            }
             affects[COMBAT_SKILL_TACTICS] = 1;
             if (stat == COMBAT_STAT_HIT && input->offhand == COMBAT_OFFHAND_DUAL) affects[COMBAT_SKILL_DUAL] = 1;
             if (stat == COMBAT_STAT_PARRY && input->offhand == COMBAT_OFFHAND_SHIELD) {
@@ -195,7 +223,9 @@ void combat_model_skills_affecting(const CombatModelInput *input, const CombatSt
         case COMBAT_STAT_ARMOR:
             affects[COMBAT_SKILL_GEARMAST] = 1;
             if (input->lycan) affects[COMBAT_SKILL_FEROCITY] = 1;
-            if (stat == COMBAT_STAT_WEAPON && input->weapon == COMBAT_WEAPON_UNARMED) affects[COMBAT_SKILL_HAND] = 1;
+            if (stat == COMBAT_STAT_WEAPON && input->weapon == COMBAT_WEAPON_UNARMED && !input->best_weapon_skill) {
+                affects[COMBAT_SKILL_HAND] = 1;
+            }
             break;
         default: break;
     }
