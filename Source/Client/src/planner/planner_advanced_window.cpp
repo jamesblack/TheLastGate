@@ -242,8 +242,9 @@ static void enchant_row_render(const float row_top, const int enchant, PlannerCh
 
     if (tickbox_row(0, row_top, ENCHANT_ROW_ID_BASE + enchant, ticked, true, GOLD_FONT_COLOR, info->name)) {
         choices->enchant_ticks ^= tick_bit;
-        if (!ticked && info->counted != 0 && choices->enchant_counts[enchant] == 0)
+        if (!ticked && info->counted != 0 && choices->enchant_counts[enchant] == 0) {
             choices->enchant_counts[enchant] = 1;
+        }
         *changed = 1;
     }
     text_at(ROW_EFFECT_LEFT, row_top, HINT_GREY_FONT_COLOR, info->one_copy);
