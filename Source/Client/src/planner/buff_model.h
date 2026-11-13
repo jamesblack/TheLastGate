@@ -56,7 +56,7 @@ typedef struct {
     TarotSet tarot_cards;
     int uncapped_mana;
     int planned_mana;
-    TreeEffects effects;
+    PlannerEffects effects;
 } BuffModelInput;
 
 typedef struct {

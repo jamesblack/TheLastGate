@@ -160,7 +160,7 @@ static const KindredClass KINDRED_CLASSES[] = {
 
 #define LENGTH_OF(array) ((int) (sizeof(array) / sizeof((array)[0])))
 
-static void add_effect(TreeEffects *effects, const Effect *effect, const int copies) {
+static void add_effect(PlannerEffects *effects, const Effect *effect, const int copies) {
     const int amount = effect->amount * copies;
     int attribute;
 
@@ -249,7 +249,7 @@ int tree_effects_node_in_math(const TreeClass tree_class, const int node) {
     return 0;
 }
 
-void tree_effects_compute(const TreeEffectsInput *input, TreeEffects *effects) {
+void tree_effects_compute(const TreeEffectsInput *input, PlannerEffects *effects) {
     int index;
 
     memset(effects, 0, sizeof(*effects));

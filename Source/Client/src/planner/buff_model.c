@@ -179,7 +179,7 @@ static int attribute_sum_bonus_change(const BuffModelInput *input, const int nod
 
 /* Brilliance and Introspection are flat additions that the Spell Bonus percent then raises. */
 static int planned_spell_bonus(const BuffModelInput *input, const int attributes[ATTRIBUTE_COUNT], const int aptitude) {
-    const TreeEffects *effects = &input->effects;
+    const PlannerEffects *effects = &input->effects;
     const int change = attribute_sum_bonus_change(input, effects->brilliance_nodes, effects->brilliance, attributes) +
                        (effects->introspection * aptitude / INTROSPECTION_APTITUDE_DIVISOR) -
                        (effects->introspection * input->spell_aptitude / INTROSPECTION_APTITUDE_DIVISOR);

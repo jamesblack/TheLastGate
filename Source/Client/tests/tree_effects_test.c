@@ -29,15 +29,15 @@ static TreeEffectsInput class_with_nodes(const TreeClass tree_class, const int *
     return input;
 }
 
-static TreeEffects compute(const TreeEffectsInput *input) {
-    TreeEffects effects;
+static PlannerEffects compute(const TreeEffectsInput *input) {
+    PlannerEffects effects;
 
     tree_effects_compute(input, &effects);
     return effects;
 }
 
-static int all_zero(const TreeEffects *effects) {
-    TreeEffects zero;
+static int all_zero(const PlannerEffects *effects) {
+    PlannerEffects zero;
 
     memset(&zero, 0, sizeof(zero));
     return memcmp(effects, &zero, sizeof(zero)) == 0;
@@ -50,7 +50,7 @@ static void tick(TreeEffectsInput *input, const Corruptor corruptor, const int c
 
 static void test_no_class_has_no_effects(void) {
     TreeEffectsInput input;
-    TreeEffects effects;
+    PlannerEffects effects;
 
     memset(&input, 0, sizeof(input));
     effects = compute(&input);
@@ -67,7 +67,7 @@ static void test_learned_node_bits(void) {
 static void test_seyan_nodes(void) {
     const int nodes[] = {5, 7, 8, 9, 11};
     const TreeEffectsInput input = class_with_nodes(TREE_CLASS_SEYAN, nodes, 5);
-    const TreeEffects effects = compute(&input);
+    const PlannerEffects effects = compute(&input);
     int attribute;
 
     CHECK(effects.hit_percent == 4);
@@ -90,7 +90,7 @@ static void test_class_nodes(void) {
     const int archharakim_nodes[] = {8, 9};
     const int braver_nodes[] = {5, 7, 8, 11};
     TreeEffectsInput input;
-    TreeEffects effects;
+    PlannerEffects effects;
 
     input = class_with_nodes(TREE_CLASS_ARCHTEMPLAR, archtemplar_nodes, 3);
     effects = compute(&input);
@@ -137,7 +137,7 @@ static void test_class_nodes(void) {
 
 static void test_corruptor_counts_stack(void) {
     TreeEffectsInput input;
-    TreeEffects effects;
+    PlannerEffects effects;
 
     memset(&input, 0, sizeof(input));
     tick(&input, CORRUPTOR_FALSE_STRENGTH, 2);
@@ -158,7 +158,7 @@ static void test_corruptor_counts_stack(void) {
 
 static void test_unticked_count_is_ignored(void) {
     TreeEffectsInput input;
-    TreeEffects effects;
+    PlannerEffects effects;
 
     memset(&input, 0, sizeof(input));
     input.corruptor_counts[CORRUPTOR_FALSE_STRENGTH] = 4;
@@ -169,7 +169,7 @@ static void test_unticked_count_is_ignored(void) {
 static void test_corrupted_node_loses_its_effect(void) {
     const int nodes[] = {5};
     TreeEffectsInput input = class_with_nodes(TREE_CLASS_SEYAN, nodes, 1);
-    TreeEffects effects;
+    PlannerEffects effects;
 
     input.tree_node[4] = 89;
     effects = compute(&input);
@@ -181,7 +181,7 @@ static void test_corrupted_node_loses_its_effect(void) {
 static void test_corrupted_node_with_other_corruptor_gives_nothing(void) {
     const int nodes[] = {5};
     TreeEffectsInput input = class_with_nodes(TREE_CLASS_SEYAN, nodes, 1);
-    TreeEffects effects;
+    PlannerEffects effects;
 
     input.tree_node[4] = 13;
     effects = compute(&input);
@@ -191,7 +191,7 @@ static void test_corrupted_node_with_other_corruptor_gives_nothing(void) {
 static void test_tree_and_manual_copies_add(void) {
     const int nodes[] = {5};
     TreeEffectsInput input = class_with_nodes(TREE_CLASS_SEYAN, nodes, 1);
-    TreeEffects effects;
+    PlannerEffects effects;
 
     input.tree_node[4] = 5;
     tick(&input, CORRUPTOR_FALSE_RIGOR, 2);
@@ -201,7 +201,7 @@ static void test_tree_and_manual_copies_add(void) {
 
 static void test_unlearned_corrupted_node_counts_nothing(void) {
     TreeEffectsInput input;
-    TreeEffects effects;
+    PlannerEffects effects;
 
     memset(&input, 0, sizeof(input));
     input.tree_class = TREE_CLASS_SEYAN;
@@ -213,7 +213,7 @@ static void test_unlearned_corrupted_node_counts_nothing(void) {
 
 static void test_tactician_is_listed_not_modelled(void) {
     TreeEffectsInput input;
-    TreeEffects effects;
+    PlannerEffects effects;
 
     CHECK(CORRUPTOR_INFO[CORRUPTOR_FALSE_TACTICIAN].modelled == 0);
     memset(&input, 0, sizeof(input));

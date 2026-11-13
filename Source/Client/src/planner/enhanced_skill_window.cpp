@@ -693,7 +693,7 @@ static void apply_tarot_to_combat(const CombatModelInput *input, CombatValues *r
         result->armor - server.armor,
     };
 
-    const TreeEffects *effects = &buff_state.planned_input.effects;
+    const PlannerEffects *effects = &buff_state.planned_input.effects;
     const CombatValues increased_percent = {effects->hit_percent, effects->parry_percent, effects->weapon_percent,
                                             effects->armor_percent};
 
@@ -1205,7 +1205,7 @@ static bool spell_shown(const int kind) {
 
 /* The tree's extra percents add attributes the skill doesn't list, chosen by the skill's group. */
 static void add_extra_percent_candidates(BuffFocusCandidate *candidates, int *candidate_count,
-                                         const BuffModelSkill *skill, const TreeEffects *effects) {
+                                         const BuffModelSkill *skill, const PlannerEffects *effects) {
     static const int GROUP_OF_ATTRIBUTE[ATTRIBUTE_COUNT] = {
         SKILL_GROUP_PASSIVE,      SKILL_GROUP_ACTIVE_SPELL, SKILL_GROUP_ACTIVE_SPELL,
         SKILL_GROUP_ACTIVE_MELEE, SKILL_GROUP_ACTIVE_MELEE,
@@ -1285,7 +1285,7 @@ static void add_spell_candidates(CombatFocusInput *input, const int kind, const 
 
 /* Determination adds the attribute sum to WV and AV, Brilliance to the Spell Bonus behind Enhance and Protect. */
 static bool attribute_sum_feeds_item_value(const CombatStat stat) {
-    const TreeEffects *effects = &buff_state.planned_input.effects;
+    const PlannerEffects *effects = &buff_state.planned_input.effects;
     const int item_buff = stat == COMBAT_STAT_WEAPON ? BUFF_KIND_ENHANCE : BUFF_KIND_PROTECT;
 
     if (stat != COMBAT_STAT_WEAPON && stat != COMBAT_STAT_ARMOR) return false;
@@ -1505,7 +1505,7 @@ static void combat_focus_panel_render(const EnhancedSkillLayout *layout) {
 
 /* The plain divisor model can't follow percent effects on attributes and skills. */
 static bool tree_effects_present(void) {
-    const TreeEffects *effects = &buff_state.planned_input.effects;
+    const PlannerEffects *effects = &buff_state.planned_input.effects;
     int attribute_id;
 
     for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {

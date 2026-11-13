@@ -80,14 +80,14 @@ typedef struct {
     int brilliance_nodes;    /* Spell Bonus + brilliance_nodes x (attribute sum / 75) */
     int introspection;  /* Spell Bonus + introspection x aptitude / 50 */
     int guardian_angel; /* Bless power more(power, Braveness x guardian_angel, 20) */
-} TreeEffects;
+} PlannerEffects;
 
 TreeClass tree_effects_class_from_kindred(unsigned int kindred);
 int tree_effects_node_learned(unsigned int tree_points, int node);                /* node 1..12 */
 int tree_effects_tree_copies(const TreeEffectsInput *input, Corruptor corruptor); /* learned, corrupted nodes */
 int tree_effects_node_in_math(TreeClass tree_class, int node); /* 1 when the uncorrupted node is in the table */
 int tree_effects_corruptor_for_server_number(int server_number); /* Corruptor, or -1 */
-void tree_effects_compute(const TreeEffectsInput *input, TreeEffects *effects);
+void tree_effects_compute(const TreeEffectsInput *input, PlannerEffects *effects);
 
 typedef enum {
     SKILL_GROUP_PASSIVE = 1,
