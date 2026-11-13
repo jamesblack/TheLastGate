@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "planner/combat_model.h"
+#include "planner/item_effects.h"
 #include "planner/planner_choices.h"
 #include "planner/tree_effects.h"
 
@@ -30,6 +31,9 @@ static PlannerChoices make_choices(const int weapon, const int offhand) {
     choices.tarot_cards = 0;
     choices.corruptor_ticks = 0;
     memset(choices.corruptor_counts, 0, sizeof(choices.corruptor_counts));
+    choices.enchant_ticks = 0;
+    memset(choices.enchant_counts, 0, sizeof(choices.enchant_counts));
+    choices.gear_ticks = 0;
     return choices;
 }
 
@@ -204,6 +208,76 @@ static void test_counts_out_of_range_are_clamped(void) {
     CHECK(loaded.corruptor_counts[3] == 20);
 }
 
+static void test_items_round_trip(void) {
+    PlannerChoices saved = make_choices(COMBAT_WEAPON_SWORD, COMBAT_OFFHAND_SHIELD);
+    PlannerChoices loaded;
+
+    saved.enchant_ticks = 0x41;
+    saved.enchant_counts[0] = 2;
+    saved.enchant_counts[6] = 5;
+    saved.gear_ticks = 0x100001;
+    remove(TEST_PATH);
+    CHECK(planner_choices_save(TEST_PATH, 7, saved) == 1);
+    loaded = planner_choices_load(TEST_PATH, 7);
+    CHECK(loaded.enchant_ticks == 0x41);
+    CHECK(loaded.enchant_counts[0] == 2);
+    CHECK(loaded.enchant_counts[6] == 5);
+    CHECK(loaded.enchant_counts[1] == 0);
+    CHECK(loaded.gear_ticks == 0x100001);
+}
+
+static void test_format_three_loads_without_items(void) {
+    const uint32_t file_words[] = {3,
+                                   1,
+                                   7,
+                                   (uint32_t) COMBAT_WEAPON_SWORD,
+                                   (uint32_t) COMBAT_OFFHAND_SHIELD,
+                                   0x5,
+                                   0x400000,
+                                   0x800,
+                                   0x3,
+                                   0x0402,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
+                                   0};
+    PlannerChoices loaded;
+    int enchant;
+
+    write_raw_file(file_words, sizeof(file_words));
+    loaded = planner_choices_load(TEST_PATH, 7);
+    CHECK(loaded.weapon == COMBAT_WEAPON_SWORD);
+    CHECK(loaded.spell_toggles == 0x5);
+    CHECK(loaded.corruptor_ticks == 0x3);
+    CHECK(loaded.corruptor_counts[0] == 2);
+    CHECK(loaded.corruptor_counts[1] == 4);
+    CHECK(loaded.enchant_ticks == 0);
+    CHECK(loaded.gear_ticks == 0);
+    for (enchant = 0; enchant < ENCHANT_COUNT; enchant++) {
+        CHECK(loaded.enchant_counts[enchant] == 0);
+    }
+}
+
+static void test_enchant_counts_out_of_range_are_clamped(void) {
+    PlannerChoices saved = make_choices(COMBAT_WEAPON_SWORD, COMBAT_OFFHAND_SHIELD);
+    PlannerChoices loaded;
+
+    saved.enchant_ticks = 0x7;
+    saved.enchant_counts[0] = 0;
+    saved.enchant_counts[1] = 21;
+    saved.enchant_counts[2] = 5;
+    saved.enchant_counts[3] = 30;
+    remove(TEST_PATH);
+    CHECK(planner_choices_save(TEST_PATH, 7, saved) == 1);
+    loaded = planner_choices_load(TEST_PATH, 7);
+    CHECK(loaded.enchant_counts[0] == 1);
+    CHECK(loaded.enchant_counts[1] == 20);
+    CHECK(loaded.enchant_counts[2] == 5);
+    CHECK(loaded.enchant_counts[3] == 20);
+}
+
 int main(void) {
     test_missing_file_has_no_choices();
     test_saved_choices_load_back();
@@ -217,6 +291,9 @@ int main(void) {
     test_corruptors_round_trip();
     test_format_two_loads_without_corruptors();
     test_counts_out_of_range_are_clamped();
+    test_items_round_trip();
+    test_format_three_loads_without_items();
+    test_enchant_counts_out_of_range_are_clamped();
     remove(TEST_PATH);
 
     if (failures == 0) printf("planner_choices: all tests passed\n");

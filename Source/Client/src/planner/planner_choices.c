@@ -8,17 +8,23 @@
 
 /* File layout, all 32-bit little-endian words: format version, record count, then the records. Format 1 records hold
  * the character number, weapon and off-hand; format 2 adds the spell toggles and the tarot cards as two words; format 3
- * adds the corruptor tick bits as one word and one count byte per corruptor, padded to 28 bytes. */
+ * adds the corruptor tick bits as one word and one count byte per corruptor, padded to 28 bytes; format 4 adds the
+ * enchant tick bits as one word, one count byte per enchant padded to 16 bytes, and the gear tick bits as one word. */
 #define PLANNER_CHOICES_FORMAT_FIRST 1
 #define PLANNER_CHOICES_FORMAT_SECOND 2
-#define PLANNER_CHOICES_FORMAT 3
+#define PLANNER_CHOICES_FORMAT_THIRD 3
+#define PLANNER_CHOICES_FORMAT 4
 #define PLANNER_CHOICES_MAX_RECORDS 256
 #define CARD_WORD_BITS 32U
 #define CARD_WORD_MASK 0xFFFFFFFFU
 #define CORRUPTOR_COUNT_SLOTS 28
+#define ENCHANT_COUNT_SLOTS 16
+#define GEAR_TICK_BITS 32
 #define CORRUPTOR_COPIES_MAX 20
 
 _Static_assert(CORRUPTOR_COUNT <= CORRUPTOR_COUNT_SLOTS, "the choices file has no room for every corruptor");
+_Static_assert(ENCHANT_COUNT <= ENCHANT_COUNT_SLOTS, "the choices file has no room for every enchant");
+_Static_assert(GEAR_COUNT <= GEAR_TICK_BITS, "the choices file has no room for every gear tick");
 
 typedef struct {
     uint32_t character_number;
@@ -44,7 +50,31 @@ typedef struct {
     uint32_t cards_high;
     uint32_t corruptor_ticks;
     uint8_t corruptor_counts[CORRUPTOR_COUNT_SLOTS];
+} ThirdFormatRecord;
+
+typedef struct {
+    uint32_t character_number;
+    int32_t weapon;
+    int32_t offhand;
+    uint32_t spell_toggles;
+    uint32_t cards_low;
+    uint32_t cards_high;
+    uint32_t corruptor_ticks;
+    uint8_t corruptor_counts[CORRUPTOR_COUNT_SLOTS];
+    uint32_t enchant_ticks;
+    uint8_t enchant_counts[ENCHANT_COUNT_SLOTS];
+    uint32_t gear_ticks;
 } ChoiceRecord;
+
+static void clear_items(ChoiceRecord *record) {
+    int slot;
+
+    record->enchant_ticks = 0;
+    for (slot = 0; slot < ENCHANT_COUNT_SLOTS; slot++) {
+        record->enchant_counts[slot] = 0;
+    }
+    record->gear_ticks = 0;
+}
 
 static void clear_corruptors(ChoiceRecord *record) {
     int slot;
@@ -68,6 +98,7 @@ static int read_first_format_records(FILE *file, ChoiceRecord *records, const in
         records[record_index].cards_low = 0;
         records[record_index].cards_high = 0;
         clear_corruptors(&records[record_index]);
+        clear_items(&records[record_index]);
     }
     return record_count;
 }
@@ -85,6 +116,29 @@ static int read_second_format_records(FILE *file, ChoiceRecord *records, const i
         records[record_index].cards_low = old_record.cards_low;
         records[record_index].cards_high = old_record.cards_high;
         clear_corruptors(&records[record_index]);
+        clear_items(&records[record_index]);
+    }
+    return record_count;
+}
+
+static int read_third_format_records(FILE *file, ChoiceRecord *records, const int record_count) {
+    ThirdFormatRecord old_record;
+    int record_index;
+    int slot;
+
+    for (record_index = 0; record_index < record_count; record_index++) {
+        if (fread(&old_record, sizeof(old_record), 1, file) != 1) return 0;
+        records[record_index].character_number = old_record.character_number;
+        records[record_index].weapon = old_record.weapon;
+        records[record_index].offhand = old_record.offhand;
+        records[record_index].spell_toggles = old_record.spell_toggles;
+        records[record_index].cards_low = old_record.cards_low;
+        records[record_index].cards_high = old_record.cards_high;
+        records[record_index].corruptor_ticks = old_record.corruptor_ticks;
+        for (slot = 0; slot < CORRUPTOR_COUNT_SLOTS; slot++) {
+            records[record_index].corruptor_counts[slot] = old_record.corruptor_counts[slot];
+        }
+        clear_items(&records[record_index]);
     }
     return record_count;
 }
@@ -102,6 +156,8 @@ static int read_records(const char *path, ChoiceRecord records[PLANNER_CHOICES_M
             record_count = read_first_format_records(file, records, record_count);
         } else if (header[0] == PLANNER_CHOICES_FORMAT_SECOND) {
             record_count = read_second_format_records(file, records, record_count);
+        } else if (header[0] == PLANNER_CHOICES_FORMAT_THIRD) {
+            record_count = read_third_format_records(file, records, record_count);
         } else if (header[0] != PLANNER_CHOICES_FORMAT ||
                    (record_count > 0 &&
                     fread(records, sizeof(ChoiceRecord), (size_t) record_count, file) != (size_t) record_count)) {
@@ -136,10 +192,11 @@ static unsigned char checked_copies(const uint8_t stored, const int ticked) {
 
 PlannerChoices planner_choices_load(const char *path, const unsigned int character_number) {
     static ChoiceRecord records[PLANNER_CHOICES_MAX_RECORDS];
-    PlannerChoices choices = {PLANNER_CHOICE_NONE, PLANNER_CHOICE_NONE, 0, 0, 0, {0}};
+    PlannerChoices choices = {PLANNER_CHOICE_NONE, PLANNER_CHOICE_NONE, 0, 0, 0, {0}, 0, {0}, 0};
     int record_count;
     int record_index;
     int corruptor;
+    int enchant;
 
     if (character_number == 0) return choices;
     record_count = read_records(path, records);
@@ -155,6 +212,12 @@ PlannerChoices planner_choices_load(const char *path, const unsigned int charact
             choices.corruptor_counts[corruptor] = checked_copies(records[record_index].corruptor_counts[corruptor],
                                                                  (int) ((choices.corruptor_ticks >> corruptor) & 1U));
         }
+        choices.enchant_ticks = records[record_index].enchant_ticks;
+        for (enchant = 0; enchant < ENCHANT_COUNT; enchant++) {
+            choices.enchant_counts[enchant] = checked_copies(records[record_index].enchant_counts[enchant],
+                                                             (int) ((choices.enchant_ticks >> enchant) & 1U));
+        }
+        choices.gear_ticks = records[record_index].gear_ticks;
         break;
     }
     return choices;
@@ -165,6 +228,7 @@ int planner_choices_save(const char *path, const unsigned int character_number, 
     int record_count;
     int record_index;
     int corruptor;
+    int enchant;
 
     if (character_number == 0) return 0;
     record_count = read_records(path, records);
@@ -192,5 +256,10 @@ int planner_choices_save(const char *path, const unsigned int character_number, 
     for (corruptor = 0; corruptor < CORRUPTOR_COUNT; corruptor++) {
         records[record_index].corruptor_counts[corruptor] = choices.corruptor_counts[corruptor];
     }
+    records[record_index].enchant_ticks = choices.enchant_ticks;
+    for (enchant = 0; enchant < ENCHANT_COUNT; enchant++) {
+        records[record_index].enchant_counts[enchant] = choices.enchant_counts[enchant];
+    }
+    records[record_index].gear_ticks = choices.gear_ticks;
     return write_records(path, records, record_count);
 }

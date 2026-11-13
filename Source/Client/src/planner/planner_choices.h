@@ -6,6 +6,7 @@
  * sessions.
  */
 
+#include "planner/item_effects.h"
 #include "planner/tarot_math.h"
 #include "planner/tree_effects.h"
 
@@ -22,6 +23,9 @@ typedef struct {
     TarotSet tarot_cards;
     unsigned int corruptor_ticks;                    /* bit 1 << Corruptor is set when that corruptor is ticked */
     unsigned char corruptor_counts[CORRUPTOR_COUNT]; /* card and ring copies, kept when unticked */
+    unsigned int enchant_ticks;                      /* bit 1 << Enchant */
+    unsigned char enchant_counts[ENCHANT_COUNT];     /* kept when unticked */
+    unsigned int gear_ticks;                         /* bit 1 << Gear */
 } PlannerChoices;
 
 /* The picks saved for this character. Missing, unreadable or out-of-range values come back as PLANNER_CHOICE_NONE,
