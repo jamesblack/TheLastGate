@@ -22,6 +22,7 @@
 #define ARMOR_SHARE_DIVISOR 10
 #define EVERGREEN_DIVISOR 10
 #define POOL_PER_SPELL_BONUS 100
+#define FLOW_MANA_PER_SPELL_BONUS 200
 #define SCALE_STEP_COUNT 3
 
 typedef struct {
@@ -332,20 +333,23 @@ static int attribute_sum_bonus_change(const BuffModelInput *input, const int nod
            attribute_sum_bonus(nodes, copies, effect_attribute_sum(input, input->server_attributes));
 }
 
-static int pool_spell_bonus_change(const int applies, const int uncapped_pool, const int planned_pool) {
-    if (!applies) return 0;
-    return ((uncapped_pool + planned_pool) / POOL_PER_SPELL_BONUS) - (uncapped_pool / POOL_PER_SPELL_BONUS);
+static int pool_spell_bonus_change(const int weight, const int divisor, const int uncapped_pool,
+                                   const int planned_pool) {
+    return ((uncapped_pool + planned_pool) * weight / divisor) - (uncapped_pool * weight / divisor);
 }
 
-/* Brilliance, Introspection and the pool gear are flat additions that the Spell Bonus percents then raise. */
+/* Brilliance, Introspection, Flow and the pool gear are flat additions that the Spell Bonus percents then raise. */
 static int planned_spell_bonus(const BuffModelInput *input, const int attributes[ATTRIBUTE_COUNT], const int aptitude) {
     const PlannerEffects *effects = &input->effects;
     const int change = attribute_sum_bonus_change(input, effects->brilliance_nodes, effects->brilliance, attributes) +
                        (effects->introspection * aptitude / INTROSPECTION_APTITUDE_DIVISOR) -
                        (effects->introspection * input->spell_aptitude / INTROSPECTION_APTITUDE_DIVISOR) +
-                       pool_spell_bonus_change(effects->hitpoints_to_spell_bonus, input->uncapped_hitpoints,
-                                               input->planned_hitpoints) +
-                       pool_spell_bonus_change(effects->mana_to_spell_bonus, input->uncapped_mana, input->planned_mana);
+                       pool_spell_bonus_change(effects->hitpoints_to_spell_bonus != 0, POOL_PER_SPELL_BONUS,
+                                               input->uncapped_hitpoints, input->planned_hitpoints) +
+                       pool_spell_bonus_change(effects->mana_to_spell_bonus != 0, POOL_PER_SPELL_BONUS,
+                                               input->uncapped_mana, input->planned_mana) +
+                       pool_spell_bonus_change(effects->flow, FLOW_MANA_PER_SPELL_BONUS, input->uncapped_mana,
+                                               input->planned_mana);
     const ScaleStep steps[SCALE_STEP_COUNT] = {
         percent_step(effects->spell_bonus_percent),
         percent_step(effects->spell_bonus_enchant_percent),

@@ -87,7 +87,7 @@ static void test_class_nodes(void) {
     const int warrior_nodes[] = {8};
     const int sorcerer_nodes[] = {4, 5, 8};
     const int summoner_nodes[] = {7, 8, 11};
-    const int archharakim_nodes[] = {8, 9};
+    const int archharakim_nodes[] = {8, 9, 10};
     const int braver_nodes[] = {5, 7, 8, 11};
     TreeEffectsInput input;
     PlannerEffects effects;
@@ -122,10 +122,11 @@ static void test_class_nodes(void) {
     CHECK(effects.attribute_percent[ATTRIBUTE_WILLPOWER] == 6);
     CHECK(effects.resist_percent == 10);
 
-    input = class_with_nodes(TREE_CLASS_ARCHHARAKIM, archharakim_nodes, 2);
+    input = class_with_nodes(TREE_CLASS_ARCHHARAKIM, archharakim_nodes, 3);
     effects = compute(&input);
     CHECK(effects.attribute_percent[ATTRIBUTE_INTUITION] == 6);
     CHECK(effects.skill_extra_percent[ATTRIBUTE_INTUITION] == 20);
+    CHECK(effects.flow == 2);
 
     input = class_with_nodes(TREE_CLASS_BRAVER, braver_nodes, 4);
     effects = compute(&input);
@@ -154,6 +155,11 @@ static void test_corruptor_counts_stack(void) {
     tick(&input, CORRUPTOR_GUARDIAN_ANGEL, 3);
     effects = compute(&input);
     CHECK(effects.guardian_angel == 3);
+
+    memset(&input, 0, sizeof(input));
+    tick(&input, CORRUPTOR_FALSE_FLOW, 2);
+    effects = compute(&input);
+    CHECK(effects.flow == 2);
 }
 
 static void test_unticked_count_is_ignored(void) {
@@ -224,7 +230,7 @@ static void test_tactician_is_listed_not_modelled(void) {
 
 static void test_server_numbers(void) {
     static const int EXPECTED[CORRUPTOR_COUNT] = {
-        20, 32, 68, 80, 92, 44, 56, 19, 33, 67, 81, 91, 5, 11, 89, 23, 7, 35, 71, 66, 53, 9, 52, 95, 96,
+        20, 32, 68, 80, 92, 44, 56, 19, 33, 67, 81, 91, 5, 11, 89, 23, 7, 35, 71, 66, 53, 9, 52, 95, 96, 82,
     };
     int corruptor;
 

@@ -1355,7 +1355,7 @@ static void add_pool_candidates(BuffFocusCandidate *candidates, int *candidate_c
     if (effects->hitpoints_to_spell_bonus != 0) {
         add_focus_candidate(candidates, candidate_count, BUFF_FOCUS_HITPOINTS_RAISE, BUFF_FOCUS_MAX_POINTS);
     }
-    if (effects->mana_to_spell_bonus != 0) {
+    if (effects->mana_to_spell_bonus != 0 || effects->flow != 0) {
         add_focus_candidate(candidates, candidate_count, BUFF_FOCUS_MANA_RAISE, BUFF_FOCUS_MAX_POINTS);
     }
 }

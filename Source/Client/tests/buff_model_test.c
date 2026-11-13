@@ -851,6 +851,36 @@ static void test_neis_claw(void) {
     CHECK(result.spell_bonus == 11);
 }
 
+static void test_flow(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    /* The node and one corruptor give 1000 x 3 / 200 = 15; 1067 Mana gives 16, 1066 still 15. */
+    input.effects.flow = 3;
+    input.spell_bonus = 15;
+    input.uncapped_mana = 1000;
+    input.planned_mana = 67;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 16);
+
+    input.planned_mana = 66;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 15);
+}
+
+static void test_flow_and_neis_claw_round_apart(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.effects.flow = 1;
+    input.effects.mana_to_spell_bonus = 1;
+    input.spell_bonus = 10;
+    input.uncapped_mana = 199;
+    input.planned_mana = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 12);
+}
+
 static void test_spell_bonus_enchant_after_percent(void) {
     BuffModelInput input = unbuffed_fixture();
     BuffModelResult result;
@@ -1021,6 +1051,8 @@ int main(void) {
     test_black_tachi_adds_planned_spell_bonus();
     test_gesture_of_gorn();
     test_neis_claw();
+    test_flow();
+    test_flow_and_neis_claw_round_apart();
     test_spell_bonus_enchant_after_percent();
     test_superbia_cuts_aptitude();
     test_resist_enchant_after_tree_percent();

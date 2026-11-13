@@ -49,6 +49,7 @@ typedef enum {
     CORRUPTOR_FALSE_INTROSPECTION,
     CORRUPTOR_FALSE_WIZARDRY,
     CORRUPTOR_GUARDIAN_ANGEL,
+    CORRUPTOR_FALSE_FLOW,
     CORRUPTOR_COUNT,
 } Corruptor;
 
@@ -94,6 +95,7 @@ typedef struct {
     int evergreen; /* WV + effect Agl / 10, AV + effect Str / 10 */
     int hitpoints_to_spell_bonus, mana_to_spell_bonus; /* Spell Bonus + uncapped pool / 100 */
     int superbia; /* aptitude less(aptitude, 90, 1) after aptitude_percent */
+    int flow;     /* Spell Bonus + uncapped Mana x flow / 200 */
 } PlannerEffects;
 
 TreeClass tree_effects_class_from_kindred(unsigned int kindred);

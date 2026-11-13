@@ -29,6 +29,7 @@ typedef enum {
     FIELD_BRILLIANCE_NODES,
     FIELD_INTROSPECTION,
     FIELD_GUARDIAN_ANGEL,
+    FIELD_FLOW,
 } EffectField;
 
 typedef struct {
@@ -85,6 +86,7 @@ const CorruptorInfo CORRUPTOR_INFO[CORRUPTOR_COUNT] = {
     [CORRUPTOR_FALSE_INTROSPECTION] = {52, "False Introspection", "+1 SpB /50 Apt", 1},
     [CORRUPTOR_FALSE_WIZARDRY] = {95, "False Wizardry", "+10% Spell Bonus", 1},
     [CORRUPTOR_GUARDIAN_ANGEL] = {96, "Guardian Angel", "Bless by Brv", 1},
+    [CORRUPTOR_FALSE_FLOW] = {82, "False Flow", "+1 SpB /200 Mana", 1},
 };
 
 static const TreeNodeEffect TREE_NODE_EFFECTS[] = {
@@ -108,6 +110,7 @@ static const TreeNodeEffect TREE_NODE_EFFECTS[] = {
     {TREE_CLASS_SUMMONER, 11, {FIELD_RESIST_PERCENT, 0, 10}},
     {TREE_CLASS_ARCHHARAKIM, 8, {FIELD_ATTRIBUTE_PERCENT, MASK_INT, 6}},
     {TREE_CLASS_ARCHHARAKIM, 9, {FIELD_SKILL_EXTRA_PERCENT, MASK_INT, 20}},
+    {TREE_CLASS_ARCHHARAKIM, 10, {FIELD_FLOW, 0, 2}},
     {TREE_CLASS_BRAVER, 5, {FIELD_WEAPON_PERCENT, 0, 10}},
     {TREE_CLASS_BRAVER, 7, {FIELD_SKILL_EXTRA_PERCENT, MASK_BRV, 20}},
     {TREE_CLASS_BRAVER, 8, {FIELD_ATTRIBUTE_PERCENT, MASK_BRV, 6}},
@@ -139,6 +142,7 @@ static const CorruptorEffect CORRUPTOR_EFFECTS[] = {
     {CORRUPTOR_FALSE_INTROSPECTION, {FIELD_INTROSPECTION, 0, 1}},
     {CORRUPTOR_FALSE_WIZARDRY, {FIELD_SPELL_BONUS_PERCENT, 0, 10}},
     {CORRUPTOR_GUARDIAN_ANGEL, {FIELD_GUARDIAN_ANGEL, 0, 1}},
+    {CORRUPTOR_FALSE_FLOW, {FIELD_FLOW, 0, 1}},
 };
 
 static const SkillRange SKILL_RANGES[] = {
@@ -191,6 +195,7 @@ static void add_effect(PlannerEffects *effects, const Effect *effect, const int 
         case FIELD_BRILLIANCE_NODES: effects->brilliance_nodes += amount; break;
         case FIELD_INTROSPECTION: effects->introspection += amount; break;
         case FIELD_GUARDIAN_ANGEL: effects->guardian_angel += amount; break;
+        case FIELD_FLOW: effects->flow += amount; break;
     }
 }
 
