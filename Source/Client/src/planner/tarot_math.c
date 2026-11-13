@@ -12,6 +12,14 @@
 #define HANGED_REVERSED_WEAPON_PERCENT 85
 #define TEMPERANCE_REVERSED_PERCENT_PER_STACK 10
 
+const int TAROT_MODELLED_CARDS[TAROT_MODELLED_CARD_COUNT] = {
+    TAROT_MAGICIAN,        TAROT_LOVERS,
+    TAROT_HERMIT,          TAROT_FOOL_REVERSED,
+    TAROT_LOVERS_REVERSED, TAROT_STRENGTH_REVERSED,
+    TAROT_HANGED_REVERSED, TAROT_TEMPERANCE_REVERSED,
+    TAROT_STAR_REVERSED,   TAROT_MOON_REVERSED,
+};
+
 int tarot_set_has(const TarotSet cards, const int card_index) {
     if (card_index < 0 || card_index >= TAROT_CARD_COUNT) return 0;
     return (cards >> (unsigned int) card_index) & 1U ? 1 : 0;

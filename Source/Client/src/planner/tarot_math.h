@@ -27,6 +27,10 @@ typedef enum {
     TAROT_MOON_REVERSED = 40,
 } TarotCard;
 
+#define TAROT_MODELLED_CARD_COUNT 10
+/* The cards the planner's math reads, in card order; the rest change nothing it shows. */
+extern const int TAROT_MODELLED_CARDS[TAROT_MODELLED_CARD_COUNT];
+
 int tarot_set_has(TarotSet cards, int card_index);
 
 int tarot_floor_divide(int dividend, int divisor);

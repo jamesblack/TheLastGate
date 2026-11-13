@@ -958,8 +958,9 @@ static void math_block_render(const EnhancedSkillLayout *layout) {
             math_line_render(layout, skilltab[spell_skill_position(kind)].name);
         }
     }
-    for (card_index = 0; card_index < TAROT_CARD_COUNT; card_index++) {
-        if (tarot_set_has(chosen.tarot_cards, card_index) != 0) math_line_render(layout, planner_card_name(card_index));
+    for (card_index = 0; card_index < TAROT_MODELLED_CARD_COUNT; card_index++) {
+        const int card = TAROT_MODELLED_CARDS[card_index];
+        if (tarot_set_has(chosen.tarot_cards, card) != 0) math_line_render(layout, planner_card_name(card));
     }
 }
 

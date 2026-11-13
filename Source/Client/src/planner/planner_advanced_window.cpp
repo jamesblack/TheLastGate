@@ -1,5 +1,6 @@
 #include "planner_advanced_window.hpp"
 
+#include <imgui.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -17,10 +18,11 @@
 #define ADVANCED_HEIGHT 600
 #define ADVANCED_PADDING 12
 #define ADVANCED_HEADER_HEIGHT 26
-#define ADVANCED_ROW_HEIGHT 16
+#define ADVANCED_ROW_HEIGHT BUTTON_SPRITE_HEIGHT
 #define ADVANCED_COLUMN_WIDTH 268
 #define ADVANCED_CLOSE_WIDTH 56
-#define CARDS_PER_COLUMN 22
+#define CARDS_PER_COLUMN 5
+#define CARD_NUMERAL_COUNT 22
 #define TICKBOX_LABEL_GAP 4
 #define CARD_ROW_ID_BASE 100
 #define CORRUPTOR_ROW_ID_BASE 200
@@ -28,11 +30,11 @@
 #define OTHER_MIN_ROWS 3
 #define OTHER_EFFECT_LEFT 170
 #define OTHER_COUNT_LEFT 300
-#define OTHER_COUNT_WIDTH 80
-#define OTHER_TREE_LEFT 388
+#define OTHER_COUNT_WIDTH 40
+#define OTHER_TREE_LEFT 348
 static constexpr float SECTION_GAP = ADVANCED_ROW_HEIGHT / 2.0F;
 
-static const char *const CARD_NUMERALS[CARDS_PER_COLUMN] = {
+static const char *const CARD_NUMERALS[CARD_NUMERAL_COUNT] = {
     "0",  "I",   "II",   "III", "IV", "V",   "VI",   "VII",   "VIII", "IX", "X",
     "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX",  "XX", "XXI",
 };
@@ -121,11 +123,9 @@ static bool tickbox_row(const float left, const float top, const int row_id, boo
     bool changed;
 
     imgui_push_id_int(row_id);
-    imgui_set_cursor_pos(left, top + 1);
+    imgui_set_cursor_pos(left, top);
     imgui_begin_disabled(!enabled);
-    imgui_push_style_var_vec2(IMGUI_STYLE_VAR_FRAME_PADDING, 1, 1);
     changed = imgui_checkbox("##tick", &ticked);
-    imgui_pop_style_var(1);
     imgui_end_disabled();
     imgui_pop_id();
     text_at(left + ADVANCED_ROW_HEIGHT + TICKBOX_LABEL_GAP, top, enabled ? color : HINT_GREY_FONT_COLOR, label);
@@ -163,15 +163,16 @@ static float cards_render(const float top, PlannerChoices *choices, const Planne
     char label_text[LABEL_TEXT_SIZE];
     int card_index;
 
-    for (card_index = 0; card_index < TAROT_CARD_COUNT; card_index++) {
+    for (card_index = 0; card_index < TAROT_MODELLED_CARD_COUNT; card_index++) {
+        const int card = TAROT_MODELLED_CARDS[card_index];
         const int column = card_index / CARDS_PER_COLUMN;
-        const int card_number = card_index % CARDS_PER_COLUMN;
+        const int row_number = card_index % CARDS_PER_COLUMN;
         const float row_left = (float) (ADVANCED_PADDING + (column * ADVANCED_COLUMN_WIDTH));
-        const float row_top = rows_top + (float) (card_number * ADVANCED_ROW_HEIGHT);
-        const TarotSet card_bit = (TarotSet) 1 << (unsigned int) card_index;
+        const float row_top = rows_top + (float) (row_number * ADVANCED_ROW_HEIGHT);
+        const TarotSet card_bit = (TarotSet) 1 << (unsigned int) card;
 
-        snprintf(label_text, sizeof(label_text), "%s %s", CARD_NUMERALS[card_number], CARD_NAMES[card_index]);
-        if (tickbox_row(row_left, row_top, CARD_ROW_ID_BASE + card_index, (choices->tarot_cards & card_bit) != 0, true,
+        snprintf(label_text, sizeof(label_text), "%s %s", CARD_NUMERALS[card % CARD_NUMERAL_COUNT], CARD_NAMES[card]);
+        if (tickbox_row(row_left, row_top, CARD_ROW_ID_BASE + card, (choices->tarot_cards & card_bit) != 0, true,
                         GOLD_FONT_COLOR, label_text)) {
             choices->tarot_cards ^= card_bit;
             *changed = 1;
@@ -185,17 +186,20 @@ static void corruptor_count_render(const int corruptor, const bool ticked, Plann
 
     imgui_push_id_int(CORRUPTOR_ROW_ID_BASE + corruptor);
     imgui_begin_disabled(!ticked);
-    imgui_push_item_width(OTHER_COUNT_WIDTH);
-    if (imgui_input_int("##count", &count)) {
-        if (count < 1) count = 1;
+    ImGui::SetNextItemWidth(OTHER_COUNT_WIDTH);
+    if (ImGui::InputInt("##count", &count, 0, 0)) {
+        /* 0 is allowed while typing so the field can be cleared; it becomes 1 when editing ends. */
+        if (count < 0) count = 0;
         if (count > CORRUPTOR_MAX_COPIES) count = CORRUPTOR_MAX_COPIES;
         choices->corruptor_counts[corruptor] = (unsigned char) count;
         *changed = 1;
     }
-    imgui_pop_item_width();
-    if (imgui_is_item_hovered_flag(IMGUI_HOVERED_FLAGS_ALLOW_WHEN_DISABLED)) {
-        imgui_set_tooltip(
-                "Copies on tarot cards and sinbinder rings. A sinbinder with a Sign of Symmetry counts twice.");
+    if (ImGui::IsItemDeactivatedAfterEdit() && choices->corruptor_counts[corruptor] == 0) {
+        choices->corruptor_counts[corruptor] = 1;
+        *changed = 1;
+    }
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+        ui_tooltip("Copies on tarot cards and sinbinder rings. A sinbinder with a Sign of Symmetry counts twice.");
     }
     imgui_end_disabled();
     imgui_pop_id();
@@ -214,7 +218,7 @@ static void corruptor_row_render(const float row_top, const int corruptor, Plann
         *changed = 1;
     }
     text_at(OTHER_EFFECT_LEFT, row_top, HINT_GREY_FONT_COLOR, info->modelled != 0 ? info->one_copy : "(not modelled)");
-    imgui_set_cursor_pos(OTHER_COUNT_LEFT, row_top - 1);
+    imgui_set_cursor_pos(OTHER_COUNT_LEFT, row_top);
     corruptor_count_render(corruptor, ticked, choices, changed);
     if (view->tree_copies[corruptor] > 0) {
         snprintf(tree_text, sizeof(tree_text), "+%d tree", view->tree_copies[corruptor]);
@@ -255,6 +259,7 @@ int planner_advanced_window_render(PlannerChoices *choices, const PlannerAdvance
 
     if (!game_ui_state.show_planner_advanced) return 0;
 
+    ui_push_game_window_style();
     imgui_set_next_window_pos(ADVANCED_LEFT, ADVANCED_TOP);
     imgui_set_next_windows_size(ADVANCED_WIDTH, ADVANCED_HEIGHT);
     imgui_push_style_var_float(IMGUI_STYLE_VAR_WINDOW_BORDER_SIZE, 0);
@@ -276,5 +281,6 @@ int planner_advanced_window_render(PlannerChoices *choices, const PlannerAdvance
     }
     imgui_end();
     imgui_pop_style_var(2);
+    ui_pop_game_window_style();
     return changed;
 }
