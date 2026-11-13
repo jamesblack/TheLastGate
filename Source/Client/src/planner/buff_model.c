@@ -12,6 +12,8 @@
 #define HERMIT_RESIST_NUMERATOR 4
 #define HERMIT_RESIST_DENOMINATOR 5
 #define APTITUDE_ATTRIBUTE_FACTOR 5
+#define INTROSPECTION_APTITUDE_DIVISOR 50
+#define GUARDIAN_ANGEL_DIVISOR 20
 
 int buff_model_bless_bonus(const int power, const int attribute_id) {
     if (power <= 0) return 0;
@@ -144,17 +146,58 @@ static int aptitude_intuition(const BuffModelInput *input, const int totals[ATTR
 
 static int planned_aptitude(const BuffModelInput *input, const int unbuffed[ATTRIBUTE_COUNT]) {
     const int base_willpower = input->base_attributes[ATTRIBUTE_WILLPOWER];
+    const int change = aptitude_term(input, base_willpower + input->planned_attributes[ATTRIBUTE_WILLPOWER],
+                                     aptitude_intuition(input, unbuffed, 1)) -
+                       aptitude_term(input, base_willpower, aptitude_intuition(input, input->server_attributes, 0));
 
-    return input->spell_aptitude +
-           aptitude_term(input, base_willpower + input->planned_attributes[ATTRIBUTE_WILLPOWER],
-                         aptitude_intuition(input, unbuffed, 1)) -
-           aptitude_term(input, base_willpower, aptitude_intuition(input, input->server_attributes, 0));
+    return input->spell_aptitude + tarot_scaled_change(input->spell_aptitude, change,
+                                                       PERCENT_BASE + input->effects.aptitude_percent, PERCENT_BASE);
 }
 
-static int cast_power(const BuffModelInput *input, const int skill_value, const int aptitude) {
-    const int spell_bonus = tarot_set_has(input->tarot_cards, TAROT_STAR_REVERSED) ? 0 : input->spell_bonus;
+/* The Magician lets the higher of Strength and Intuition stand in for the lower one. */
+static int effect_attribute_sum(const BuffModelInput *input, const int attributes[ATTRIBUTE_COUNT]) {
+    const int strength = attributes[ATTRIBUTE_STRENGTH];
+    const int intuition = attributes[ATTRIBUTE_INTUITION];
+    int total = 0;
+    int attribute_id;
+
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) total += attributes[attribute_id];
+    if (tarot_set_has(input->tarot_cards, TAROT_MAGICIAN)) total += max(strength, intuition) - min(strength, intuition);
+    return total;
+}
+
+static int attribute_sum_bonus_change(const BuffModelInput *input, const int copies,
+                                      const int attributes[ATTRIBUTE_COUNT]) {
+    return (copies * effect_attribute_sum(input, attributes) / TREE_EFFECTS_PER_150) -
+           (copies * effect_attribute_sum(input, input->server_attributes) / TREE_EFFECTS_PER_150);
+}
+
+/* Brilliance and Introspection are flat additions that the Spell Bonus percent then raises. */
+static int planned_spell_bonus(const BuffModelInput *input, const int attributes[ATTRIBUTE_COUNT], const int aptitude) {
+    const TreeEffects *effects = &input->effects;
+    const int change = attribute_sum_bonus_change(input, effects->brilliance, attributes) +
+                       (effects->introspection * aptitude / INTROSPECTION_APTITUDE_DIVISOR) -
+                       (effects->introspection * input->spell_aptitude / INTROSPECTION_APTITUDE_DIVISOR);
+
+    return input->spell_bonus +
+           tarot_scaled_change(input->spell_bonus, change, PERCENT_BASE + effects->spell_bonus_percent, PERCENT_BASE);
+}
+
+static int cast_power(const BuffModelInput *input, const int skill_value, const int aptitude, const int planned_bonus) {
+    const int spell_bonus = tarot_set_has(input->tarot_cards, TAROT_STAR_REVERSED) ? 0 : planned_bonus;
     const int power = min((skill_value + spell_bonus) * input->spell_multiplier / PERCENT_BASE, 2 * aptitude);
     return max(0, power);
+}
+
+/* Each Bless cast reads the Spell Bonus and Braveness its attributes give; Guardian Angel comes after the cap. */
+static int bless_cast_power(const BuffModelInput *input, const BuffModelResult *result,
+                            const int attributes[ATTRIBUTE_COUNT]) {
+    const BuffModelSkill *bless = &input->spell_skills[BUFF_KIND_BLESS];
+    const int scale = PERCENT_BASE * GUARDIAN_ANGEL_DIVISOR;
+    const int power = cast_power(input, buff_model_skill_value(input, bless, attributes), result->spell_aptitude,
+                                 planned_spell_bonus(input, attributes, result->spell_aptitude));
+
+    return power * (scale + (attributes[ATTRIBUTE_BRAVENESS] * input->effects.guardian_angel)) / scale;
 }
 
 static int active_bless_bonus(const BuffReading *active, const int attribute_id) {
@@ -189,16 +232,13 @@ static void attributes_with_bless(const BuffModelInput *input, const int unbuffe
 
 static void compute_bless(const BuffModelInput *input, BuffModelResult *result,
                           const int unbuffed_changes[ATTRIBUTE_COUNT], const int unbuffed[ATTRIBUTE_COUNT]) {
-    const BuffModelSkill *bless = &input->spell_skills[BUFF_KIND_BLESS];
     int first_cast_attributes[ATTRIBUTE_COUNT];
-    int first_power;
 
     result->cast_power[BUFF_KIND_BLESS] = 0;
     if (input->spell_known[BUFF_KIND_BLESS]) {
-        first_power = cast_power(input, buff_model_skill_value(input, bless, unbuffed), result->spell_aptitude);
-        attributes_with_bless(input, unbuffed_changes, first_power, first_cast_attributes);
-        result->cast_power[BUFF_KIND_BLESS] =
-                cast_power(input, buff_model_skill_value(input, bless, first_cast_attributes), result->spell_aptitude);
+        attributes_with_bless(input, unbuffed_changes, bless_cast_power(input, result, unbuffed),
+                              first_cast_attributes);
+        result->cast_power[BUFF_KIND_BLESS] = bless_cast_power(input, result, first_cast_attributes);
     }
 
     result->effective_power[BUFF_KIND_BLESS] = shown_power(input, result, BUFF_KIND_BLESS);
@@ -214,7 +254,7 @@ static int compute_item_buff(const BuffModelInput *input, BuffModelResult *resul
     if (input->spell_known[kind]) {
         result->cast_power[kind] =
                 cast_power(input, buff_model_skill_value(input, &input->spell_skills[kind], result->attributes),
-                           result->spell_aptitude);
+                           result->spell_aptitude, result->spell_bonus);
     }
     result->effective_power[kind] = shown_power(input, result, kind);
     return server_value - active_item_bonus(active, exact_bonus, input->reduced_item_buffs) +
@@ -224,6 +264,7 @@ static int compute_item_buff(const BuffModelInput *input, BuffModelResult *resul
 void buff_model_compute(const BuffModelInput *input, BuffModelResult *result) {
     int unbuffed_changes[ATTRIBUTE_COUNT];
     int unbuffed[ATTRIBUTE_COUNT];
+    int determination_change;
     int attribute_id;
 
     for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
@@ -234,8 +275,13 @@ void buff_model_compute(const BuffModelInput *input, BuffModelResult *result) {
     result->spell_aptitude = planned_aptitude(input, unbuffed);
 
     compute_bless(input, result, unbuffed_changes, unbuffed);
+    result->spell_bonus = planned_spell_bonus(input, result->attributes, result->spell_aptitude);
     result->weapon = compute_item_buff(input, result, BUFF_KIND_ENHANCE, input->server_weapon,
                                        input->active[BUFF_KIND_ENHANCE].weapon_bonus);
     result->armor = compute_item_buff(input, result, BUFF_KIND_PROTECT, input->server_armor,
                                       input->active[BUFF_KIND_PROTECT].armor_bonus);
+
+    determination_change = attribute_sum_bonus_change(input, input->effects.determination, result->attributes);
+    result->weapon += determination_change;
+    result->armor += determination_change;
 }

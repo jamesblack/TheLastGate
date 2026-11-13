@@ -457,6 +457,152 @@ static void test_fool_reversed_averages_before_attribute_percent(void) {
     CHECK(attributes_equal(&result, 106, 106, 106, 106, 52));
 }
 
+static void test_aptitude_percent(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    /* Raw 110 x 100 / 110 = 100 becomes 110, which shows 121. */
+    input.spell_aptitude = 110;
+    input.effects.aptitude_percent = 10;
+    input.planned_attributes[ATTRIBUTE_WILLPOWER] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_aptitude == 121);
+}
+
+static void test_attribute_percent_skips_aptitude(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.spell_aptitude = 110;
+    input.effects.aptitude_percent = 10;
+    input.effects.attribute_percent[ATTRIBUTE_WILLPOWER] = 10;
+    input.planned_attributes[ATTRIBUTE_WILLPOWER] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.attributes[ATTRIBUTE_WILLPOWER] == 61);
+    CHECK(result.spell_aptitude == 121);
+}
+
+static BuffModelInput brilliance_fixture(void) {
+    BuffModelInput input = unbuffed_fixture();
+
+    set_all_attributes(input.server_attributes, 90);
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 89;
+    input.spell_bonus = 30;
+    input.effects.brilliance = 1;
+    return input;
+}
+
+static void test_brilliance_follows_attribute_sum(void) {
+    BuffModelInput input = brilliance_fixture();
+    BuffModelResult result;
+
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 30);
+
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 31);
+}
+
+static void test_brilliance_with_magician(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 100;
+    input.spell_bonus = 10;
+    input.effects.brilliance = 1;
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 50;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 10);
+
+    /* Strength 150 also stands in for Intuition 50, so the sum is 450 against 350. */
+    input.tarot_cards = (TarotSet) 1 << (unsigned int) TAROT_MAGICIAN;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 11);
+}
+
+static void test_introspection_follows_aptitude(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.spell_aptitude = 99;
+    input.spell_bonus = 40;
+    input.effects.introspection = 2;
+    input.planned_attributes[ATTRIBUTE_WILLPOWER] = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_aptitude == 100);
+    CHECK(result.spell_bonus == 41);
+}
+
+static void test_spell_bonus_percent(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    /* Introspection adds 5 x 300 / 50 - 5 x 200 / 50 = 10 to raw 50, which shows 72. */
+    input.spell_bonus = 60;
+    input.effects.spell_bonus_percent = 20;
+    input.effects.introspection = 5;
+    input.planned_attributes[ATTRIBUTE_WILLPOWER] = 100;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_aptitude == 300);
+    CHECK(result.spell_bonus == 72);
+}
+
+static void test_planned_spell_bonus_raises_cast_power(void) {
+    BuffModelInput input = fixture();
+    BuffModelResult result;
+
+    /* The first cast lifts the attribute sum from 250 to 301, past 300, so the second cast gets one more bonus. */
+    input.effects.brilliance = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.cast_power[BUFF_KIND_BLESS] == 67);
+    CHECK(result.spell_bonus == 1);
+
+    input.spell_aptitude = 33;
+    buff_model_compute(&input, &result);
+    CHECK(result.cast_power[BUFF_KIND_BLESS] == 66);
+}
+
+static void test_guardian_angel(void) {
+    BuffModelInput input = fixture();
+    BuffModelResult result;
+
+    /* Skill 250 is capped at 200. The first cast sees Braveness 70 and gives 207, which lifts Braveness to 100. */
+    input.server_attributes[ATTRIBUTE_BRAVENESS] = 70;
+    input.spell_aptitude = 100;
+    set_skill(&input.spell_skills[BUFF_KIND_BLESS], 250, -1, -1, -1);
+    buff_model_compute(&input, &result);
+    CHECK(result.cast_power[BUFF_KIND_BLESS] == 200);
+
+    input.effects.guardian_angel = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.cast_power[BUFF_KIND_BLESS] == 210);
+    CHECK(result.attributes[ATTRIBUTE_BRAVENESS] == 101);
+}
+
+static void test_determination(void) {
+    BuffModelInput input = brilliance_fixture();
+    BuffModelResult result;
+
+    input.effects.brilliance = 0;
+    input.effects.determination = 2;
+    buff_model_compute(&input, &result);
+    CHECK(result.weapon == 30);
+    CHECK(result.armor == 30);
+
+    /* 2 x 450 / 150 = 6 against 2 x 449 / 150 = 5. */
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.weapon == 31);
+    CHECK(result.armor == 31);
+
+    /* 2 x 525 / 150 = 7. */
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 76;
+    buff_model_compute(&input, &result);
+    CHECK(result.weapon == 32);
+    CHECK(result.armor == 32);
+}
+
 int main(void) {
     test_bless_bonus_formula();
     test_bless_double_cast();
@@ -486,6 +632,15 @@ int main(void) {
     test_immunity_percent_with_hermit();
     test_immunity_percent_and_hermit_round_in_two_steps();
     test_fool_reversed_averages_before_attribute_percent();
+    test_aptitude_percent();
+    test_attribute_percent_skips_aptitude();
+    test_brilliance_follows_attribute_sum();
+    test_brilliance_with_magician();
+    test_introspection_follows_aptitude();
+    test_spell_bonus_percent();
+    test_planned_spell_bonus_raises_cast_power();
+    test_guardian_angel();
+    test_determination();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

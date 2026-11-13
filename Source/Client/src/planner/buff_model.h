@@ -7,7 +7,8 @@
  * stats, the second from the stats the first one gave, which raises the
  * Bless skill through its own attributes. Spell power is
  * (skill + Spell Bonus) x Spell Multiplier, capped at twice the Spell
- * Aptitude; aptitude only follows base Willpower and Intuition. Buffs already
+ * Aptitude; aptitude only follows base Willpower and Intuition, so the
+ * attribute percents never reach it. Buffs already
  * on the player are taken out of the server's totals first, using their
  * fetched power. Self-contained (no game headers) so it can be built into the
  * unit tests.
@@ -61,6 +62,7 @@ typedef struct {
 typedef struct {
     int attributes[ATTRIBUTE_COUNT]; /* the values the planner shows, plan included */
     int spell_aptitude; /* aptitude with the planned base Willpower and Intuition */
+    int spell_bonus;    /* Spell Bonus with the shown attributes and planned aptitude */
     int cast_power[BUFF_KIND_COUNT]; /* your own planned cast (the second one for Bless); 0 if unknown */
     int effective_power[BUFF_KIND_COUNT]; /* power shown: the stronger of cast and active when shown, else 0 */
     int weapon;
