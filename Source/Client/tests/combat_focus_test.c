@@ -25,6 +25,7 @@ static void set_skill(BuffModelSkill *skill, const int server_total, const int f
     skill->attribute_ids[1] = second_id;
     skill->attribute_ids[2] = third_id;
     skill->scale_kind = BUFF_SKILL_SCALE_NONE;
+    skill->skill_groups = 0;
 }
 
 static void set_combat_skill(CombatFocusInput *input, const CombatSkill skill_id, const int raise_index,

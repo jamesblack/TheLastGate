@@ -25,6 +25,7 @@
 #include "planner/skill_preview.h"
 #include "game/stat_raise.h"
 #include "planner/tarot_math.h"
+#include "planner/tree_effects.h"
 #include "graphics/sdl.h"
 #include "ui/imgui/imgui_wrapper.h"
 #include "mods/buff_watch.h"
@@ -177,6 +178,7 @@ static BuffModelSkill model_skill_for(const int skill_position, const int planne
     skill.scale_kind = BUFF_SKILL_SCALE_NONE;
     if (skill_entry->nr == SK_RESIST || skill_entry->nr == SK_IMMUN) skill.scale_kind = BUFF_SKILL_SCALE_RESIST;
     if (skill_entry->nr == SK_TACTICS) skill.scale_kind = BUFF_SKILL_SCALE_TACTICS;
+    skill.skill_groups = tree_effects_skill_groups(skill_entry->nr);
     for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
         skill.attribute_ids[attribute_slot] = skill_attribute_id(skill_entry, attribute_slot);
     }

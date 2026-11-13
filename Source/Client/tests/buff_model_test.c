@@ -26,6 +26,7 @@ static void set_skill(BuffModelSkill *skill, const int server_total, const int f
     skill->attribute_ids[1] = second_id;
     skill->attribute_ids[2] = third_id;
     skill->scale_kind = BUFF_SKILL_SCALE_NONE;
+    skill->skill_groups = 0;
 }
 
 static void set_all_attributes(int attributes[ATTRIBUTE_COUNT], const int value) {
@@ -331,6 +332,106 @@ static void test_moon_reversed_scales_tactics_with_mana(void) {
     CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 132);
 }
 
+static void test_no_effects_matches_old_model(void) {
+    BuffModelInput input = fixture();
+    BuffModelResult result;
+    BuffModelSkill immunity;
+
+    input.spell_skills[BUFF_KIND_BLESS].skill_groups =
+            SKILL_GROUP_PASSIVE | SKILL_GROUP_ACTIVE_SPELL | SKILL_GROUP_ACTIVE_MELEE;
+    input.planned_attributes[1] = 5;
+    buff_model_compute(&input, &result);
+    CHECK(result.cast_power[BUFF_KIND_BLESS] == 68);
+    CHECK(attributes_equal(&result, 62, 66, 61, 61, 61));
+
+    set_skill(&immunity, 80, -1, -1, -1);
+    immunity.planned = 10;
+    immunity.scale_kind = BUFF_SKILL_SCALE_IMMUNITY;
+    CHECK(buff_model_skill_value(&input, &immunity, input.server_attributes) == 90);
+}
+
+static BuffModelInput unbuffed_fixture(void) {
+    BuffModelInput input = fixture();
+
+    input.spell_known[BUFF_KIND_BLESS] = 0;
+    input.show_buffed[BUFF_KIND_BLESS] = 0;
+    return input;
+}
+
+static void test_attribute_percent_scales_planned_points(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 100;
+    input.effects.attribute_percent[ATTRIBUTE_STRENGTH] = 6;
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.attributes[ATTRIBUTE_STRENGTH] == 111);
+    CHECK(result.attributes[ATTRIBUTE_AGILITY] == 50);
+}
+
+static void test_attribute_percent_rounds_like_server(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 106;
+    input.effects.attribute_percent[ATTRIBUTE_STRENGTH] = 6;
+    buff_model_compute(&input, &result);
+    CHECK(result.attributes[ATTRIBUTE_STRENGTH] == 106);
+
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.attributes[ATTRIBUTE_STRENGTH] == 107);
+}
+
+static int strength_raise_value(const int skill_groups) {
+    BuffModelInput input = fixture();
+    BuffModelSkill skill;
+    int planned[ATTRIBUTE_COUNT];
+
+    input.server_attributes[ATTRIBUTE_AGILITY] = 52;
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 100;
+    input.effects.skill_extra_percent[ATTRIBUTE_STRENGTH] = 20;
+    set_skill(&skill, 60, ATTRIBUTE_AGILITY, ATTRIBUTE_AGILITY, ATTRIBUTE_STRENGTH);
+    skill.skill_groups = skill_groups;
+    memcpy(planned, input.server_attributes, sizeof(planned));
+    planned[ATTRIBUTE_STRENGTH] += 5;
+    return buff_model_skill_value(&input, &skill, planned);
+}
+
+static void test_skill_extra_percent(void) {
+    /* (52 + 52 + 105 + 2100 / 100) / 5 = 46 against (52 + 52 + 100 + 2000 / 100) / 5 = 44. */
+    CHECK(strength_raise_value(SKILL_GROUP_ACTIVE_MELEE) == 62);
+}
+
+static void test_extra_percent_ignores_other_groups(void) {
+    /* 209 / 5 = 41 against 204 / 5 = 40, as without the effect. */
+    CHECK(strength_raise_value(SKILL_GROUP_PASSIVE) == 61);
+}
+
+static int immunity_with_bravery_raise(const TarotSet tarot_cards) {
+    BuffModelInput input = fixture();
+    BuffModelSkill skill;
+    int planned[ATTRIBUTE_COUNT];
+
+    input.tarot_cards = tarot_cards;
+    input.effects.immunity_percent = 10;
+    set_skill(&skill, 110, ATTRIBUTE_BRAVENESS, ATTRIBUTE_WILLPOWER, ATTRIBUTE_INTUITION);
+    skill.scale_kind = BUFF_SKILL_SCALE_IMMUNITY;
+    memcpy(planned, input.server_attributes, sizeof(planned));
+    planned[ATTRIBUTE_BRAVENESS] += 50;
+    return buff_model_skill_value(&input, &skill, planned);
+}
+
+static void test_immunity_percent(void) {
+    CHECK(immunity_with_bravery_raise(0) == 121);
+}
+
+static void test_immunity_percent_with_hermit(void) {
+    /* Raw 110 x 500 / 440 = 125, and 135 x 440 / 500 = 118. */
+    CHECK(immunity_with_bravery_raise((TarotSet) 1 << (unsigned int) TAROT_HERMIT) == 118);
+}
+
 int main(void) {
     test_bless_bonus_formula();
     test_bless_double_cast();
@@ -351,6 +452,13 @@ int main(void) {
     test_star_reversed_drops_spell_bonus_from_cast_power();
     test_hermit_scales_resist_skill_change();
     test_moon_reversed_scales_tactics_with_mana();
+    test_no_effects_matches_old_model();
+    test_attribute_percent_scales_planned_points();
+    test_attribute_percent_rounds_like_server();
+    test_skill_extra_percent();
+    test_extra_percent_ignores_other_groups();
+    test_immunity_percent();
+    test_immunity_percent_with_hermit();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

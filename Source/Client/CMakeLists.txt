@@ -189,6 +189,7 @@ if (TLG_BUILD_TESTS)
             tests/buff_model_test.c
             src/planner/buff_model.c
             src/planner/tarot_math.c
+            src/planner/tree_effects.c
     )
     target_include_directories(buff_model_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME buff_model COMMAND buff_model_test)
@@ -289,6 +290,7 @@ if (TLG_BUILD_TESTS)
             src/planner/buff_model.c
             src/planner/attribute_pool.c
             src/planner/tarot_math.c
+            src/planner/tree_effects.c
     )
     target_include_directories(buff_focus_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME buff_focus COMMAND buff_focus_test)
@@ -299,6 +301,7 @@ if (TLG_BUILD_TESTS)
             src/planner/combat_model.c
             src/planner/buff_model.c
             src/planner/tarot_math.c
+            src/planner/tree_effects.c
     )
     target_include_directories(combat_focus_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME combat_focus COMMAND combat_focus_test)

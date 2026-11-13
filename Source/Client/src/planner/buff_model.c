@@ -35,6 +35,44 @@ static int attribute_sum(const BuffModelSkill *skill, const int attributes[ATTRI
     return total;
 }
 
+static int skill_extra_bonus(const BuffModelInput *input, const BuffModelSkill *skill,
+                             const int attributes[ATTRIBUTE_COUNT]) {
+    const int *extra_percent = input->effects.skill_extra_percent;
+    int extra = 0;
+
+    if (skill->skill_groups & SKILL_GROUP_PASSIVE) {
+        extra += extra_percent[ATTRIBUTE_BRAVENESS] * attributes[ATTRIBUTE_BRAVENESS];
+    }
+    if (skill->skill_groups & SKILL_GROUP_ACTIVE_SPELL) {
+        extra += (extra_percent[ATTRIBUTE_WILLPOWER] * attributes[ATTRIBUTE_WILLPOWER]) +
+                 (extra_percent[ATTRIBUTE_INTUITION] * attributes[ATTRIBUTE_INTUITION]);
+    }
+    if (skill->skill_groups & SKILL_GROUP_ACTIVE_MELEE) {
+        extra += (extra_percent[ATTRIBUTE_AGILITY] * attributes[ATTRIBUTE_AGILITY]) +
+                 (extra_percent[ATTRIBUTE_STRENGTH] * attributes[ATTRIBUTE_STRENGTH]);
+    }
+    return extra;
+}
+
+static int attribute_term(const BuffModelInput *input, const BuffModelSkill *skill,
+                          const int attributes[ATTRIBUTE_COUNT]) {
+    return (attribute_sum(skill, attributes) + (skill_extra_bonus(input, skill, attributes) / PERCENT_BASE)) /
+           input->divisor;
+}
+
+/* The server raises the whole skill by its percent, then Hermit takes a fifth off. */
+static int resistance_value(const BuffModelInput *input, const BuffModelSkill *skill, const int percent,
+                            const int change) {
+    int numerator = PERCENT_BASE + percent;
+    int denominator = PERCENT_BASE;
+
+    if (tarot_set_has(input->tarot_cards, TAROT_HERMIT)) {
+        numerator *= HERMIT_RESIST_NUMERATOR;
+        denominator *= HERMIT_RESIST_DENOMINATOR;
+    }
+    return skill->server_total + tarot_scaled_change(skill->server_total, change, numerator, denominator);
+}
+
 static int moon_scaled_tactics(const BuffModelInput *input, const int server_total, const int change) {
     const int percent_scale = PERCENT_BASE * MOON_MANA_PER_PERCENT;
     const int raw_value = server_total * percent_scale / (percent_scale + input->uncapped_mana);
@@ -44,12 +82,14 @@ static int moon_scaled_tactics(const BuffModelInput *input, const int server_tot
 
 int buff_model_skill_value(const BuffModelInput *input, const BuffModelSkill *skill,
                            const int attributes[ATTRIBUTE_COUNT]) {
-    const int change = skill->planned + (attribute_sum(skill, attributes) / input->divisor) -
-                       (attribute_sum(skill, input->server_attributes) / input->divisor);
+    const int change = skill->planned + attribute_term(input, skill, attributes) -
+                       attribute_term(input, skill, input->server_attributes);
 
-    if (skill->scale_kind == BUFF_SKILL_SCALE_RESIST && tarot_set_has(input->tarot_cards, TAROT_HERMIT)) {
-        return skill->server_total +
-               tarot_scaled_change(skill->server_total, change, HERMIT_RESIST_NUMERATOR, HERMIT_RESIST_DENOMINATOR);
+    if (skill->scale_kind == BUFF_SKILL_SCALE_RESIST) {
+        return resistance_value(input, skill, input->effects.resist_percent, change);
+    }
+    if (skill->scale_kind == BUFF_SKILL_SCALE_IMMUNITY) {
+        return resistance_value(input, skill, input->effects.immunity_percent, change);
     }
     if (skill->scale_kind == BUFF_SKILL_SCALE_TACTICS && tarot_set_has(input->tarot_cards, TAROT_MOON_REVERSED)) {
         return moon_scaled_tactics(input, skill->server_total, change);
@@ -57,7 +97,10 @@ int buff_model_skill_value(const BuffModelInput *input, const BuffModelSkill *sk
     return skill->server_total + change;
 }
 
-/* Under Reverse Fool the server averages all five attributes, so only the sum of the changes matters. */
+/*
+ * Under Reverse Fool the server averages all five attributes, so only the sum of the changes matters. The
+ * attribute percent is applied after that averaging.
+ */
 static void attributes_with_changes(const BuffModelInput *input, const int changes[ATTRIBUTE_COUNT],
                                     int attributes[ATTRIBUTE_COUNT]) {
     int change_sum = 0;
@@ -65,10 +108,15 @@ static void attributes_with_changes(const BuffModelInput *input, const int chang
 
     for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) change_sum += changes[attribute_id];
     for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        const int server_value = input->server_attributes[attribute_id];
+        const int total = tarot_set_has(input->tarot_cards, TAROT_FOOL_REVERSED)
+                                  ? tarot_fool_reversed_total(server_value, change_sum)
+                                  : server_value + changes[attribute_id];
+
         attributes[attribute_id] =
-                tarot_set_has(input->tarot_cards, TAROT_FOOL_REVERSED)
-                        ? tarot_fool_reversed_total(input->server_attributes[attribute_id], change_sum)
-                        : input->server_attributes[attribute_id] + changes[attribute_id];
+                server_value + tarot_scaled_change(server_value, total - server_value,
+                                                   PERCENT_BASE + input->effects.attribute_percent[attribute_id],
+                                                   PERCENT_BASE);
     }
 }
 

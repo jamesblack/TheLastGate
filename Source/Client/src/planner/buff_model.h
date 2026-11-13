@@ -14,19 +14,26 @@
  */
 
 #include "planner/tarot_math.h"
+#include "planner/tree_effects.h"
 #include "mods/buff_list.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum { BUFF_SKILL_SCALE_NONE = 0, BUFF_SKILL_SCALE_RESIST = 1, BUFF_SKILL_SCALE_TACTICS = 2 } BuffSkillScale;
+typedef enum {
+    BUFF_SKILL_SCALE_NONE = 0,
+    BUFF_SKILL_SCALE_RESIST = 1,
+    BUFF_SKILL_SCALE_TACTICS = 2,
+    BUFF_SKILL_SCALE_IMMUNITY = 3,
+} BuffSkillScale;
 
 typedef struct {
     int server_total; /* the skill's value as the server sends it */
     int planned; /* points planned for the skill itself */
     int attribute_ids[ATTRIBUTES_PER_SKILL]; /* -1 marks an unused slot */
     int scale_kind;
+    int skill_groups; /* SkillGroup mask */
 } BuffModelSkill;
 
 typedef struct {
@@ -48,6 +55,7 @@ typedef struct {
     TarotSet tarot_cards;
     int uncapped_mana;
     int planned_mana;
+    TreeEffects effects;
 } BuffModelInput;
 
 typedef struct {
