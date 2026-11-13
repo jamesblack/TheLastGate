@@ -241,6 +241,33 @@ static void test_evergreen_weapon_value_goes_through_lovers_and_hermit(void) {
     CHECK(shown.weapon == 41 && shown.armor == 47);
 }
 
+static void test_hitpoint_raise_reaches_weapon_value_through_gorn(void) {
+    CombatFocusInput input = fixture(COMBAT_STAT_WEAPON);
+    CombatFocusResult result;
+
+    /* 499 to 500 Hitpoints adds 1 Spell Bonus, which the Tachi adds to WV. */
+    input.model.effects.spell_bonus_to_weapon = 1;
+    input.model.effects.hitpoints_to_spell_bonus = 1;
+    input.model.uncapped_hitpoints = 499;
+    add_candidate(&input, BUFF_FOCUS_HITPOINTS_RAISE, BUFF_FOCUS_MAX_POINTS, 3);
+    result = combat_focus_search(&input);
+    CHECK(result.current_value == 30 && result.best.total_cost == 3);
+    CHECK(result.best.raises[0].raise_index == BUFF_FOCUS_HITPOINTS_RAISE);
+}
+
+static void test_mana_raise_through_neis_claw(void) {
+    CombatFocusInput input = fixture(COMBAT_STAT_WEAPON);
+    CombatFocusResult result;
+
+    /* 298 Mana needs two points to reach 300 and the next point of Spell Bonus. */
+    input.model.effects.spell_bonus_to_weapon = 1;
+    input.model.effects.mana_to_spell_bonus = 1;
+    input.model.uncapped_mana = 298;
+    add_candidate(&input, BUFF_FOCUS_MANA_RAISE, BUFF_FOCUS_MAX_POINTS, 3);
+    result = combat_focus_search(&input);
+    CHECK(result.best.total_cost == 6 && result.best.raises[0].points == 2);
+}
+
 int main(void) {
     test_cheap_weapon_skill_point_wins();
     test_attribute_route_wins_when_cheaper();
@@ -252,6 +279,8 @@ int main(void) {
     test_parry_to_hit_lets_shield_points_raise_hit();
     test_shown_values_equal_server_with_empty_plan();
     test_evergreen_weapon_value_goes_through_lovers_and_hermit();
+    test_hitpoint_raise_reaches_weapon_value_through_gorn();
+    test_mana_raise_through_neis_claw();
 
     if (failures != 0) {
         printf("%d check(s) failed\n", failures);

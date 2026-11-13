@@ -20,6 +20,7 @@ static int failures = 0;
 
 #define FOCUSED_SLOT 8
 #define BLESS_SLOT 9
+#define GEARMAST_SLOT 12
 
 static void set_skill(BuffModelSkill *skill, const int server_total, const int first_id, const int second_id,
                       const int third_id) {
@@ -193,6 +194,58 @@ static void test_fool_reversed_uses_attribute_pool(void) {
     CHECK(result.best.total_cost == 100);
 }
 
+/* A Resistance that gains a tenth of the shown AV; the focused point costs far more than any other route. */
+static BuffFocusInput resist_fixture(void) {
+    BuffFocusInput input;
+    int kind;
+    int skill_id;
+
+    memset(&input, 0, sizeof(input));
+    set_model(&input.model);
+    input.model.show_buffed[BUFF_KIND_BLESS] = 0;
+    input.model.server_armor = 109;
+    input.model.effects.armor_to_resist = 1;
+    set_skill(&input.focused, 70, -1, -1, -1);
+    input.focused.scale_kind = BUFF_SKILL_SCALE_RESIST;
+    input.focused_raise_index = FOCUSED_SLOT;
+    for (kind = 0; kind < BUFF_KIND_COUNT; kind++) input.spell_raise_index[kind] = -1;
+    input.armor_feeds_focused = 1;
+    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) input.combat_raise_index[skill_id] = -1;
+    add_candidate(&input, FOCUSED_SLOT, 1, 100);
+    return input;
+}
+
+static void test_armor_feeds_resistance_through_gear_mastery(void) {
+    BuffFocusInput input = resist_fixture();
+    BuffFocusResult result;
+
+    /* 59 to 60 Gear Mastery adds 1 AV, which takes the shown AV from 109 to 110 and its tenth from 10 to 11. */
+    input.combat.known[COMBAT_SKILL_GEARMAST] = 1;
+    input.combat.current[COMBAT_SKILL_GEARMAST] = 59;
+    input.combat.shown[COMBAT_SKILL_GEARMAST] = 59;
+    input.combat.gear_class = COMBAT_GEAR_OTHER;
+    input.combat_raise_index[COMBAT_SKILL_GEARMAST] = GEARMAST_SLOT;
+    set_skill(&input.combat_skills[COMBAT_SKILL_GEARMAST], 59, -1, -1, -1);
+    add_candidate(&input, GEARMAST_SLOT, 16, 5);
+    result = buff_focus_search(&input);
+    CHECK(result.current_value == 70);
+    CHECK(route_is_single(&result.best, GEARMAST_SLOT, 1, 5));
+}
+
+static void test_hitpoint_raise_reaches_resistance_through_odachi(void) {
+    BuffFocusInput input = resist_fixture();
+    BuffFocusResult result;
+
+    /* 499 to 500 Hitpoints adds 1 Spell Bonus, which the Odachi adds to AV. */
+    input.model.effects.spell_bonus_to_armor = 1;
+    input.model.effects.hitpoints_to_spell_bonus = 1;
+    input.model.uncapped_hitpoints = 499;
+    add_candidate(&input, BUFF_FOCUS_HITPOINTS_RAISE, 16, 3);
+    result = buff_focus_search(&input);
+    CHECK(result.current_value == 70);
+    CHECK(route_is_single(&result.best, BUFF_FOCUS_HITPOINTS_RAISE, 1, 3));
+}
+
 int main(void) {
     test_fool_reversed_uses_attribute_pool();
     test_bless_points_win();
@@ -200,6 +253,8 @@ int main(void) {
     test_capped_bless_skipped();
     test_nothing_available();
     test_focus_on_bless_itself();
+    test_armor_feeds_resistance_through_gear_mastery();
+    test_hitpoint_raise_reaches_resistance_through_odachi();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

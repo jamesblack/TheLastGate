@@ -11,6 +11,7 @@
  */
 
 #include "planner/buff_model.h"
+#include "planner/combat_model.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +20,8 @@ extern "C" {
 #define BUFF_FOCUS_MAX_CANDIDATES 12
 #define BUFF_FOCUS_MAX_POINTS 16
 #define BUFF_FOCUS_ATTRIBUTE_POOL (-2)
+#define BUFF_FOCUS_HITPOINTS_RAISE 5 /* stat_raise slots of the Hitpoints and Mana raises */
+#define BUFF_FOCUS_MANA_RAISE 7
 
 typedef struct {
     int raise_index; /* stat_raise slot: 0-4 attribute, 8+ skill */
@@ -31,6 +34,10 @@ typedef struct {
     BuffModelSkill focused;
     int focused_raise_index;
     int spell_raise_index[BUFF_KIND_COUNT]; /* stat_raise slot of each spell skill, -1 when not known */
+    int armor_feeds_focused; /* the focused Resistance or Immunity gains shown AV / 10 */
+    CombatModelInput combat; /* read only when armor_feeds_focused */
+    BuffModelSkill combat_skills[COMBAT_SKILL_COUNT];
+    int combat_raise_index[COMBAT_SKILL_COUNT];
     int candidate_count;
     BuffFocusCandidate candidates[BUFF_FOCUS_MAX_CANDIDATES];
 } BuffFocusInput;

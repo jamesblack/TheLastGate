@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "planner/combat_shown.h"
 #include "planner/skill_focus.h"
 #include "util/math_util.h"
 
@@ -39,13 +40,28 @@ static void build_cost_table(const BuffFocusInput *input, CostTable *table) {
     }
 }
 
+static void add_combat_points(const BuffFocusInput *input, const int raise_index, const int extra,
+                              BuffModelSkill combat_skills[COMBAT_SKILL_COUNT]) {
+    int skill_id;
+
+    /* Unknown skills are skipped: their raise index may be left at zero, which is the Braveness slot. */
+    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
+        if (input->combat.known[skill_id] && raise_index == input->combat_raise_index[skill_id]) {
+            combat_skills[skill_id].planned += extra;
+        }
+    }
+}
+
 static int value_with_points(const BuffFocusInput *input, const int points[BUFF_FOCUS_MAX_CANDIDATES]) {
     BuffModelInput model = input->model;
     BuffModelSkill focused = input->focused;
+    BuffModelSkill combat_skills[COMBAT_SKILL_COUNT];
     BuffModelResult result;
+    CombatValues shown;
     int candidate_index;
     int kind;
 
+    memcpy(combat_skills, input->combat_skills, sizeof(combat_skills));
     for (candidate_index = 0; candidate_index < input->candidate_count; candidate_index++) {
         const int raise_index = input->candidates[candidate_index].raise_index;
         const int extra = points[candidate_index];
@@ -54,13 +70,18 @@ static int value_with_points(const BuffFocusInput *input, const int points[BUFF_
         if (raise_index >= 0 && raise_index < ATTRIBUTE_COUNT) model.planned_attributes[raise_index] += extra;
         /* Under Reverse Fool only the sum of planned attribute points matters, so any attribute can hold them. */
         if (raise_index == BUFF_FOCUS_ATTRIBUTE_POOL) model.planned_attributes[0] += extra;
+        if (raise_index == BUFF_FOCUS_HITPOINTS_RAISE) model.planned_hitpoints += extra;
+        if (raise_index == BUFF_FOCUS_MANA_RAISE) model.planned_mana += extra;
         if (raise_index == input->focused_raise_index) focused.planned += extra;
         for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
             if (raise_index == input->spell_raise_index[kind]) model.spell_skills[kind].planned += extra;
         }
+        if (input->armor_feeds_focused) add_combat_points(input, raise_index, extra, combat_skills);
     }
     buff_model_compute(&model, &result);
-    return buff_model_skill_value(&model, &focused, result.attributes);
+    if (!input->armor_feeds_focused) return buff_model_skill_value(&model, &focused, result.attributes);
+    shown = combat_shown_values(&model, &result, &input->combat, combat_skills);
+    return buff_model_skill_value_with_armor(&model, &focused, result.attributes, shown.armor);
 }
 
 static int beats(const SearchBest *best, const int cost, const int point_total) {

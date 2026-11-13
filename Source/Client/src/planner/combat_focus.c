@@ -112,6 +112,8 @@ static int stat_with_points(const CombatFocusInput *input, const int points[BUFF
         if (raise_index >= 0 && raise_index < ATTRIBUTE_COUNT) model.planned_attributes[raise_index] += extra;
         /* Under Reverse Fool only the sum of planned attribute points matters, so any attribute can hold them. */
         if (raise_index == BUFF_FOCUS_ATTRIBUTE_POOL) model.planned_attributes[0] += extra;
+        if (raise_index == BUFF_FOCUS_HITPOINTS_RAISE) model.planned_hitpoints += extra;
+        if (raise_index == BUFF_FOCUS_MANA_RAISE) model.planned_mana += extra;
         for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
             if (raise_index == input->spell_raise_index[kind]) model.spell_skills[kind].planned += extra;
         }
