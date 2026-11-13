@@ -61,6 +61,7 @@ add_executable(TheLastGate
         src/planner/buff_model.c
         src/planner/combat_focus.c
         src/planner/combat_model.c
+        src/planner/tree_effects.c
         src/game/game_input.c
         src/planner/planner_choices.c
         src/game/minimap.c
@@ -301,6 +302,13 @@ if (TLG_BUILD_TESTS)
     )
     target_include_directories(combat_focus_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME combat_focus COMMAND combat_focus_test)
+
+    add_executable(tree_effects_test
+            tests/tree_effects_test.c
+            src/planner/tree_effects.c
+    )
+    target_include_directories(tree_effects_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME tree_effects COMMAND tree_effects_test)
 
     add_executable(skill_preview_test
             tests/skill_preview_test.c
