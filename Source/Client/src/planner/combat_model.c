@@ -170,15 +170,10 @@ int combat_model_stat_value(const CombatValues *values, const CombatStat stat) {
     }
 }
 
-static void mark_best_weapon_skills(const CombatModelInput *input, int affects[COMBAT_SKILL_COUNT]) {
-    const int highest = highest_weapon_skill(input, input->shown);
+static void mark_every_weapon_skill(int affects[COMBAT_SKILL_COUNT]) {
     int entry;
 
-    for (entry = 0; entry < ARRAY_SIZE(DEFAULT_WEAPONS); entry++) {
-        const CombatSkill skill_id = DEFAULT_WEAPONS[entry].skill_id;
-
-        if (input->shown[skill_id] == highest) affects[skill_id] = 1;
-    }
+    for (entry = 0; entry < ARRAY_SIZE(DEFAULT_WEAPONS); entry++) affects[DEFAULT_WEAPONS[entry].skill_id] = 1;
 }
 
 static void mark_weapon_skills(const CombatWeapon weapon, int affects[COMBAT_SKILL_COUNT]) {
@@ -208,14 +203,17 @@ void combat_model_skills_affecting(const CombatModelInput *input, const CombatSt
     switch (stat) {
         case COMBAT_STAT_HIT:
         case COMBAT_STAT_PARRY:
+            /* Any weapon skill can overtake the best one once points go into it. */
             if (input->best_weapon_skill) {
-                mark_best_weapon_skills(input, affects);
+                mark_every_weapon_skill(affects);
             } else {
                 mark_weapon_skills(input->weapon, affects);
             }
             affects[COMBAT_SKILL_TACTICS] = 1;
-            if (stat == COMBAT_STAT_HIT && input->offhand == COMBAT_OFFHAND_DUAL) affects[COMBAT_SKILL_DUAL] = 1;
-            if (stat == COMBAT_STAT_PARRY && input->offhand == COMBAT_OFFHAND_SHIELD) {
+            if (input->offhand == COMBAT_OFFHAND_DUAL && (stat == COMBAT_STAT_HIT || input->hit_feeds_parry)) {
+                affects[COMBAT_SKILL_DUAL] = 1;
+            }
+            if (input->offhand == COMBAT_OFFHAND_SHIELD && (stat == COMBAT_STAT_PARRY || input->parry_feeds_hit)) {
                 affects[COMBAT_SKILL_SHIELD] = 1;
             }
             break;

@@ -67,6 +67,8 @@ typedef struct {
     int base_weapon; /* weapon value before skill changes, shown buffs included */
     int base_armor;
     int best_weapon_skill; /* Hit and Parry use the highest weapon skill, whatever the weapon */
+    int hit_feeds_parry;   /* Parry gains part of Hit after the tarot steps; read only by skills_affecting */
+    int parry_feeds_hit;   /* Hit gains part of Parry, likewise */
 } CombatModelInput;
 
 typedef struct {
