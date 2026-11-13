@@ -428,8 +428,33 @@ static void test_immunity_percent(void) {
 }
 
 static void test_immunity_percent_with_hermit(void) {
-    /* Raw 110 x 500 / 440 = 125, and 135 x 440 / 500 = 118. */
-    CHECK(immunity_with_bravery_raise((TarotSet) 1 << (unsigned int) TAROT_HERMIT) == 118);
+    /* Raw 110 x 500 / 440 = 125 shows 109 and 135 shows 118, so the change is 9. */
+    CHECK(immunity_with_bravery_raise((TarotSet) 1 << (unsigned int) TAROT_HERMIT) == 119);
+}
+
+static void test_immunity_percent_and_hermit_round_in_two_steps(void) {
+    BuffModelInput input = fixture();
+    BuffModelSkill skill;
+
+    input.tarot_cards = (TarotSet) 1 << (unsigned int) TAROT_HERMIT;
+    input.effects.immunity_percent = 10;
+    set_skill(&skill, 88, -1, -1, -1);
+    skill.planned = 29;
+    skill.scale_kind = BUFF_SKILL_SCALE_IMMUNITY;
+    /* Raw 100 becomes 129: 129 x 110 / 100 = 141, then 141 x 4 / 5 = 112 (one fraction would give 113). */
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 112);
+}
+
+static void test_fool_reversed_averages_before_attribute_percent(void) {
+    BuffModelInput input = fool_reversed_fixture();
+    BuffModelResult result;
+
+    /* Strength 50 is 40 before +25%, where the next Reverse Fool step adds two, so 40 becomes 42. */
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 50;
+    input.effects.attribute_percent[ATTRIBUTE_STRENGTH] = 25;
+    input.planned_attributes[ATTRIBUTE_BRAVENESS] = 5;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 106, 106, 106, 106, 52));
 }
 
 int main(void) {
@@ -459,6 +484,8 @@ int main(void) {
     test_extra_percent_ignores_other_groups();
     test_immunity_percent();
     test_immunity_percent_with_hermit();
+    test_immunity_percent_and_hermit_round_in_two_steps();
+    test_fool_reversed_averages_before_attribute_percent();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

@@ -60,17 +60,25 @@ static int attribute_term(const BuffModelInput *input, const BuffModelSkill *ski
            input->divisor;
 }
 
-/* The server raises the whole skill by its percent, then Hermit takes a fifth off. */
+static int resistance_shown(const int raw_value, const int percent, const int hermit) {
+    const int raised = raw_value * (PERCENT_BASE + percent) / PERCENT_BASE;
+
+    return hermit ? raised * HERMIT_RESIST_NUMERATOR / HERMIT_RESIST_DENOMINATOR : raised;
+}
+
+/*
+ * The server raises the whole skill by its percent, then Hermit takes a fifth off, rounding down after each step.
+ * The raw value is recovered in one division, which loses less to rounding than undoing the steps one by one.
+ */
 static int resistance_value(const BuffModelInput *input, const BuffModelSkill *skill, const int percent,
                             const int change) {
-    int numerator = PERCENT_BASE + percent;
-    int denominator = PERCENT_BASE;
+    const int hermit = tarot_set_has(input->tarot_cards, TAROT_HERMIT);
+    const int numerator = (PERCENT_BASE + percent) * (hermit ? HERMIT_RESIST_NUMERATOR : 1);
+    const int denominator = PERCENT_BASE * (hermit ? HERMIT_RESIST_DENOMINATOR : 1);
+    const int raw_value = skill->server_total * denominator / numerator;
 
-    if (tarot_set_has(input->tarot_cards, TAROT_HERMIT)) {
-        numerator *= HERMIT_RESIST_NUMERATOR;
-        denominator *= HERMIT_RESIST_DENOMINATOR;
-    }
-    return skill->server_total + tarot_scaled_change(skill->server_total, change, numerator, denominator);
+    return skill->server_total + resistance_shown(raw_value + change, percent, hermit) -
+           resistance_shown(raw_value, percent, hermit);
 }
 
 static int moon_scaled_tactics(const BuffModelInput *input, const int server_total, const int change) {
@@ -99,7 +107,7 @@ int buff_model_skill_value(const BuffModelInput *input, const BuffModelSkill *sk
 
 /*
  * Under Reverse Fool the server averages all five attributes, so only the sum of the changes matters. The
- * attribute percent is applied after that averaging.
+ * attribute percent is applied after that averaging, so the averaging works on the total without it.
  */
 static void attributes_with_changes(const BuffModelInput *input, const int changes[ATTRIBUTE_COUNT],
                                     int attributes[ATTRIBUTE_COUNT]) {
@@ -109,14 +117,14 @@ static void attributes_with_changes(const BuffModelInput *input, const int chang
     for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) change_sum += changes[attribute_id];
     for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
         const int server_value = input->server_attributes[attribute_id];
-        const int total = tarot_set_has(input->tarot_cards, TAROT_FOOL_REVERSED)
-                                  ? tarot_fool_reversed_total(server_value, change_sum)
-                                  : server_value + changes[attribute_id];
+        const int percent_scale = PERCENT_BASE + input->effects.attribute_percent[attribute_id];
+        const int unscaled_value = server_value * PERCENT_BASE / percent_scale;
+        const int raw_change = tarot_set_has(input->tarot_cards, TAROT_FOOL_REVERSED)
+                                       ? tarot_fool_reversed_total(unscaled_value, change_sum) - unscaled_value
+                                       : changes[attribute_id];
 
         attributes[attribute_id] =
-                server_value + tarot_scaled_change(server_value, total - server_value,
-                                                   PERCENT_BASE + input->effects.attribute_percent[attribute_id],
-                                                   PERCENT_BASE);
+                server_value + tarot_scaled_change(server_value, raw_change, percent_scale, PERCENT_BASE);
     }
 }
 
