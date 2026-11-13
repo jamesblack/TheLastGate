@@ -176,7 +176,8 @@ static BuffModelSkill model_skill_for(const int skill_position, const int planne
     skill.server_total = sk_score(skill_entry->nr);
     skill.planned = planned;
     skill.scale_kind = BUFF_SKILL_SCALE_NONE;
-    if (skill_entry->nr == SK_RESIST || skill_entry->nr == SK_IMMUN) skill.scale_kind = BUFF_SKILL_SCALE_RESIST;
+    if (skill_entry->nr == SK_RESIST) skill.scale_kind = BUFF_SKILL_SCALE_RESIST;
+    if (skill_entry->nr == SK_IMMUN) skill.scale_kind = BUFF_SKILL_SCALE_IMMUNITY;
     if (skill_entry->nr == SK_TACTICS) skill.scale_kind = BUFF_SKILL_SCALE_TACTICS;
     skill.skill_groups = tree_effects_skill_groups(skill_entry->nr);
     for (attribute_slot = 0; attribute_slot < ATTRIBUTES_PER_SKILL; attribute_slot++) {
@@ -771,6 +772,19 @@ static int spell_race_modifier(void) {
     return 100;
 }
 
+static TreeEffectsInput tree_effects_input(void) {
+    TreeEffectsInput input;
+    int node;
+
+    memset(&input, 0, sizeof(input));
+    input.tree_class = tree_effects_class_from_kindred(pl.kindred);
+    input.tree_points = pl.tree_points;
+    for (node = 0; node < TREE_NODE_COUNT; node++) input.tree_node[node] = pl.tree_node[node];
+    input.corruptor_ticks = chosen.corruptor_ticks;
+    memcpy(input.corruptor_counts, chosen.corruptor_counts, sizeof(input.corruptor_counts));
+    return input;
+}
+
 static bool build_buff_model_input(BuffModelInput *input) {
     int multiplier;
     int aptitude;
@@ -796,6 +810,8 @@ static bool build_buff_model_input(BuffModelInput *input) {
     input->server_weapon = pl.weapon;
     input->server_armor = pl.armor;
     input->tarot_cards = chosen.tarot_cards;
+    const TreeEffectsInput effects_input = tree_effects_input();
+    tree_effects_compute(&effects_input, &input->effects);
     input->uncapped_mana = pl.mana[4];
     input->planned_mana = stat_raised[STAT_RAISE_MANA];
 
@@ -1123,8 +1139,11 @@ static BuffFocusRoute expand_attribute_pool(const BuffFocusRoute *route) {
     return expanded;
 }
 
+static bool spell_shown(const int kind) {
+    return spell_known(kind) && buff_state.planned_input.show_buffed[kind] != 0;
+}
+
 static void build_buff_focus_input(BuffFocusInput *input, const int skill_position) {
-    const int bless_position = spell_skill_position(BUFF_KIND_BLESS);
     int kind;
 
     memset(input, 0, sizeof(*input));
@@ -1147,7 +1166,10 @@ static void build_buff_focus_input(BuffFocusInput *input, const int skill_positi
         add_focus_candidate(candidates, candidate_count, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
         add_focus_candidate(candidates, candidate_count, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
     }
-    add_focus_candidate(candidates, candidate_count, STAT_RAISE_SKILL_BASE + bless_position, BUFF_FOCUS_MAX_POINTS);
+    if (spell_shown(BUFF_KIND_BLESS)) {
+        add_focus_candidate(candidates, candidate_count, input->spell_raise_index[BUFF_KIND_BLESS],
+                            BUFF_FOCUS_MAX_POINTS);
+    }
 }
 
 /* The search is costly, so it only runs again when something it reads has changed. */
@@ -1169,10 +1191,6 @@ static const BuffFocusResult *cached_buff_focus(const int skill_position) {
         has_cached = true;
     }
     return &cached_result;
-}
-
-static bool spell_shown(const int kind) {
-    return spell_known(kind) && buff_state.planned_input.show_buffed[kind] != 0;
 }
 
 static void add_spell_candidates(CombatFocusInput *input, const int kind, const bool attribute_pool) {
@@ -1284,7 +1302,8 @@ static bool focused_is_bless(void) {
 
 static RouteKind route_kind(const BuffFocusRoute *route) {
     const int focused_raise_index = STAT_RAISE_SKILL_BASE + focused_skill_position;
-    const int bless_raise_index = STAT_RAISE_SKILL_BASE + spell_skill_position(BUFF_KIND_BLESS);
+    const int bless_raise_index =
+            spell_known(BUFF_KIND_BLESS) ? STAT_RAISE_SKILL_BASE + spell_skill_position(BUFF_KIND_BLESS) : -1;
     bool has_focused = false;
     int raise_number;
 
@@ -1350,7 +1369,7 @@ static void buff_focus_panel_render(const EnhancedSkillLayout *layout, const cha
         other_route_render(layout, "Through attributes", result->through_attributes.available,
                            result->through_attributes.total_cost);
     }
-    if (winning_kind != ROUTE_BLESS && !focused_is_bless()) {
+    if (winning_kind != ROUTE_BLESS && !focused_is_bless() && spell_shown(BUFF_KIND_BLESS)) {
         other_route_render(layout, "Through Bless", result->through_bless.available, result->through_bless.total_cost);
     }
 
@@ -1386,6 +1405,19 @@ static void combat_focus_panel_render(const EnhancedSkillLayout *layout) {
     if (plan_button_render(layout, result->best.total_cost)) plan_buff_route(&result->best);
 }
 
+/* The plain divisor model can't follow percent effects on attributes and skills. */
+static bool tree_effects_present(void) {
+    const TreeEffects *effects = &buff_state.planned_input.effects;
+    int attribute_id;
+
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        if (effects->attribute_percent[attribute_id] != 0 || effects->skill_extra_percent[attribute_id] != 0) {
+            return true;
+        }
+    }
+    return effects->immunity_percent != 0 || effects->resist_percent != 0;
+}
+
 static void focus_panel_render(const EnhancedSkillLayout *layout) {
     const char *skill_name;
     StatRowView focused_row;
@@ -1410,8 +1442,7 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     }
 
     skill_name = skilltab[focused_skill_position].name;
-    if (buff_state.available && spell_known(BUFF_KIND_BLESS) &&
-        buff_state.planned_input.show_buffed[BUFF_KIND_BLESS] != 0) {
+    if (buff_state.available && (spell_shown(BUFF_KIND_BLESS) || tree_effects_present())) {
         buff_focus_panel_render(layout, skill_name);
         return;
     }
