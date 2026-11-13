@@ -54,6 +54,8 @@ typedef struct {
     BuffReading active[BUFF_KIND_COUNT]; /* known == 0 when that buff isn't on the player */
     int show_buffed[BUFF_KIND_COUNT];
     TarotSet tarot_cards;
+    int uncapped_hitpoints;
+    int planned_hitpoints;
     int uncapped_mana;
     int planned_mana;
     PlannerEffects effects;
@@ -78,6 +80,9 @@ int buff_model_item_bonus(int power, int reduced);
 /* The skill's value with these attribute values, its own planned points included. */
 int buff_model_skill_value(const BuffModelInput *input, const BuffModelSkill *skill,
                            const int attributes[ATTRIBUTE_COUNT]);
+
+int buff_model_skill_value_with_armor(const BuffModelInput *input, const BuffModelSkill *skill,
+                                      const int attributes[ATTRIBUTE_COUNT], int shown_armor);
 
 void buff_model_compute(const BuffModelInput *input, BuffModelResult *result);
 

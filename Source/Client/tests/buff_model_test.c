@@ -648,6 +648,324 @@ static void test_determination_node_and_copy_round_apart(void) {
     CHECK(result.armor == 32);
 }
 
+static BuffModelInput fists_fixture(void) {
+    BuffModelInput input = unbuffed_fixture();
+
+    input.effects.fists_of_heavens = 1;
+    return input;
+}
+
+static void test_fists_boosts_highest_attribute(void) {
+    BuffModelInput input = fists_fixture();
+    BuffModelResult result;
+
+    /* Strength 120 is 100 before the boost; 105 boosts to 126. */
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 120;
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 5;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 50, 50, 50, 50, 126));
+
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 0;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 50, 50, 50, 50, 120));
+}
+
+static void test_fists_moves_to_new_highest(void) {
+    BuffModelInput input = fists_fixture();
+    BuffModelResult result;
+
+    /* Agility 105 overtakes Strength 100, so Agility is boosted to 126 and Strength loses its boost. */
+    input.server_attributes[ATTRIBUTE_AGILITY] = 95;
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 120;
+    input.planned_attributes[ATTRIBUTE_AGILITY] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 50, 50, 50, 126, 100));
+}
+
+static void test_fists_ties_boost_both(void) {
+    BuffModelInput input = fists_fixture();
+    BuffModelResult result;
+
+    input.server_attributes[ATTRIBUTE_AGILITY] = 120;
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 120;
+    input.planned_attributes[ATTRIBUTE_AGILITY] = 1;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 50, 50, 50, 121, 100));
+}
+
+static void test_fists_recovers_the_exact_pre_boost_value(void) {
+    BuffModelInput input = fists_fixture();
+    BuffModelResult result;
+
+    /* Strength 121 came from 101; rounding down would give 100 and tie it with Agility. */
+    input.server_attributes[ATTRIBUTE_AGILITY] = 100;
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 121;
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 1;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 50, 50, 50, 100, 122));
+}
+
+static void test_grande_grimoire(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.effects.grande_grimoire = 1;
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 110;
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.attributes[ATTRIBUTE_STRENGTH] == 121);
+}
+
+static void test_fists_then_grimoire(void) {
+    BuffModelInput input = fists_fixture();
+    BuffModelResult result;
+
+    /* 100 -> 120 -> 132 on the server; 105 -> 126 -> 138 with the plan. */
+    input.effects.grande_grimoire = 1;
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 132;
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 5;
+    buff_model_compute(&input, &result);
+    CHECK(result.attributes[ATTRIBUTE_STRENGTH] == 138);
+}
+
+static void test_fists_after_attribute_percent(void) {
+    BuffModelInput input = fists_fixture();
+    BuffModelResult result;
+
+    /* 132 is 110 before the boost, raw 100 before the percent; raw 110 shows 121, which boosts to 145. */
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 132;
+    input.effects.attribute_percent[ATTRIBUTE_STRENGTH] = 10;
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.attributes[ATTRIBUTE_STRENGTH] == 145);
+}
+
+static void test_ajax_blue_moves_bonus_braveness_only(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.effects.brave_into_strength = 1;
+    input.planned_attributes[ATTRIBUTE_BRAVENESS] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 60, 50, 50, 50, 50));
+
+    /* Bless's 11 Braveness also reaches Strength. */
+    input = fixture();
+    input.effects.brave_into_strength = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.cast_power[BUFF_KIND_BLESS] == 66);
+    CHECK(attributes_equal(&result, 61, 61, 61, 61, 72));
+}
+
+static void test_travelers_guide_feeds_determination(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    /* The sum goes from 300 to 350 (2 both times), but with Agility standing in for Braveness from 350 to 450. */
+    input.server_attributes[ATTRIBUTE_AGILITY] = 100;
+    input.effects.determination = 1;
+    input.planned_attributes[ATTRIBUTE_AGILITY] = 50;
+    buff_model_compute(&input, &result);
+    CHECK(result.weapon == 30 && result.armor == 30);
+
+    input.effects.travelers_guide = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.weapon == 31 && result.armor == 31);
+}
+
+static void test_evergreen(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.effects.evergreen = 1;
+    input.planned_attributes[ATTRIBUTE_AGILITY] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.weapon == 31 && result.armor == 30);
+
+    input.planned_attributes[ATTRIBUTE_AGILITY] = 0;
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 9;
+    buff_model_compute(&input, &result);
+    CHECK(result.armor == 30);
+
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.armor == 31);
+}
+
+static void test_evergreen_with_travelers_guide(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    /* Braveness 90 stands in for Agility 50. */
+    input.effects.evergreen = 1;
+    input.effects.travelers_guide = 1;
+    input.server_attributes[ATTRIBUTE_BRAVENESS] = 80;
+    input.planned_attributes[ATTRIBUTE_BRAVENESS] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.weapon == 31);
+}
+
+static void test_black_tachi_adds_planned_spell_bonus(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    /* Brilliance goes from 250 / 150 = 1 to 300 / 150 = 2. */
+    input.effects.brilliance = 1;
+    input.spell_bonus = 10;
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 50;
+    input.effects.spell_bonus_to_weapon = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 11 && result.weapon == 31 && result.armor == 30);
+
+    input.effects.spell_bonus_to_weapon = 0;
+    input.effects.spell_bonus_to_armor = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.weapon == 30 && result.armor == 31);
+}
+
+static void test_gesture_of_gorn(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.effects.hitpoints_to_spell_bonus = 1;
+    input.spell_bonus = 10;
+    input.uncapped_hitpoints = 450;
+    input.planned_hitpoints = 50;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 11);
+
+    input.planned_hitpoints = 49;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 10);
+}
+
+static void test_neis_claw(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    input.effects.mana_to_spell_bonus = 1;
+    input.spell_bonus = 10;
+    input.uncapped_mana = 199;
+    input.planned_mana = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 11);
+}
+
+static void test_spell_bonus_enchant_after_percent(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    /* Raw 100 shows 100 x 1.2 = 120, then 132. Gorn adds 10: 110 x 1.2 = 132, then 145. */
+    input.spell_bonus = 132;
+    input.effects.spell_bonus_percent = 20;
+    input.effects.spell_bonus_enchant_percent = 10;
+    input.effects.hitpoints_to_spell_bonus = 1;
+    input.uncapped_hitpoints = 1000;
+    input.planned_hitpoints = 1000;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 145);
+}
+
+static void test_superbia_cuts_aptitude(void) {
+    BuffModelInput input = unbuffed_fixture();
+    BuffModelResult result;
+
+    /* Raw 200 shows 20; ten more Willpower makes raw 210, which shows 21. */
+    input.effects.superbia = 1;
+    input.spell_aptitude = 20;
+    input.planned_attributes[ATTRIBUTE_WILLPOWER] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_aptitude == 21);
+
+    input.planned_attributes[ATTRIBUTE_WILLPOWER] = 5;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_aptitude == 20);
+
+    /* Raw 200 shows 220, then 22; raw 210 shows 231, then 23. */
+    input.effects.aptitude_percent = 10;
+    input.spell_aptitude = 22;
+    input.planned_attributes[ATTRIBUTE_WILLPOWER] = 10;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_aptitude == 23);
+}
+
+static void test_resist_enchant_after_tree_percent(void) {
+    BuffModelInput input = fixture();
+    BuffModelSkill skill;
+
+    /* Raw 100 shows 110, then 121; raw 110 shows 121, then 133. */
+    input.effects.resist_percent = 10;
+    input.effects.resist_enchant_percent = 10;
+    set_skill(&skill, 121, -1, -1, -1);
+    skill.planned = 10;
+    skill.scale_kind = BUFF_SKILL_SCALE_RESIST;
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 133);
+}
+
+static void test_armor_share_resistance(void) {
+    BuffModelInput input = fixture();
+    BuffModelSkill skill;
+
+    input.effects.armor_to_resist = 1;
+    input.server_armor = 100;
+    set_skill(&skill, 70, -1, -1, -1);
+    skill.scale_kind = BUFF_SKILL_SCALE_RESIST;
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 70);
+    CHECK(buff_model_skill_value_with_armor(&input, &skill, input.server_attributes, 130) == 73);
+
+    skill.planned = 5;
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 75);
+
+    /* 76 less the armor's 10 is 66, raw 60; raw 70 shows 77, and the armor's 10 goes back on. */
+    input.effects.resist_percent = 10;
+    skill.server_total = 76;
+    skill.planned = 10;
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 87);
+}
+
+static void test_every_item_effect_keeps_empty_plan_at_server(void) {
+    BuffModelInput input = fixture();
+    BuffModelResult result;
+    BuffModelSkill skill;
+    PlannerEffects *effects = &input.effects;
+    int attribute_id;
+
+    input.show_buffed[BUFF_KIND_BLESS] = 0;
+    input.server_attributes[ATTRIBUTE_BRAVENESS] = 60;
+    input.server_attributes[ATTRIBUTE_WILLPOWER] = 70;
+    input.server_attributes[ATTRIBUTE_INTUITION] = 80;
+    input.server_attributes[ATTRIBUTE_AGILITY] = 90;
+    input.server_attributes[ATTRIBUTE_STRENGTH] = 132;
+    input.spell_bonus = 50;
+    input.spell_aptitude = 30;
+    input.uncapped_hitpoints = 450;
+    input.uncapped_mana = 300;
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        effects->attribute_percent[attribute_id] = 10;
+    }
+    effects->fists_of_heavens = 1;
+    effects->grande_grimoire = 1;
+    effects->travelers_guide = 1;
+    effects->brave_into_strength = 1;
+    effects->evergreen = 1;
+    effects->spell_bonus_to_weapon = 1;
+    effects->spell_bonus_to_armor = 1;
+    effects->hitpoints_to_spell_bonus = 1;
+    effects->mana_to_spell_bonus = 1;
+    effects->superbia = 1;
+    effects->spell_bonus_enchant_percent = 10;
+    effects->resist_enchant_percent = 10;
+    effects->armor_to_resist = 1;
+    effects->determination = 1;
+    buff_model_compute(&input, &result);
+    CHECK(attributes_equal(&result, 60, 70, 80, 90, 132));
+    CHECK(result.spell_bonus == 50 && result.spell_aptitude == 30 && result.weapon == 30 && result.armor == 30);
+
+    set_skill(&skill, 77, -1, -1, -1);
+    skill.scale_kind = BUFF_SKILL_SCALE_RESIST;
+    CHECK(buff_model_skill_value(&input, &skill, result.attributes) == 77);
+}
+
 int main(void) {
     test_bless_bonus_formula();
     test_bless_double_cast();
@@ -689,6 +1007,25 @@ int main(void) {
     test_guardian_angel();
     test_determination();
     test_determination_node_and_copy_round_apart();
+    test_fists_boosts_highest_attribute();
+    test_fists_moves_to_new_highest();
+    test_fists_ties_boost_both();
+    test_fists_recovers_the_exact_pre_boost_value();
+    test_grande_grimoire();
+    test_fists_then_grimoire();
+    test_fists_after_attribute_percent();
+    test_ajax_blue_moves_bonus_braveness_only();
+    test_travelers_guide_feeds_determination();
+    test_evergreen();
+    test_evergreen_with_travelers_guide();
+    test_black_tachi_adds_planned_spell_bonus();
+    test_gesture_of_gorn();
+    test_neis_claw();
+    test_spell_bonus_enchant_after_percent();
+    test_superbia_cuts_aptitude();
+    test_resist_enchant_after_tree_percent();
+    test_armor_share_resistance();
+    test_every_item_effect_keeps_empty_plan_at_server();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);
