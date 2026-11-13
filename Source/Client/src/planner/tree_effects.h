@@ -8,6 +8,7 @@ extern "C" {
 
 #define TREE_NODE_COUNT 12
 #define TREE_EFFECTS_PER_150 150 /* Determination and Brilliance divide the attribute sum by this */
+#define TREE_EFFECTS_PER_75 75   /* the Seyan Determination and Brilliance nodes divide it by this */
 
 typedef enum {
     TREE_CLASS_NONE,
@@ -73,8 +74,10 @@ typedef struct {
     int skill_extra_percent[ATTRIBUTE_COUNT]; /* Brv: passives, Wil/Int: active spells, Agl/Str: active melee */
     int hit_percent, parry_percent, weapon_percent, armor_percent;
     int immunity_percent, resist_percent, aptitude_percent, spell_bonus_percent;
-    int determination;  /* WV and AV + determination x attribute sum / 150 */
-    int brilliance;     /* Spell Bonus + brilliance x attribute sum / 150 */
+    int determination;       /* WV and AV + determination x attribute sum / 150 */
+    int determination_nodes; /* WV and AV + determination_nodes x (attribute sum / 75) */
+    int brilliance;          /* Spell Bonus + brilliance x attribute sum / 150 */
+    int brilliance_nodes;    /* Spell Bonus + brilliance_nodes x (attribute sum / 75) */
     int introspection;  /* Spell Bonus + introspection x aptitude / 50 */
     int guardian_angel; /* Bless power more(power, Braveness x guardian_angel, 20) */
 } TreeEffects;

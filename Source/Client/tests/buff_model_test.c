@@ -504,6 +504,20 @@ static void test_brilliance_follows_attribute_sum(void) {
     CHECK(result.spell_bonus == 31);
 }
 
+static void test_brilliance_node_and_copy_round_apart(void) {
+    BuffModelInput input = brilliance_fixture();
+    BuffModelResult result;
+
+    input.effects.brilliance_nodes = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 30);
+
+    /* 450 / 75 + 450 / 150 = 9 against 449 / 75 + 449 / 150 = 7; one 3 x sum / 150 would only go from 8 to 9. */
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.spell_bonus == 32);
+}
+
 static void test_brilliance_with_magician(void) {
     BuffModelInput input = unbuffed_fixture();
     BuffModelResult result;
@@ -603,6 +617,24 @@ static void test_determination(void) {
     CHECK(result.armor == 32);
 }
 
+static void test_determination_node_and_copy_round_apart(void) {
+    BuffModelInput input = brilliance_fixture();
+    BuffModelResult result;
+
+    input.effects.brilliance = 0;
+    input.effects.determination_nodes = 1;
+    input.effects.determination = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.weapon == 30);
+    CHECK(result.armor == 30);
+
+    /* 6 + 3 against 5 + 2. */
+    input.planned_attributes[ATTRIBUTE_STRENGTH] = 1;
+    buff_model_compute(&input, &result);
+    CHECK(result.weapon == 32);
+    CHECK(result.armor == 32);
+}
+
 int main(void) {
     test_bless_bonus_formula();
     test_bless_double_cast();
@@ -635,12 +667,14 @@ int main(void) {
     test_aptitude_percent();
     test_attribute_percent_skips_aptitude();
     test_brilliance_follows_attribute_sum();
+    test_brilliance_node_and_copy_round_apart();
     test_brilliance_with_magician();
     test_introspection_follows_aptitude();
     test_spell_bonus_percent();
     test_planned_spell_bonus_raises_cast_power();
     test_guardian_angel();
     test_determination();
+    test_determination_node_and_copy_round_apart();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

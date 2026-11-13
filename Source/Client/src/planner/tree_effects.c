@@ -24,7 +24,9 @@ typedef enum {
     FIELD_APTITUDE_PERCENT,
     FIELD_SPELL_BONUS_PERCENT,
     FIELD_DETERMINATION,
+    FIELD_DETERMINATION_NODES,
     FIELD_BRILLIANCE,
+    FIELD_BRILLIANCE_NODES,
     FIELD_INTROSPECTION,
     FIELD_GUARDIAN_ANGEL,
 } EffectField;
@@ -87,9 +89,9 @@ const CorruptorInfo CORRUPTOR_INFO[CORRUPTOR_COUNT] = {
 
 static const TreeNodeEffect TREE_NODE_EFFECTS[] = {
     {TREE_CLASS_SEYAN, 5, {FIELD_HIT_PERCENT, 0, 4}},
-    {TREE_CLASS_SEYAN, 7, {FIELD_DETERMINATION, 0, 2}},
+    {TREE_CLASS_SEYAN, 7, {FIELD_DETERMINATION_NODES, 0, 1}},
     {TREE_CLASS_SEYAN, 8, {FIELD_ATTRIBUTE_PERCENT, ALL_ATTRIBUTES, 5}},
-    {TREE_CLASS_SEYAN, 9, {FIELD_BRILLIANCE, 0, 2}},
+    {TREE_CLASS_SEYAN, 9, {FIELD_BRILLIANCE_NODES, 0, 1}},
     {TREE_CLASS_SEYAN, 11, {FIELD_PARRY_PERCENT, 0, 4}},
     {TREE_CLASS_ARCHTEMPLAR, 7, {FIELD_SKILL_EXTRA_PERCENT, MASK_STR, 20}},
     {TREE_CLASS_ARCHTEMPLAR, 8, {FIELD_ATTRIBUTE_PERCENT, MASK_STR, 6}},
@@ -184,7 +186,9 @@ static void add_effect(TreeEffects *effects, const Effect *effect, const int cop
         case FIELD_APTITUDE_PERCENT: effects->aptitude_percent += amount; break;
         case FIELD_SPELL_BONUS_PERCENT: effects->spell_bonus_percent += amount; break;
         case FIELD_DETERMINATION: effects->determination += amount; break;
+        case FIELD_DETERMINATION_NODES: effects->determination_nodes += amount; break;
         case FIELD_BRILLIANCE: effects->brilliance += amount; break;
+        case FIELD_BRILLIANCE_NODES: effects->brilliance_nodes += amount; break;
         case FIELD_INTROSPECTION: effects->introspection += amount; break;
         case FIELD_GUARDIAN_ANGEL: effects->guardian_angel += amount; break;
     }

@@ -71,11 +71,13 @@ static void test_seyan_nodes(void) {
     int attribute;
 
     CHECK(effects.hit_percent == 4);
-    CHECK(effects.determination == 2);
+    CHECK(effects.determination_nodes == 1);
+    CHECK(effects.determination == 0);
     for (attribute = 0; attribute < ATTRIBUTE_COUNT; attribute++) {
         CHECK(effects.attribute_percent[attribute] == 5);
     }
-    CHECK(effects.brilliance == 2);
+    CHECK(effects.brilliance_nodes == 1);
+    CHECK(effects.brilliance == 0);
     CHECK(effects.parry_percent == 4);
 }
 

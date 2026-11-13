@@ -166,16 +166,21 @@ static int effect_attribute_sum(const BuffModelInput *input, const int attribute
     return total;
 }
 
-static int attribute_sum_bonus_change(const BuffModelInput *input, const int copies,
+static int attribute_sum_bonus(const int nodes, const int copies, const int sum) {
+    return (nodes * (sum / TREE_EFFECTS_PER_75)) + (copies * sum / TREE_EFFECTS_PER_150);
+}
+
+/* The tree node and the corruptor copies each round down on their own. */
+static int attribute_sum_bonus_change(const BuffModelInput *input, const int nodes, const int copies,
                                       const int attributes[ATTRIBUTE_COUNT]) {
-    return (copies * effect_attribute_sum(input, attributes) / TREE_EFFECTS_PER_150) -
-           (copies * effect_attribute_sum(input, input->server_attributes) / TREE_EFFECTS_PER_150);
+    return attribute_sum_bonus(nodes, copies, effect_attribute_sum(input, attributes)) -
+           attribute_sum_bonus(nodes, copies, effect_attribute_sum(input, input->server_attributes));
 }
 
 /* Brilliance and Introspection are flat additions that the Spell Bonus percent then raises. */
 static int planned_spell_bonus(const BuffModelInput *input, const int attributes[ATTRIBUTE_COUNT], const int aptitude) {
     const TreeEffects *effects = &input->effects;
-    const int change = attribute_sum_bonus_change(input, effects->brilliance, attributes) +
+    const int change = attribute_sum_bonus_change(input, effects->brilliance_nodes, effects->brilliance, attributes) +
                        (effects->introspection * aptitude / INTROSPECTION_APTITUDE_DIVISOR) -
                        (effects->introspection * input->spell_aptitude / INTROSPECTION_APTITUDE_DIVISOR);
 
@@ -281,7 +286,8 @@ void buff_model_compute(const BuffModelInput *input, BuffModelResult *result) {
     result->armor = compute_item_buff(input, result, BUFF_KIND_PROTECT, input->server_armor,
                                       input->active[BUFF_KIND_PROTECT].armor_bonus);
 
-    determination_change = attribute_sum_bonus_change(input, input->effects.determination, result->attributes);
+    determination_change = attribute_sum_bonus_change(input, input->effects.determination_nodes,
+                                                      input->effects.determination, result->attributes);
     result->weapon += determination_change;
     result->armor += determination_change;
 }
