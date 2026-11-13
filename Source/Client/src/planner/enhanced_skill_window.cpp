@@ -17,7 +17,9 @@
 #include "planner/buff_model.h"
 #include "planner/combat_focus.h"
 #include "planner/combat_model.h"
+#include "planner/combat_shown.h"
 #include "game/game_ui.h"
+#include "planner/item_effects.h"
 #include "planner/planner_advanced_window.hpp"
 #include "planner/planner_choices.h"
 #include "planner/planner_ui.hpp"
@@ -30,6 +32,9 @@
 #include "ui/imgui/imgui_wrapper.h"
 #include "mods/buff_watch.h"
 #include "util/math_util.h"
+
+static_assert(BUFF_FOCUS_HITPOINTS_RAISE == STAT_RAISE_HITPOINTS);
+static_assert(BUFF_FOCUS_MANA_RAISE == STAT_RAISE_MANA);
 
 typedef struct {
     Vec2 window_position;
@@ -158,6 +163,8 @@ typedef struct {
     BuffModelInput unplanned_input; /* same, with every planned point removed */
     BuffModelResult planned;
     BuffModelResult unplanned;
+    int planned_armor; /* Armor Value as the Combat block shows it */
+    int unplanned_armor;
 } PlannerBuffState;
 
 static PlannerBuffState buff_state;
@@ -281,9 +288,10 @@ static StatRowView build_skill_row(const int skill_position, const int attribute
         const BuffModelSkill unplanned_skill = model_skill_for(skill_position, 0);
         const BuffModelSkill planned_skill = model_skill_for(skill_position, stat_raised[raise_index]);
         const int unplanned_value =
-                buff_model_skill_value(&buff_state.unplanned_input, &unplanned_skill, buff_state.unplanned.attributes);
-        const int planned_value =
-                buff_model_skill_value(&buff_state.planned_input, &planned_skill, buff_state.planned.attributes);
+                buff_model_skill_value_with_armor(&buff_state.unplanned_input, &unplanned_skill,
+                                                  buff_state.unplanned.attributes, buff_state.unplanned_armor);
+        const int planned_value = buff_model_skill_value_with_armor(
+                &buff_state.planned_input, &planned_skill, buff_state.planned.attributes, buff_state.planned_armor);
 
         row_view.buff_shift = unplanned_value - row_view.current;
         row_view.attribute_gain = planned_value - unplanned_value - row_view.direct_raise;
@@ -559,6 +567,7 @@ static CombatGearClass combat_gear_class(void) {
 }
 
 static bool build_combat_model_input(CombatModelInput *input) {
+    const PlannerEffects *effects = &buff_state.planned_input.effects;
     int skill_id;
 
     memset(input, 0, sizeof(*input));
@@ -598,7 +607,34 @@ static bool build_combat_model_input(CombatModelInput *input) {
     input->empty_slots = count_empty_gear_slots();
     input->base_weapon = buff_state.planned.weapon;
     input->base_armor = buff_state.planned.armor;
+    input->best_weapon_skill = effects->fists_of_heavens != 0 ? 1 : 0;
+    input->hit_feeds_parry = effects->hit_to_parry_percent != 0 ? 1 : 0;
+    input->parry_feeds_hit = effects->parry_to_hit_percent != 0 ? 1 : 0;
     return true;
+}
+
+static void combat_skills_for(BuffModelSkill skills[COMBAT_SKILL_COUNT], const bool with_plan) {
+    int skill_id;
+
+    memset(skills, 0, sizeof(skills[0]) * COMBAT_SKILL_COUNT);
+    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
+        const int skill_number = COMBAT_SKILL_NUMBERS[skill_id];
+        const int skill_position = skill_position_for_number(skill_number);
+
+        if (skill_position < 0 || pl.skill[skill_number][0] <= 0) continue;
+        skills[skill_id] =
+                model_skill_for(skill_position, with_plan ? stat_raised[STAT_RAISE_SKILL_BASE + skill_position] : 0);
+    }
+}
+
+static void combat_raise_indices_for(const CombatModelInput *combat, int raise_indices[COMBAT_SKILL_COUNT]) {
+    int skill_id;
+
+    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
+        raise_indices[skill_id] = -1;
+        if (combat->known[skill_id] == 0) continue;
+        raise_indices[skill_id] = STAT_RAISE_SKILL_BASE + skill_position_for_number(COMBAT_SKILL_NUMBERS[skill_id]);
+    }
 }
 
 /* A dropdown over `names`; returns the picked index, or -1 when nothing was picked this frame. */
@@ -617,11 +653,16 @@ static int choice_combo_render(const char *combo_id, const char *const *names, c
 static void equipment_row_render(const EnhancedSkillLayout *layout, const CombatModelInput *input) {
     const float row_left = imgui_get_cursor_pos_x();
     const float row_top = imgui_get_cursor_pos_y();
+    const bool fists_ticked = input->best_weapon_skill != 0;
     int picked;
 
     row_text(layout, row_left, row_top, 2, GOLD_FONT_COLOR, "Weapon");
     imgui_set_cursor_pos(row_left + COMBO_LABEL_WIDTH, row_top);
+    imgui_begin_disabled(fists_ticked);
     picked = choice_combo_render("##combat_weapon", COMBAT_WEAPON_NAMES, COMBAT_WEAPON_COUNT, input->weapon);
+    const bool weapon_hovered = imgui_is_item_hovered_flag(IMGUI_HOVERED_FLAGS_ALLOW_WHEN_DISABLED);
+    imgui_end_disabled();
+    if (fists_ticked && weapon_hovered) ui_tooltip("Fists of the Heavens uses your best weapon skill");
     if (picked >= 0 && picked != chosen.weapon) {
         chosen.weapon = picked;
         save_choices();
@@ -684,20 +725,9 @@ static void combat_stat_row_render(const EnhancedSkillLayout *layout, const Comb
     planned_value_row_render(layout, COMBAT_STAT_NAMES[stat], current, shown);
 }
 
-static void apply_tarot_to_combat(const CombatModelInput *input, CombatValues *result) {
-    const CombatValues server = {input->server_hit, input->server_parry, pl.weapon, pl.armor};
-    const CombatValues raw_change = {
-        result->hit - server.hit,
-        result->parry - server.parry,
-        result->weapon - server.weapon,
-        result->armor - server.armor,
-    };
-
-    *result = tarot_combat_shown(chosen.tarot_cards, &buff_state.planned_input.effects, server, raw_change);
-}
-
 static void combat_block_render(const EnhancedSkillLayout *layout) {
     CombatModelInput input;
+    BuffModelSkill combat_skills[COMBAT_SKILL_COUNT];
     CombatValues result;
     char value_text[VALUE_TEXT_SIZE];
     int server_aptitude = 0;
@@ -719,8 +749,8 @@ static void combat_block_render(const EnhancedSkillLayout *layout) {
         return;
     }
 
-    combat_model_compute(&input, &result);
-    apply_tarot_to_combat(&input, &result);
+    combat_skills_for(combat_skills, true);
+    result = combat_shown_values(&buff_state.planned_input, &buff_state.planned, &input, combat_skills);
     const int shown_aptitude = buff_state.planned.spell_aptitude;
     const bool changed = result.hit != input.server_hit || result.parry != input.server_parry ||
                          result.weapon != pl.weapon || result.armor != pl.armor || shown_aptitude != server_aptitude;
@@ -782,6 +812,16 @@ static TreeEffectsInput tree_effects_input(void) {
     return input;
 }
 
+static ItemEffectsInput item_effects_input(void) {
+    ItemEffectsInput input;
+
+    memset(&input, 0, sizeof(input));
+    input.enchant_ticks = chosen.enchant_ticks;
+    memcpy(input.enchant_counts, chosen.enchant_counts, sizeof(input.enchant_counts));
+    input.gear_ticks = chosen.gear_ticks;
+    return input;
+}
+
 static bool build_buff_model_input(BuffModelInput *input) {
     int multiplier;
     int aptitude;
@@ -807,8 +847,11 @@ static bool build_buff_model_input(BuffModelInput *input) {
     input->server_weapon = pl.weapon;
     input->server_armor = pl.armor;
     input->tarot_cards = chosen.tarot_cards;
-    const TreeEffectsInput effects_input = tree_effects_input();
-    tree_effects_compute(&effects_input, &input->effects);
+    const TreeEffectsInput tree_input = tree_effects_input();
+    const ItemEffectsInput item_input = item_effects_input();
+    item_effects_compute(&tree_input, &item_input, &input->effects);
+    input->uncapped_hitpoints = pl.hp[4];
+    input->planned_hitpoints = stat_raised[STAT_RAISE_HITPOINTS];
     input->uncapped_mana = pl.mana[4];
     input->planned_mana = stat_raised[STAT_RAISE_MANA];
 
@@ -836,6 +879,22 @@ static bool build_buff_model_input(BuffModelInput *input) {
     return true;
 }
 
+static void refresh_shown_armor(void) {
+    CombatModelInput combat;
+    BuffModelSkill planned_skills[COMBAT_SKILL_COUNT];
+    BuffModelSkill unplanned_skills[COMBAT_SKILL_COUNT];
+
+    buff_state.planned_armor = pl.armor;
+    buff_state.unplanned_armor = pl.armor;
+    if (!build_combat_model_input(&combat)) return;
+    combat_skills_for(planned_skills, true);
+    combat_skills_for(unplanned_skills, false);
+    buff_state.planned_armor =
+            combat_shown_values(&buff_state.planned_input, &buff_state.planned, &combat, planned_skills).armor;
+    buff_state.unplanned_armor =
+            combat_shown_values(&buff_state.unplanned_input, &buff_state.unplanned, &combat, unplanned_skills).armor;
+}
+
 static void refresh_buff_state(void) {
     int attribute_id;
     int kind;
@@ -848,9 +907,12 @@ static void refresh_buff_state(void) {
         buff_state.unplanned_input.planned_attributes[attribute_id] = 0;
     }
     for (kind = 0; kind < BUFF_KIND_COUNT; kind++) buff_state.unplanned_input.spell_skills[kind].planned = 0;
+    buff_state.unplanned_input.planned_hitpoints = 0;
+    buff_state.unplanned_input.planned_mana = 0;
 
     buff_model_compute(&buff_state.planned_input, &buff_state.planned);
     buff_model_compute(&buff_state.unplanned_input, &buff_state.unplanned);
+    refresh_shown_armor();
 }
 
 static char spell_warnings[BUFF_KIND_COUNT][LABEL_TEXT_SIZE];
@@ -950,6 +1012,8 @@ static void math_lines_render(const EnhancedSkillLayout *layout) {
     int card_index;
     int row_index;
     int corruptor;
+    int enchant;
+    int gear;
 
     if (game_ui_hard_mode()) math_line_render(layout, "Hard Mode");
     for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
@@ -972,6 +1036,24 @@ static void math_lines_render(const EnhancedSkillLayout *layout) {
 
         if ((chosen.corruptor_ticks & (1U << (unsigned int) corruptor)) == 0 || count == 0) continue;
         snprintf(line_text, sizeof(line_text), "%s x%d", CORRUPTOR_INFO[corruptor].name, count);
+        math_line_render(layout, line_text);
+    }
+    const ItemEffectsInput item_input = item_effects_input();
+    for (enchant = 0; enchant < ENCHANT_COUNT; enchant++) {
+        const int copies = item_effects_enchant_copies(&item_input, (Enchant) enchant);
+
+        if (copies == 0) continue;
+        if (ENCHANT_INFO[enchant].counted != 0) {
+            snprintf(line_text, sizeof(line_text), "%s x%d", ENCHANT_INFO[enchant].name, copies);
+        } else {
+            snprintf(line_text, sizeof(line_text), "%s", ENCHANT_INFO[enchant].name);
+        }
+        math_line_render(layout, line_text);
+    }
+    for (gear = 0; gear < GEAR_COUNT; gear++) {
+        if ((chosen.gear_ticks & (1U << (unsigned int) gear)) == 0) continue;
+        snprintf(line_text, sizeof(line_text), "%s%s", GEAR_INFO[gear].name,
+                 GEAR_INFO[gear].modelled != 0 ? "" : " (not modelled)");
         math_line_render(layout, line_text);
     }
 }
@@ -1141,8 +1223,12 @@ static void add_attribute_pool_candidate(BuffFocusCandidate *candidates, int *ca
     BuffFocusCandidate *candidate;
     int previous_total = 0;
     int point_count;
+    int candidate_index;
 
     if (*candidate_count >= BUFF_FOCUS_MAX_CANDIDATES) return;
+    for (candidate_index = 0; candidate_index < *candidate_count; candidate_index++) {
+        if (candidates[candidate_index].raise_index == BUFF_FOCUS_ATTRIBUTE_POOL) return;
+    }
     fill_attribute_pool_costs(step_costs);
     candidate = &candidates[(*candidate_count)++];
     candidate->raise_index = BUFF_FOCUS_ATTRIBUTE_POOL;
@@ -1215,6 +1301,129 @@ static void add_extra_percent_candidates(BuffFocusCandidate *candidates, int *ca
     }
 }
 
+static int spell_raise_index_for(const int kind) {
+    return spell_known(kind) ? STAT_RAISE_SKILL_BASE + spell_skill_position(kind) : -1;
+}
+
+/* Spell power is capped by Spell Aptitude, which follows Willpower and Intuition. */
+static void add_aptitude_candidates(BuffFocusCandidate *candidates, int *candidate_count) {
+    add_focus_candidate(candidates, candidate_count, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
+    add_focus_candidate(candidates, candidate_count, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
+}
+
+static void add_spell_candidates(BuffFocusCandidate *candidates, int *candidate_count, const int kind,
+                                 const bool attribute_pool) {
+    if (!spell_shown(kind)) return;
+    add_focus_candidate(candidates, candidate_count, spell_raise_index_for(kind), BUFF_FOCUS_MAX_POINTS);
+    if (attribute_pool) return;
+    add_skill_attribute_candidates(candidates, candidate_count, &buff_state.planned_input.spell_skills[kind]);
+    add_aptitude_candidates(candidates, candidate_count);
+}
+
+/* Tachi adds Spell Bonus to WV, Odachi to AV. */
+static bool item_value_takes_spell_bonus(const CombatStat stat) {
+    const PlannerEffects *effects = &buff_state.planned_input.effects;
+
+    if (stat == COMBAT_STAT_WEAPON) return effects->spell_bonus_to_weapon != 0;
+    if (stat == COMBAT_STAT_ARMOR) return effects->spell_bonus_to_armor != 0;
+    return false;
+}
+
+/* Determination and Evergreen add attributes to WV and AV; Brilliance adds them to the Spell Bonus behind Enhance,
+ * Protect, Tachi and Odachi. */
+static bool attribute_sum_feeds_item_value(const CombatStat stat) {
+    const PlannerEffects *effects = &buff_state.planned_input.effects;
+    const int item_buff = stat == COMBAT_STAT_WEAPON ? BUFF_KIND_ENHANCE : BUFF_KIND_PROTECT;
+
+    if (stat != COMBAT_STAT_WEAPON && stat != COMBAT_STAT_ARMOR) return false;
+    if (effects->determination != 0 || effects->determination_nodes != 0 || effects->evergreen != 0) return true;
+    if (effects->brilliance == 0 && effects->brilliance_nodes == 0) return false;
+    return spell_shown(item_buff) || item_value_takes_spell_bonus(stat);
+}
+
+static bool spell_bonus_feeds_combat_stat(const CombatStat stat) {
+    switch (stat) {
+        case COMBAT_STAT_HIT:
+        case COMBAT_STAT_PARRY: return spell_shown(BUFF_KIND_BLESS);
+        case COMBAT_STAT_WEAPON: return spell_shown(BUFF_KIND_ENHANCE) || item_value_takes_spell_bonus(stat);
+        case COMBAT_STAT_ARMOR: return spell_shown(BUFF_KIND_PROTECT) || item_value_takes_spell_bonus(stat);
+        default: return false;
+    }
+}
+
+/* Gorn and Nei add a hundredth of the uncapped Hitpoints or Mana to Spell Bonus. */
+static void add_pool_candidates(BuffFocusCandidate *candidates, int *candidate_count) {
+    const PlannerEffects *effects = &buff_state.planned_input.effects;
+
+    if (effects->hitpoints_to_spell_bonus != 0) {
+        add_focus_candidate(candidates, candidate_count, BUFF_FOCUS_HITPOINTS_RAISE, BUFF_FOCUS_MAX_POINTS);
+    }
+    if (effects->mana_to_spell_bonus != 0) {
+        add_focus_candidate(candidates, candidate_count, BUFF_FOCUS_MANA_RAISE, BUFF_FOCUS_MAX_POINTS);
+    }
+}
+
+static void add_all_attribute_candidates(BuffFocusCandidate *candidates, int *candidate_count) {
+    int attribute_id;
+
+    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
+        add_focus_candidate(candidates, candidate_count, attribute_id, SKILL_FOCUS_MAX_STEPS);
+    }
+}
+
+static void add_combat_stat_candidates(BuffFocusCandidate *candidates, int *candidate_count,
+                                       const CombatModelInput *combat,
+                                       const BuffModelSkill combat_skills[COMBAT_SKILL_COUNT],
+                                       const int combat_raise_index[COMBAT_SKILL_COUNT], const CombatStat stat) {
+    const bool attribute_pool = tarot_set_has(buff_state.planned_input.tarot_cards, TAROT_FOOL_REVERSED) != 0;
+    int affects[COMBAT_SKILL_COUNT];
+    int skill_id;
+
+    combat_model_skills_affecting(combat, stat, affects);
+    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
+        if (affects[skill_id] == 0) continue;
+        add_focus_candidate(candidates, candidate_count, combat_raise_index[skill_id], BUFF_FOCUS_MAX_POINTS);
+        if (!attribute_pool) add_skill_attribute_candidates(candidates, candidate_count, &combat_skills[skill_id]);
+    }
+    if (attribute_pool) add_attribute_pool_candidate(candidates, candidate_count);
+    if (!attribute_pool && attribute_sum_feeds_item_value(stat)) {
+        add_all_attribute_candidates(candidates, candidate_count);
+    }
+    /* Introspection turns aptitude into the Spell Bonus that Tachi and Odachi add. */
+    if (!attribute_pool && buff_state.planned_input.effects.introspection != 0 && item_value_takes_spell_bonus(stat)) {
+        add_aptitude_candidates(candidates, candidate_count);
+    }
+    add_spell_candidates(candidates, candidate_count, BUFF_KIND_BLESS, attribute_pool);
+    if (stat == COMBAT_STAT_WEAPON) {
+        add_spell_candidates(candidates, candidate_count, BUFF_KIND_ENHANCE, attribute_pool);
+    }
+    if (stat == COMBAT_STAT_ARMOR) {
+        add_spell_candidates(candidates, candidate_count, BUFF_KIND_PROTECT, attribute_pool);
+    }
+    if (spell_bonus_feeds_combat_stat(stat)) add_pool_candidates(candidates, candidate_count);
+}
+
+/* Armor to Resistance and Armor to Immunity add a tenth of the shown Armor Value to the skill. */
+static bool armor_feeds_skill(const int skill_position) {
+    const PlannerEffects *effects = &buff_state.planned_input.effects;
+    const int skill_number = skilltab[skill_position].nr;
+
+    if (skill_number == SK_RESIST) return effects->armor_to_resist != 0;
+    if (skill_number == SK_IMMUN) return effects->armor_to_immunity != 0;
+    return false;
+}
+
+static void fill_armor_feed(BuffFocusInput *input, const int skill_position) {
+    if (!armor_feeds_skill(skill_position)) return;
+    if (!build_combat_model_input(&input->combat)) {
+        memset(&input->combat, 0, sizeof(input->combat));
+        return;
+    }
+    input->armor_feeds_focused = 1;
+    combat_skills_for(input->combat_skills, true);
+    combat_raise_indices_for(&input->combat, input->combat_raise_index);
+}
+
 static void build_buff_focus_input(BuffFocusInput *input, const int skill_position) {
     int kind;
 
@@ -1222,10 +1431,8 @@ static void build_buff_focus_input(BuffFocusInput *input, const int skill_positi
     input->model = buff_state.planned_input;
     input->focused = model_skill_for(skill_position, stat_raised[STAT_RAISE_SKILL_BASE + skill_position]);
     input->focused_raise_index = STAT_RAISE_SKILL_BASE + skill_position;
-    for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
-        const int position = spell_skill_position(kind);
-        input->spell_raise_index[kind] = spell_known(kind) ? STAT_RAISE_SKILL_BASE + position : -1;
-    }
+    for (kind = 0; kind < BUFF_KIND_COUNT; kind++) input->spell_raise_index[kind] = spell_raise_index_for(kind);
+    fill_armor_feed(input, skill_position);
 
     BuffFocusCandidate *candidates = input->candidates;
     int *candidate_count = &input->candidate_count;
@@ -1237,13 +1444,19 @@ static void build_buff_focus_input(BuffFocusInput *input, const int skill_positi
         add_extra_percent_candidates(candidates, candidate_count, &input->focused, &input->model.effects);
         if (spell_shown(BUFF_KIND_BLESS)) {
             add_skill_attribute_candidates(candidates, candidate_count, &input->model.spell_skills[BUFF_KIND_BLESS]);
-            add_focus_candidate(candidates, candidate_count, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
-            add_focus_candidate(candidates, candidate_count, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
+            add_aptitude_candidates(candidates, candidate_count);
         }
     }
     if (spell_shown(BUFF_KIND_BLESS)) {
         add_focus_candidate(candidates, candidate_count, input->spell_raise_index[BUFF_KIND_BLESS],
                             BUFF_FOCUS_MAX_POINTS);
+    }
+    if (input->armor_feeds_focused != 0) {
+        add_combat_stat_candidates(candidates, candidate_count, &input->combat, input->combat_skills,
+                                   input->combat_raise_index, COMBAT_STAT_ARMOR);
+    }
+    if (spell_shown(BUFF_KIND_BLESS) || input->armor_feeds_focused != 0) {
+        add_pool_candidates(candidates, candidate_count);
     }
 }
 
@@ -1268,72 +1481,18 @@ static const BuffFocusResult *cached_buff_focus(const int skill_position) {
     return &cached_result;
 }
 
-static void add_spell_candidates(CombatFocusInput *input, const int kind, const bool attribute_pool) {
-    if (!spell_shown(kind)) return;
-    add_focus_candidate(input->candidates, &input->candidate_count, input->spell_raise_index[kind],
-                        BUFF_FOCUS_MAX_POINTS);
-    if (attribute_pool) return;
-    add_skill_attribute_candidates(input->candidates, &input->candidate_count, &input->model.spell_skills[kind]);
-    /* Spell power is capped by Spell Aptitude, which follows Willpower and Intuition. */
-    add_focus_candidate(input->candidates, &input->candidate_count, ATTRIBUTE_WILLPOWER, SKILL_FOCUS_MAX_STEPS);
-    add_focus_candidate(input->candidates, &input->candidate_count, ATTRIBUTE_INTUITION, SKILL_FOCUS_MAX_STEPS);
-}
-
-/* Determination adds the attribute sum to WV and AV, Brilliance to the Spell Bonus behind Enhance and Protect. */
-static bool attribute_sum_feeds_item_value(const CombatStat stat) {
-    const PlannerEffects *effects = &buff_state.planned_input.effects;
-    const int item_buff = stat == COMBAT_STAT_WEAPON ? BUFF_KIND_ENHANCE : BUFF_KIND_PROTECT;
-
-    if (stat != COMBAT_STAT_WEAPON && stat != COMBAT_STAT_ARMOR) return false;
-    if (effects->determination != 0 || effects->determination_nodes != 0) return true;
-    return (effects->brilliance != 0 || effects->brilliance_nodes != 0) && spell_shown(item_buff);
-}
-
-static void add_all_attribute_candidates(CombatFocusInput *input) {
-    int attribute_id;
-
-    for (attribute_id = 0; attribute_id < ATTRIBUTE_COUNT; attribute_id++) {
-        add_focus_candidate(input->candidates, &input->candidate_count, attribute_id, SKILL_FOCUS_MAX_STEPS);
-    }
-}
-
 static bool build_combat_focus_input(CombatFocusInput *input, const CombatStat stat) {
-    const bool attribute_pool = tarot_set_has(buff_state.planned_input.tarot_cards, TAROT_FOOL_REVERSED) != 0;
-    int affects[COMBAT_SKILL_COUNT];
-    int skill_id;
     int kind;
 
     memset(input, 0, sizeof(*input));
     if (!build_combat_model_input(&input->combat)) return false;
     input->model = buff_state.planned_input;
     input->stat = stat;
-    for (kind = 0; kind < BUFF_KIND_COUNT; kind++) {
-        input->spell_raise_index[kind] = spell_known(kind) ? STAT_RAISE_SKILL_BASE + spell_skill_position(kind) : -1;
-    }
-    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
-        const int skill_position = skill_position_for_number(COMBAT_SKILL_NUMBERS[skill_id]);
-
-        input->combat_raise_index[skill_id] = -1;
-        if (input->combat.known[skill_id] == 0) continue;
-        input->combat_skills[skill_id] =
-                model_skill_for(skill_position, stat_raised[STAT_RAISE_SKILL_BASE + skill_position]);
-        input->combat_raise_index[skill_id] = STAT_RAISE_SKILL_BASE + skill_position;
-    }
-
-    combat_model_skills_affecting(&input->combat, stat, affects);
-    for (skill_id = 0; skill_id < COMBAT_SKILL_COUNT; skill_id++) {
-        if (affects[skill_id] == 0) continue;
-        add_focus_candidate(input->candidates, &input->candidate_count, input->combat_raise_index[skill_id],
-                            BUFF_FOCUS_MAX_POINTS);
-        if (!attribute_pool) {
-            add_skill_attribute_candidates(input->candidates, &input->candidate_count, &input->combat_skills[skill_id]);
-        }
-    }
-    if (attribute_pool) add_attribute_pool_candidate(input->candidates, &input->candidate_count);
-    if (!attribute_pool && attribute_sum_feeds_item_value(stat)) add_all_attribute_candidates(input);
-    add_spell_candidates(input, BUFF_KIND_BLESS, attribute_pool);
-    if (stat == COMBAT_STAT_WEAPON) add_spell_candidates(input, BUFF_KIND_ENHANCE, attribute_pool);
-    if (stat == COMBAT_STAT_ARMOR) add_spell_candidates(input, BUFF_KIND_PROTECT, attribute_pool);
+    for (kind = 0; kind < BUFF_KIND_COUNT; kind++) input->spell_raise_index[kind] = spell_raise_index_for(kind);
+    combat_skills_for(input->combat_skills, true);
+    combat_raise_indices_for(&input->combat, input->combat_raise_index);
+    add_combat_stat_candidates(input->candidates, &input->candidate_count, &input->combat, input->combat_skills,
+                               input->combat_raise_index, stat);
     return true;
 }
 
@@ -1356,6 +1515,8 @@ static const CombatFocusResult *cached_combat_focus(const CombatStat stat) {
 }
 
 static const char *raise_name(const int raise_index) {
+    if (raise_index == STAT_RAISE_HITPOINTS) return "Hitpoints";
+    if (raise_index == STAT_RAISE_MANA) return "Mana";
     if (raise_index < ATTRIBUTE_COUNT) return attribute_names[raise_index];
     return skilltab[raise_index - STAT_RAISE_SKILL_BASE].name;
 }
@@ -1432,7 +1593,7 @@ static bool plan_button_render(const EnhancedSkillLayout *layout, const int tota
     return ui_button_enabled("Plan it", layout->plan_button_width, BUTTON_SPRITE_HEIGHT, affordable);
 }
 
-/* Focus panel body while Bless is shown or tree effects apply: the search follows the full buff model. */
+/* Focus panel body while Bless is shown or model effects apply: the search follows the full buff model. */
 static void buff_focus_panel_render(const EnhancedSkillLayout *layout, const char *skill_name) {
     const BuffFocusResult *result = cached_buff_focus(focused_skill_position);
     char label_text[LABEL_TEXT_SIZE];
@@ -1499,8 +1660,8 @@ static void combat_focus_panel_render(const EnhancedSkillLayout *layout) {
     if (plan_button_render(layout, result->best.total_cost)) plan_buff_route(&result->best);
 }
 
-/* The plain divisor model can't follow percent effects on attributes and skills. */
-static bool tree_effects_present(void) {
+/* The plain divisor model can't follow percent effects, the highest-attribute boosts or Armor Value in a skill. */
+static bool model_effects_present(void) {
     const PlannerEffects *effects = &buff_state.planned_input.effects;
     int attribute_id;
 
@@ -1509,7 +1670,11 @@ static bool tree_effects_present(void) {
             return true;
         }
     }
-    return effects->immunity_percent != 0 || effects->resist_percent != 0;
+    if (effects->immunity_percent != 0 || effects->resist_percent != 0 || effects->resist_enchant_percent != 0 ||
+        effects->fists_of_heavens != 0 || effects->grande_grimoire != 0) {
+        return true;
+    }
+    return armor_feeds_skill(focused_skill_position);
 }
 
 static void focus_panel_render(const EnhancedSkillLayout *layout) {
@@ -1536,7 +1701,7 @@ static void focus_panel_render(const EnhancedSkillLayout *layout) {
     }
 
     skill_name = skilltab[focused_skill_position].name;
-    if (buff_state.available && (spell_shown(BUFF_KIND_BLESS) || tree_effects_present())) {
+    if (buff_state.available && (spell_shown(BUFF_KIND_BLESS) || model_effects_present())) {
         buff_focus_panel_render(layout, skill_name);
         return;
     }
