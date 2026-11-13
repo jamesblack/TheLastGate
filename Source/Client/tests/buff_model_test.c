@@ -445,6 +445,19 @@ static void test_immunity_percent_and_hermit_round_in_two_steps(void) {
     CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 112);
 }
 
+static void test_resist_percent_scales_direct_raise(void) {
+    BuffModelInput input = fixture();
+    BuffModelSkill skill;
+
+    input.effects.resist_percent = 10;
+    set_skill(&skill, 110, -1, -1, -1);
+    skill.scale_kind = BUFF_SKILL_SCALE_RESIST;
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 110);
+    /* Raw 110 x 100 / 110 = 100 becomes 110, shown as 110 x 110 / 100 = 121. */
+    skill.planned = 10;
+    CHECK(buff_model_skill_value(&input, &skill, input.server_attributes) == 121);
+}
+
 static void test_fool_reversed_averages_before_attribute_percent(void) {
     BuffModelInput input = fool_reversed_fixture();
     BuffModelResult result;
@@ -663,6 +676,7 @@ int main(void) {
     test_immunity_percent();
     test_immunity_percent_with_hermit();
     test_immunity_percent_and_hermit_round_in_two_steps();
+    test_resist_percent_scales_direct_raise();
     test_fool_reversed_averages_before_attribute_percent();
     test_aptitude_percent();
     test_attribute_percent_skips_aptitude();

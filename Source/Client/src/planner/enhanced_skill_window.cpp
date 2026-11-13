@@ -206,7 +206,7 @@ typedef struct {
     int base;
     int current;
     int direct_raise;   /* points bought for this stat itself */
-    int attribute_gain; /* points the planned attribute raises add */
+    int attribute_gain; /* what the plan adds beyond direct_raise: attribute raises and percent effects */
     int buff_shift;     /* shown value without a plan minus the server's value: buffs toggled off or on */
     int cost;
     int raise_index;
@@ -278,14 +278,15 @@ static StatRowView build_skill_row(const int skill_position, const int attribute
     row_view.uses_raised_attribute = skill_preview_uses_raised_attribute(attribute_raises) != 0;
     fill_raise_state(&row_view, raise_index);
     if (buff_state.available) {
-        const BuffModelSkill skill = model_skill_for(skill_position, 0);
+        const BuffModelSkill unplanned_skill = model_skill_for(skill_position, 0);
+        const BuffModelSkill planned_skill = model_skill_for(skill_position, stat_raised[raise_index]);
         const int unplanned_value =
-                buff_model_skill_value(&buff_state.unplanned_input, &skill, buff_state.unplanned.attributes);
+                buff_model_skill_value(&buff_state.unplanned_input, &unplanned_skill, buff_state.unplanned.attributes);
         const int planned_value =
-                buff_model_skill_value(&buff_state.planned_input, &skill, buff_state.planned.attributes);
+                buff_model_skill_value(&buff_state.planned_input, &planned_skill, buff_state.planned.attributes);
 
         row_view.buff_shift = unplanned_value - row_view.current;
-        row_view.attribute_gain = planned_value - unplanned_value;
+        row_view.attribute_gain = planned_value - unplanned_value - row_view.direct_raise;
     }
     return row_view;
 }
@@ -407,7 +408,7 @@ static void stat_row_render(const EnhancedSkillLayout *layout, const StatRowView
         preview_offset += text_width(value_text);
     }
     if (row_view->attribute_gain != 0) {
-        snprintf(value_text, sizeof(value_text), " +%d", row_view->attribute_gain);
+        snprintf(value_text, sizeof(value_text), " %+d", row_view->attribute_gain);
         row_text(layout, row_left, row_top, preview_offset, ATTRIBUTE_GAIN_COLOR, value_text);
     }
 
