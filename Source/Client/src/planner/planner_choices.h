@@ -6,6 +6,7 @@
  */
 
 #include "planner/tarot_math.h"
+#include "planner/tree_effects.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,6 +19,8 @@ typedef struct {
     int offhand; /* a CombatOffhand, or PLANNER_CHOICE_NONE */
     unsigned int spell_toggles; /* bit 1 << BuffKind is set when that spell is shown buffed */
     TarotSet tarot_cards;
+    unsigned int corruptor_ticks;                    /* bit 1 << Corruptor is set when that corruptor is ticked */
+    unsigned char corruptor_counts[CORRUPTOR_COUNT]; /* card and ring copies, kept when unticked */
 } PlannerChoices;
 
 /* The picks saved for this character. Missing, unreadable or out-of-range values come back as PLANNER_CHOICE_NONE,

@@ -4,9 +4,11 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "planner/combat_model.h"
 #include "planner/planner_choices.h"
+#include "planner/tree_effects.h"
 
 static int failures = 0;
 
@@ -26,6 +28,8 @@ static PlannerChoices make_choices(const int weapon, const int offhand) {
     choices.offhand = offhand;
     choices.spell_toggles = 0;
     choices.tarot_cards = 0;
+    choices.corruptor_ticks = 0;
+    memset(choices.corruptor_counts, 0, sizeof(choices.corruptor_counts));
     return choices;
 }
 
@@ -144,6 +148,62 @@ static void test_saving_over_format_one_upgrades(void) {
     CHECK(planner_choices_load(TEST_PATH, 9).weapon == COMBAT_WEAPON_AXE);
 }
 
+static void test_corruptors_round_trip(void) {
+    PlannerChoices saved = make_choices(COMBAT_WEAPON_SWORD, COMBAT_OFFHAND_SHIELD);
+    PlannerChoices loaded;
+
+    saved.corruptor_ticks = 0x5;
+    saved.corruptor_counts[0] = 2;
+    saved.corruptor_counts[1] = 4;
+    saved.corruptor_counts[2] = 7;
+    saved.corruptor_counts[CORRUPTOR_COUNT - 1] = 20;
+    remove(TEST_PATH);
+    CHECK(planner_choices_save(TEST_PATH, 7, saved) == 1);
+    loaded = planner_choices_load(TEST_PATH, 7);
+    CHECK(loaded.corruptor_ticks == 0x5);
+    CHECK(loaded.corruptor_counts[0] == 2);
+    CHECK(loaded.corruptor_counts[1] == 4);
+    CHECK(loaded.corruptor_counts[2] == 7);
+    CHECK(loaded.corruptor_counts[3] == 0);
+    CHECK(loaded.corruptor_counts[CORRUPTOR_COUNT - 1] == 20);
+}
+
+static void test_format_two_loads_without_corruptors(void) {
+    const uint32_t file_words[] = {
+        2, 1, 7, (uint32_t) COMBAT_WEAPON_SWORD, (uint32_t) COMBAT_OFFHAND_SHIELD, 0x5, 0x400000, 0x800};
+    PlannerChoices loaded;
+    int corruptor;
+
+    write_raw_file(file_words, sizeof(file_words));
+    loaded = planner_choices_load(TEST_PATH, 7);
+    CHECK(loaded.weapon == COMBAT_WEAPON_SWORD);
+    CHECK(loaded.offhand == COMBAT_OFFHAND_SHIELD);
+    CHECK(loaded.spell_toggles == 0x5);
+    CHECK(loaded.tarot_cards == (((TarotSet) 0x800 << 32U) | 0x400000U));
+    CHECK(loaded.corruptor_ticks == 0);
+    for (corruptor = 0; corruptor < CORRUPTOR_COUNT; corruptor++) {
+        CHECK(loaded.corruptor_counts[corruptor] == 0);
+    }
+}
+
+static void test_counts_out_of_range_are_clamped(void) {
+    PlannerChoices saved = make_choices(COMBAT_WEAPON_SWORD, COMBAT_OFFHAND_SHIELD);
+    PlannerChoices loaded;
+
+    saved.corruptor_ticks = 0x7;
+    saved.corruptor_counts[0] = 0;
+    saved.corruptor_counts[1] = 21;
+    saved.corruptor_counts[2] = 5;
+    saved.corruptor_counts[3] = 30;
+    remove(TEST_PATH);
+    CHECK(planner_choices_save(TEST_PATH, 7, saved) == 1);
+    loaded = planner_choices_load(TEST_PATH, 7);
+    CHECK(loaded.corruptor_counts[0] == 1);
+    CHECK(loaded.corruptor_counts[1] == 20);
+    CHECK(loaded.corruptor_counts[2] == 5);
+    CHECK(loaded.corruptor_counts[3] == 20);
+}
+
 int main(void) {
     test_missing_file_has_no_choices();
     test_saved_choices_load_back();
@@ -154,6 +214,9 @@ int main(void) {
     test_spells_and_cards_round_trip();
     test_format_one_file_keeps_weapon_and_offhand();
     test_saving_over_format_one_upgrades();
+    test_corruptors_round_trip();
+    test_format_two_loads_without_corruptors();
+    test_counts_out_of_range_are_clamped();
     remove(TEST_PATH);
 
     if (failures == 0) printf("planner_choices: all tests passed\n");
