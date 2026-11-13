@@ -80,10 +80,24 @@ typedef struct {
     int brilliance_nodes;    /* Spell Bonus + brilliance_nodes x (attribute sum / 75) */
     int introspection;  /* Spell Bonus + introspection x aptitude / 50 */
     int guardian_angel; /* Bless power more(power, Braveness x guardian_angel, 20) */
+    int spell_bonus_enchant_percent; /* Spell Bonus x (100 + p) / 100, after spell_bonus_percent */
+    int resist_enchant_percent;      /* Resistance x (100 + p) / 100, after resist_percent and before Hermit */
+    int hit_to_parry_percent;        /* after Strength Reversed: Parry + Hit x p / 100 ... */
+    int parry_to_hit_percent;        /* ... then Hit + that Parry x p / 100 */
+    int armor_enchant;               /* AV x 11 / 10 after the tarot steps, before armor_percent */
+    int armor_to_resist, armor_to_immunity; /* + final shown AV / 10 */
+    int brave_into_strength; /* bonus Braveness (not base) is added to Strength before Reverse Fool */
+    int travelers_guide;     /* the lower of Brv and Agl feeds effects with the higher one's value */
+    int fists_of_heavens; /* highest attribute(s) x 6 / 5 after the percents; Hit/Parry use the best weapon skill */
+    int grande_grimoire; /* then highest attribute(s) x 11 / 10 */
+    int spell_bonus_to_weapon, spell_bonus_to_armor;
+    int evergreen; /* WV + effect Agl / 10, AV + effect Str / 10 */
+    int hitpoints_to_spell_bonus, mana_to_spell_bonus; /* Spell Bonus + uncapped pool / 100 */
+    int superbia; /* aptitude less(aptitude, 90, 1) after aptitude_percent */
 } PlannerEffects;
 
 TreeClass tree_effects_class_from_kindred(unsigned int kindred);
-int tree_effects_node_learned(unsigned int tree_points, int node);                /* node 1..12 */
+int tree_effects_node_learned(unsigned int tree_points, int node); /* node 1..12 */
 int tree_effects_tree_copies(const TreeEffectsInput *input, Corruptor corruptor); /* learned, corrupted nodes */
 int tree_effects_node_in_math(TreeClass tree_class, int node); /* 1 when the uncorrupted node is in the table */
 int tree_effects_corruptor_for_server_number(int server_number); /* Corruptor, or -1 */
