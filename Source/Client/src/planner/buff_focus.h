@@ -3,11 +3,11 @@
 /*
  * Cheapest way to give the focused skill +1 when buffs are part of the plan.
  *
- * Every mix of extra points over the candidate stats (the skill itself, its
- * attributes, Bless and what feeds Bless) is tried within each candidate's
- * bound, and the buff model decides whether the mix lifts the skill's shown
- * value by one. Self-contained (no game headers) so it can be built into the
- * unit tests; the caller supplies every value and cost.
+ * Mixes of extra points over the candidate stats (the skill itself, its
+ * attributes, Bless and what feeds Bless) are tried cheapest first within each
+ * candidate's bound, and the buff model decides whether the mix lifts the
+ * skill's shown value by one. Self-contained (no game headers) so it can be
+ * built into the unit tests; the caller supplies every value and cost.
  */
 
 #include "planner/buff_model.h"
@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-#define BUFF_FOCUS_MAX_CANDIDATES 12
+#define BUFF_FOCUS_MAX_CANDIDATES 15
 #define BUFF_FOCUS_MAX_POINTS 16
 #define BUFF_FOCUS_ATTRIBUTE_POOL (-2)
 #define BUFF_FOCUS_HITPOINTS_RAISE 5 /* stat_raise slots of the Hitpoints and Mana raises */

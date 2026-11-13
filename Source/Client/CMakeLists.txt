@@ -62,6 +62,7 @@ add_executable(TheLastGate
         src/planner/combat_focus.c
         src/planner/combat_model.c
         src/planner/combat_shown.c
+        src/planner/focus_search.c
         src/planner/item_effects.c
         src/planner/tree_effects.c
         src/game/game_input.c
@@ -289,6 +290,7 @@ if (TLG_BUILD_TESTS)
     add_executable(buff_focus_test
             tests/buff_focus_test.c
             src/planner/buff_focus.c
+            src/planner/focus_search.c
             src/planner/buff_model.c
             src/planner/combat_model.c
             src/planner/combat_shown.c
@@ -302,6 +304,7 @@ if (TLG_BUILD_TESTS)
     add_executable(combat_focus_test
             tests/combat_focus_test.c
             src/planner/combat_focus.c
+            src/planner/focus_search.c
             src/planner/combat_model.c
             src/planner/combat_shown.c
             src/planner/buff_model.c

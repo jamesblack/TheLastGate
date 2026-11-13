@@ -7,9 +7,6 @@
 extern "C" {
 #endif
 
-/* Bounds the search when the stat can't be raised, so it always finishes. */
-#define COMBAT_FOCUS_MAX_STATES 65536
-
 typedef struct {
     BuffModelInput model; /* planner state, plan included */
     /* Weapon, off-hand, race and server values; the shown skills and base weapon and armor are recomputed. */

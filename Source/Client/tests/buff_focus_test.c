@@ -21,6 +21,7 @@ static int failures = 0;
 #define FOCUSED_SLOT 8
 #define BLESS_SLOT 9
 #define GEARMAST_SLOT 12
+#define FIRST_INERT_SLOT 20 /* raise slots the model never reads, so points there change nothing */
 
 static void set_skill(BuffModelSkill *skill, const int server_total, const int first_id, const int second_id,
                       const int third_id) {
@@ -246,6 +247,38 @@ static void test_hitpoint_raise_reaches_resistance_through_odachi(void) {
     CHECK(route_is_single(&result.best, BUFF_FOCUS_HITPOINTS_RAISE, 1, 3));
 }
 
+static void test_many_candidates_still_find_a_cheap_route(void) {
+    BuffFocusInput input = fixture();
+    BuffFocusResult result;
+    int inert_index;
+
+    for (inert_index = 0; input.candidate_count < BUFF_FOCUS_MAX_CANDIDATES; inert_index++) {
+        add_candidate(&input, FIRST_INERT_SLOT + inert_index, BUFF_FOCUS_MAX_POINTS, 1000);
+    }
+    result = buff_focus_search(&input);
+    CHECK(input.candidate_count == BUFF_FOCUS_MAX_CANDIDATES);
+    CHECK(route_is_single(&result.best, BLESS_SLOT, 8, 160));
+    CHECK(route_is_single(&result.direct, FOCUSED_SLOT, 1, 1000));
+    CHECK(route_is_single(&result.through_attributes, 4, 1, 500));
+    CHECK(route_is_single(&result.through_bless, BLESS_SLOT, 8, 160));
+}
+
+static void test_search_without_a_route_stops_at_the_state_cap(void) {
+    BuffFocusInput input = fixture();
+    BuffFocusResult result;
+
+    input.candidate_count = 0;
+    while (input.candidate_count < BUFF_FOCUS_MAX_CANDIDATES) {
+        add_candidate(&input, FIRST_INERT_SLOT + input.candidate_count, BUFF_FOCUS_MAX_POINTS, 1);
+    }
+    result = buff_focus_search(&input);
+    CHECK(result.current_value == 106);
+    CHECK(result.best.available == 0);
+    CHECK(result.direct.available == 0);
+    CHECK(result.through_attributes.available == 0);
+    CHECK(result.through_bless.available == 0);
+}
+
 int main(void) {
     test_fool_reversed_uses_attribute_pool();
     test_bless_points_win();
@@ -255,6 +288,8 @@ int main(void) {
     test_focus_on_bless_itself();
     test_armor_feeds_resistance_through_gear_mastery();
     test_hitpoint_raise_reaches_resistance_through_odachi();
+    test_many_candidates_still_find_a_cheap_route();
+    test_search_without_a_route_stops_at_the_state_cap();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);
