@@ -25,12 +25,12 @@
 #define CARD_ROW_ID_BASE 100
 #define CORRUPTOR_ROW_ID_BASE 200
 #define CORRUPTOR_MAX_COPIES 20
-#define OTHER_VISIBLE_ROWS 6
+#define OTHER_MIN_ROWS 3
 #define OTHER_EFFECT_LEFT 170
 #define OTHER_COUNT_LEFT 300
 #define OTHER_COUNT_WIDTH 80
 #define OTHER_TREE_LEFT 388
-#define SECTION_GAP(ADVANCED_ROW_HEIGHT / 2.0F)
+static constexpr float SECTION_GAP = ADVANCED_ROW_HEIGHT / 2.0F;
 
 static const char *const CARD_NUMERALS[CARDS_PER_COLUMN] = {
     "0",  "I",   "II",   "III", "IV", "V",   "VI",   "VII",   "VIII", "IX", "X",
@@ -224,13 +224,15 @@ static void corruptor_row_render(const float row_top, const int corruptor, Plann
 
 static void other_render(const float top, PlannerChoices *choices, const PlannerAdvancedView *view, int *changed) {
     const float rows_top = section_render(top, "Other");
+    const float remaining_height = ADVANCED_HEIGHT - rows_top - ADVANCED_PADDING;
+    const float min_height = OTHER_MIN_ROWS * ADVANCED_ROW_HEIGHT;
+    const float box_height = remaining_height > min_height ? remaining_height : min_height;
     float row_top = 0;
     int row_index;
     int corruptor;
 
     imgui_set_cursor_pos(ADVANCED_PADDING, rows_top);
-    if (imgui_begin_child("other_rows", ADVANCED_WIDTH - (2 * ADVANCED_PADDING),
-                          OTHER_VISIBLE_ROWS * ADVANCED_ROW_HEIGHT, false, 0)) {
+    if (imgui_begin_child("other_rows", ADVANCED_WIDTH - (2 * ADVANCED_PADDING), box_height, false, 0)) {
         for (row_index = 0; row_index < view->tree_row_count; row_index++) {
             const unsigned int grey = HINT_GREY_FONT_COLOR;
 
