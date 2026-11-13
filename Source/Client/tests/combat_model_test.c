@@ -291,14 +291,18 @@ static void test_best_weapon_skill_marks_skills_within_reach(void) {
     input.known[COMBAT_SKILL_TWOHAND] = 0;
     set_skill(&input, COMBAT_SKILL_HAND, 50, 50);
     set_skill(&input, COMBAT_SKILL_SWORD, 80, 80);
-    set_skill(&input, COMBAT_SKILL_AXE, 70, 64);
+    set_skill(&input, COMBAT_SKILL_AXE, 70, 65);
     set_skill(&input, COMBAT_SKILL_TWOHAND, 79, 79);
     combat_model_skills_affecting(&input, COMBAT_STAT_HIT, WEAPON_SKILL_REACH, affects);
     CHECK(affects[COMBAT_SKILL_SWORD] && affects[COMBAT_SKILL_AXE] && !affects[COMBAT_SKILL_HAND]);
     CHECK(!affects[COMBAT_SKILL_DAGGER] && !affects[COMBAT_SKILL_STAFF] && !affects[COMBAT_SKILL_TWOHAND]);
     CHECK(affects[COMBAT_SKILL_TACTICS] && !affects[COMBAT_SKILL_GEARMAST]);
 
-    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, 30, affects);
+    set_skill(&input, COMBAT_SKILL_AXE, 70, 64);
+    combat_model_skills_affecting(&input, COMBAT_STAT_HIT, WEAPON_SKILL_REACH, affects);
+    CHECK(!affects[COMBAT_SKILL_AXE]);
+
+    combat_model_skills_affecting(&input, COMBAT_STAT_PARRY, 31, affects);
     CHECK(affects[COMBAT_SKILL_HAND] && affects[COMBAT_SKILL_AXE] && !affects[COMBAT_SKILL_DAGGER]);
 }
 

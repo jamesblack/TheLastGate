@@ -170,7 +170,6 @@ int combat_model_stat_value(const CombatValues *values, const CombatStat stat) {
     }
 }
 
-/* A weapon skill that the route's points can lift to the best one's value can take over from it. */
 static void mark_weapon_skills_within_reach(const CombatModelInput *input, const int weapon_skill_reach,
                                             int affects[COMBAT_SKILL_COUNT]) {
     const int highest = highest_weapon_skill(input, input->shown);
@@ -179,7 +178,7 @@ static void mark_weapon_skills_within_reach(const CombatModelInput *input, const
     for (entry = 0; entry < ARRAY_SIZE(DEFAULT_WEAPONS); entry++) {
         const CombatSkill skill_id = DEFAULT_WEAPONS[entry].skill_id;
 
-        if (highest - input->shown[skill_id] <= weapon_skill_reach) affects[skill_id] = 1;
+        if (highest - input->shown[skill_id] < weapon_skill_reach) affects[skill_id] = 1;
     }
 }
 
