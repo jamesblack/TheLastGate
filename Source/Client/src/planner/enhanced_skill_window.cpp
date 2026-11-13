@@ -886,18 +886,15 @@ static void add_tree_rows(PlannerAdvancedView *view) {
         if (tree_effects_node_learned(effects_input.tree_points, node) == 0) continue;
         if (corruptor_number == 0) {
             if (tree_effects_node_in_math(effects_input.tree_class, node) == 0) continue;
-            snprintf(tree_row_names[node - 1], sizeof(tree_row_names[node - 1]), "%.*s (skill tree)",
+            snprintf(tree_row_names[node - 1], sizeof(tree_row_names[node - 1]), "%.*s",
                      (int) sizeof(sk_tree[0][node - 1].name), sk_tree[0][node - 1].name);
             row->name = tree_row_names[node - 1];
-            row->effect = sk_tree[0][node - 1].dsc1;
         } else {
             corruptor = tree_effects_corruptor_for_server_number(corruptor_number);
             if (corruptor < 0) continue;
-            snprintf(tree_row_names[node - 1], sizeof(tree_row_names[node - 1]), "%s (skill tree)",
-                     CORRUPTOR_INFO[corruptor].name);
+            snprintf(tree_row_names[node - 1], sizeof(tree_row_names[node - 1]), "%s%s", CORRUPTOR_INFO[corruptor].name,
+                     CORRUPTOR_INFO[corruptor].modelled != 0 ? "" : " (not modelled)");
             row->name = tree_row_names[node - 1];
-            row->effect =
-                    CORRUPTOR_INFO[corruptor].modelled != 0 ? CORRUPTOR_INFO[corruptor].one_copy : "(not modelled)";
         }
         view->tree_row_count++;
     }
@@ -952,7 +949,7 @@ static void math_line_render(const EnhancedSkillLayout *layout, const char *name
 
 static void math_lines_render(const EnhancedSkillLayout *layout) {
     PlannerAdvancedView tree_view;
-    char corruptor_text[LABEL_TEXT_SIZE];
+    char line_text[LABEL_TEXT_SIZE];
     int kind;
     int card_index;
     int row_index;
@@ -971,14 +968,15 @@ static void math_lines_render(const EnhancedSkillLayout *layout) {
     memset(&tree_view, 0, sizeof(tree_view));
     add_tree_rows(&tree_view);
     for (row_index = 0; row_index < tree_view.tree_row_count; row_index++) {
-        math_line_render(layout, tree_view.tree_rows[row_index].name);
+        snprintf(line_text, sizeof(line_text), "%s (skill tree)", tree_view.tree_rows[row_index].name);
+        math_line_render(layout, line_text);
     }
     for (corruptor = 0; corruptor < CORRUPTOR_COUNT; corruptor++) {
         const int count = chosen.corruptor_counts[corruptor];
 
         if ((chosen.corruptor_ticks & (1U << (unsigned int) corruptor)) == 0 || count == 0) continue;
-        snprintf(corruptor_text, sizeof(corruptor_text), "%s x%d", CORRUPTOR_INFO[corruptor].name, count);
-        math_line_render(layout, corruptor_text);
+        snprintf(line_text, sizeof(line_text), "%s x%d", CORRUPTOR_INFO[corruptor].name, count);
+        math_line_render(layout, line_text);
     }
 }
 

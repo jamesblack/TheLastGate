@@ -13,7 +13,6 @@ typedef struct {
 
 typedef struct {
     const char *name;
-    const char *effect;
 } PlannerAdvancedTreeRow;
 
 typedef struct {

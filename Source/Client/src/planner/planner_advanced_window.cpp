@@ -26,6 +26,7 @@
 #define TICKBOX_LABEL_GAP 4
 #define CARD_ROW_ID_BASE 100
 #define CORRUPTOR_ROW_ID_BASE 200
+#define TREE_ROW_ID_BASE 300
 #define CORRUPTOR_MAX_COPIES 20
 #define OTHER_MIN_ROWS 3
 #define OTHER_EFFECT_LEFT 170
@@ -238,10 +239,10 @@ static void other_render(const float top, PlannerChoices *choices, const Planner
     imgui_set_cursor_pos(ADVANCED_PADDING, rows_top);
     if (imgui_begin_child("other_rows", ADVANCED_WIDTH - (2 * ADVANCED_PADDING), box_height, false, 0)) {
         for (row_index = 0; row_index < view->tree_row_count; row_index++) {
-            const unsigned int grey = HINT_GREY_FONT_COLOR;
-
-            text_at(ADVANCED_ROW_HEIGHT + TICKBOX_LABEL_GAP, row_top, grey, view->tree_rows[row_index].name);
-            text_at(OTHER_EFFECT_LEFT, row_top, grey, view->tree_rows[row_index].effect);
+            /* Always ticked: the click is ignored because the tree decides, not the player. */
+            tickbox_row(0, row_top, TREE_ROW_ID_BASE + row_index, true, true, GOLD_FONT_COLOR,
+                        view->tree_rows[row_index].name);
+            text_at(OTHER_EFFECT_LEFT, row_top, HINT_GREY_FONT_COLOR, "From skill tree");
             row_top += ADVANCED_ROW_HEIGHT;
         }
         for (corruptor = 0; corruptor < CORRUPTOR_COUNT; corruptor++) {
