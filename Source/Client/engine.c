@@ -3433,6 +3433,7 @@ static void eng_present_frame(int init) {
     input_event_count = 0;
 
     ui_render(UI_STATE_GAME);
+    sync_imgui_text_input_state();
     SDL_SetCursor(cursors[cursor_type]);
 
     if (init) {

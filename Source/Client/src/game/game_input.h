@@ -8,6 +8,7 @@ void game_input_init(void);
 void game_input_shutdown(void);
 
 void sync_chat_input_state(void);
+void sync_imgui_text_input_state(void);
 
 void game_handle_input(const SDL_Event *e);
 

@@ -68,6 +68,20 @@ void sync_chat_input_state(void) {
     }
 }
 
+/* Enter-to-talk turns SDL text input off outside chat, which would leave an active ImGui field with no characters. */
+void sync_imgui_text_input_state(void) {
+    static bool imgui_typing = false;
+    const bool wants_text = imgui_want_text_input();
+
+    if (wants_text == imgui_typing) return;
+    imgui_typing = wants_text;
+    if (wants_text) {
+        SDL_StartTextInput();
+    } else if (g_config.ui.enter_to_talk && !chat_mode_active) {
+        SDL_StopTextInput();
+    }
+}
+
 static int is_mouse_over_imgui(void) {
     return imgui_want_capture_mouse();
 }
