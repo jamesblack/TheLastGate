@@ -3,6 +3,7 @@
 #include "common.h"
 EXTERN_C_BEGIN
 #include <SDL2/SDL.h>
+#include <stdbool.h>
 
 #define NUM_SPELL_HOTKEYS 20
 #define NUM_GENERAL_HOTKEYS 26
@@ -25,6 +26,7 @@ EXTERN_C_BEGIN
 #define RESET_WINDOW_SIZE_HOTKEY "reset_window_size_hotkey"
 #define TOGGLE_PLANNER_HOTKEY "toggle_planner_hotkey"
 #define TOGGLE_WORLDMAP_HOTKEY "toggle_worldmap_hotkey"
+#define ITEM_TOOLTIP_HOTKEY "item_tooltip_hotkey"
 
 // GENERAL HOTKEYS
 #define FIGHTBACK_HOTKEY "fightback_hotkey"
@@ -80,6 +82,7 @@ typedef struct {
     BindingCategory category;
     Keybinding default_keybinding;
     Keybinding keybinding;
+    bool hold_binding; /* acts while held, so a lone Shift, Ctrl or Alt can be bound */
 } BindingDescriptor;
 
 /* Global keybinding configuration */
@@ -100,4 +103,7 @@ BindingDescriptor *binding_find(SDL_Keycode key, int sdl_modstate);
 
 /* Find binding by ID, returns NULL otherwise */
 BindingDescriptor *binding_find_by_id(const char* id);
+
+/* Whether the binding's key and modifiers are held down right now */
+bool keybinding_is_held(Keybinding kb);
 EXTERN_C_END

@@ -200,6 +200,19 @@ static bool keybind_label(const OptionWindowLayout *layout, const char *label, B
                 }
             }
 
+            /* A held binding may be a modifier on its own; the side pressed does not matter. */
+            if (pressed_key == SDLK_UNKNOWN && binding->hold_binding) {
+                SDL_Keycode modifier_keys[] = {SDLK_LSHIFT, SDLK_LCTRL, SDLK_LALT};
+                int num_modifier_keys = sizeof(modifier_keys) / sizeof(modifier_keys[0]);
+                for (i = 0; i < num_modifier_keys; i++) {
+                    if (imgui_is_key_pressed(modifier_keys[i])) {
+                        pressed_key = modifier_keys[i];
+                        mod_flags = KEYBIND_MOD_NONE;
+                        break;
+                    }
+                }
+            }
+
             /* Check keypad keys */
             if (pressed_key == SDLK_UNKNOWN) {
                 for (i = SDLK_KP_0; i <= SDLK_KP_EQUALS; i++) {
@@ -312,6 +325,13 @@ static void general_settings_tab() {
     togglable_option(
             "##13", &g_config.gameplay.adaptive_tick_pacing,
             "Adaptive network smoothing: lower delay on steady connections, more buffering when the connection is uneven.");
+    togglable_option("##14", &g_config.ui.item_tooltips, "Show item tooltips for inventory and equipped gear.");
+    if (g_config.ui.item_tooltips) {
+        imgui_indent(0.0f);
+        togglable_option("##15", &g_config.ui.item_tooltips_always,
+                         "Always show tooltips on hover. When off, hold the Item Tooltip hotkey to show them.");
+        imgui_unindent(0.0f);
+    }
 
 
     imgui_spacing();

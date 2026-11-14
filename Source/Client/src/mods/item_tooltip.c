@@ -6,6 +6,7 @@
 
 #include "common.h"
 #include "inter.h"
+#include "config/config.h"
 
 #define TT_FIFO_SIZE 16
 #define TT_HEADERLESS_MAX 64
@@ -279,7 +280,7 @@ static void start_flight(const ItemTooltipKind kind, const int slot) {
 }
 
 static void pump(void) {
-    if (flight.active || fifo_count > 0 || tick_now < pause_until) return;
+    if (!g_config.ui.item_tooltips || flight.active || fifo_count > 0 || tick_now < pause_until) return;
 
     /* The server appends a comparison with the cursor item, which must not be cached. */
     if (pl.citem) return;

@@ -94,6 +94,10 @@ static BindingDescriptor binding_registry[] = {
         "World Map", TOGGLE_WORLDMAP_HOTKEY, BINDING_CATEGORY_WINDOW, {SDLK_UNKNOWN, KEYBIND_MOD_NONE},
         {SDLK_UNKNOWN, KEYBIND_MOD_NONE},
     },
+    {
+        "Item Tooltip (hold)", ITEM_TOOLTIP_HOTKEY, BINDING_CATEGORY_WINDOW, {SDLK_LALT, KEYBIND_MOD_NONE},
+        {SDLK_LALT, KEYBIND_MOD_NONE}, true,
+    },
 
     /* General Hotkeys */
     {
@@ -203,6 +207,12 @@ static const char *get_key_name(SDL_Keycode key) {
         case SDLK_PERIOD: return ".";
         case SDLK_SLASH: return "/";
         case SDLK_BACKQUOTE: return "`";
+        case SDLK_LSHIFT:
+        case SDLK_RSHIFT: return "Shift";
+        case SDLK_LCTRL:
+        case SDLK_RCTRL: return "Ctrl";
+        case SDLK_LALT:
+        case SDLK_RALT: return "Alt";
         default: return SDL_GetKeyName(key);
     }
 }
@@ -320,4 +330,33 @@ BindingDescriptor *binding_find_by_id(const char *id) {
     }
 
     return NULL; /* No match found */
+}
+
+static SDL_Keymod modifier_key_mask(const SDL_Keycode key) {
+    switch (key) {
+        case SDLK_LSHIFT:
+        case SDLK_RSHIFT: return KMOD_SHIFT;
+        case SDLK_LCTRL:
+        case SDLK_RCTRL: return KMOD_CTRL;
+        case SDLK_LALT:
+        case SDLK_RALT: return KMOD_ALT;
+        default: return KMOD_NONE;
+    }
+}
+
+bool keybinding_is_held(const Keybinding kb) {
+    const SDL_Keymod mod_state = SDL_GetModState();
+
+    if (kb.key == SDLK_UNKNOWN) return false;
+
+    /* Either side of a modifier counts, so Alt is held whether it is the left or the right one. */
+    const SDL_Keymod modifier_mask = modifier_key_mask(kb.key);
+    if (modifier_mask != KMOD_NONE) return (mod_state & modifier_mask) != 0;
+
+    if ((kb.modifier & KEYBIND_MOD_SHIFT) && !(mod_state & KMOD_SHIFT)) return false;
+    if ((kb.modifier & KEYBIND_MOD_CTRL) && !(mod_state & KMOD_CTRL)) return false;
+    if ((kb.modifier & KEYBIND_MOD_ALT) && !(mod_state & KMOD_ALT)) return false;
+
+    const Uint8 *keyboard_state = SDL_GetKeyboardState(NULL);
+    return keyboard_state[SDL_GetScancodeFromKey(kb.key)] != 0;
 }

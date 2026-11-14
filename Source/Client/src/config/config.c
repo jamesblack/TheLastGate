@@ -25,7 +25,9 @@ GlobalConfig g_config = {
         .cost_helper = false,
         .escape_closes_menu_first = true,
         .enter_to_talk = false,
-        .expanded_quick_stats = true
+        .expanded_quick_stats = true,
+        .item_tooltips = true,
+        .item_tooltips_always = true
     },
     .gameplay = {
         .give_more = false,

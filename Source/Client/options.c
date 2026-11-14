@@ -16,6 +16,7 @@
 #include "config/keybindings.h"
 
 #define EXTENDED_VERSION_SKILL_PLANNER 7
+#define EXTENDED_VERSION_ITEM_TOOLTIPS 9
 
 extern int screen_width, screen_height, screen_tilexoff, screen_tileyoff, screen_viewsize, view_subedges;
 //extern int screen_overlay_sprite;
@@ -163,6 +164,8 @@ void load_extended_options(void)
 	g_config.gameplay.use_queue = 0;
 	g_config.ui.skill_planner = false;
 	g_config.gameplay.adaptive_tick_pacing = 0;
+	g_config.ui.item_tooltips = true;
+	g_config.ui.item_tooltips_always = true;
 
 	handle = open("TLGExtended.dat", O_RDONLY|O_BINARY);
 	if (handle != -1) {
@@ -263,6 +266,11 @@ void load_extended_options(void)
 			if (read(handle, &g_config.gameplay.adaptive_tick_pacing, sizeof(g_config.gameplay.adaptive_tick_pacing)) != sizeof(g_config.gameplay.adaptive_tick_pacing)) return;
 		}
 
+		if (version >= EXTENDED_VERSION_ITEM_TOOLTIPS) {
+			if (read(handle, &g_config.ui.item_tooltips, sizeof(g_config.ui.item_tooltips)) != sizeof(g_config.ui.item_tooltips)) return;
+			if (read(handle, &g_config.ui.item_tooltips_always, sizeof(g_config.ui.item_tooltips_always)) != sizeof(g_config.ui.item_tooltips_always)) return;
+		}
+
 		close(handle);
 		return;
 	}
@@ -334,6 +342,8 @@ void save_extended_options(void)
 		write(handle, &g_config.ui.expanded_quick_stats, sizeof(g_config.ui.expanded_quick_stats));
 		write(handle, &g_config.ui.skill_planner, sizeof(g_config.ui.skill_planner));
 		write(handle, &g_config.gameplay.adaptive_tick_pacing, sizeof(g_config.gameplay.adaptive_tick_pacing));
+		write(handle, &g_config.ui.item_tooltips, sizeof(g_config.ui.item_tooltips));
+		write(handle, &g_config.ui.item_tooltips_always, sizeof(g_config.ui.item_tooltips_always));
 
 		close(handle);
 	}

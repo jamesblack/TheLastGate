@@ -932,6 +932,14 @@ bool imgui_is_key_pressed(int sdl_keycode) {
         case SDLK_PAGEUP: return ImGui::IsKeyPressed(ImGuiKey_PageUp, false);
         case SDLK_PAGEDOWN: return ImGui::IsKeyPressed(ImGuiKey_PageDown, false);
 
+        /* Modifiers, either side */
+        case SDLK_LSHIFT:
+            return ImGui::IsKeyPressed(ImGuiKey_LeftShift, false) || ImGui::IsKeyPressed(ImGuiKey_RightShift, false);
+        case SDLK_LCTRL:
+            return ImGui::IsKeyPressed(ImGuiKey_LeftCtrl, false) || ImGui::IsKeyPressed(ImGuiKey_RightCtrl, false);
+        case SDLK_LALT:
+            return ImGui::IsKeyPressed(ImGuiKey_LeftAlt, false) || ImGui::IsKeyPressed(ImGuiKey_RightAlt, false);
+
         /* Arrow keys */
         case SDLK_UP: return ImGui::IsKeyPressed(ImGuiKey_UpArrow, false);
         case SDLK_DOWN: return ImGui::IsKeyPressed(ImGuiKey_DownArrow, false);

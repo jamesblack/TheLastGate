@@ -27,6 +27,8 @@ typedef struct {
     bool enter_to_talk;
     bool expanded_quick_stats;
     bool skill_planner; /* the Planner button, its hotkey and window */
+    bool item_tooltips;
+    bool item_tooltips_always; /* show on hover without holding the tooltip hotkey */
 } UiConfig;
 
 

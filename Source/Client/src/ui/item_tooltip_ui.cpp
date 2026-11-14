@@ -8,6 +8,7 @@
 #include "common.h"
 #include "inter.h"
 #include "ui_common.hpp"
+#include "config/config.h"
 #include "mods/item_tooltip.h"
 
 extern "C" unsigned char inv_block[];
@@ -532,8 +533,21 @@ static bool draw_held_comparison() {
     return true;
 }
 
+static bool tooltips_visible() {
+    if (!g_config.ui.item_tooltips) return false;
+    if (g_config.ui.item_tooltips_always) return true;
+
+    const BindingDescriptor *binding = binding_find_by_id(ITEM_TOOLTIP_HOTKEY);
+    return binding != nullptr && keybinding_is_held(binding->keybinding);
+}
+
 void item_tooltip_ui_render(void) {
     report_equipment_hover();
+
+    if (!tooltips_visible()) {
+        item_tooltip_frame_end();
+        return;
+    }
 
     if (!draw_held_comparison()) {
         const TooltipBlock *block = item_tooltip_hovered_block();
