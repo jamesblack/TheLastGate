@@ -181,6 +181,20 @@ static bool stat_comparable(const ItemStat *stat) {
            stat->kind == ITEM_STAT_REGEN;
 }
 
+/* Complexity and Min Rank read better as lines under the table than as a column of mostly empty cells. */
+static bool stat_in_table(const ItemStat *stat) {
+    return stat->kind != ITEM_STAT_SINGLE && stat->kind != ITEM_STAT_RANK;
+}
+
+static int table_stat_count(const ItemDetails *details) {
+    int count = 0;
+
+    for (int stat_index = 0; stat_index < details->stat_count; stat_index++) {
+        if (stat_in_table(&details->stats[stat_index])) count++;
+    }
+    return count;
+}
+
 static bool stat_has_active(const ItemStat *stat) {
     return stat->kind == ITEM_STAT_PLAIN || stat->kind == ITEM_STAT_PERCENT;
 }
@@ -301,7 +315,7 @@ static void draw_stat_row(const StatTable *table, const ItemStat *stat) {
 static void draw_gained_stats(const StatTable *table) {
     for (int stat_index = 0; stat_index < table->held->stat_count; stat_index++) {
         const ItemStat *gain = &table->held->stats[stat_index];
-        if (!stat_comparable(gain) || find_stat(table->shown, gain->name) != nullptr) continue;
+        if (!stat_in_table(gain) || !stat_comparable(gain) || find_stat(table->shown, gain->name) != nullptr) continue;
 
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
@@ -327,15 +341,54 @@ static void draw_stat_table(const ItemDetails *shown, const ItemDetails *held) {
     if (held != nullptr && (shown->soulstone_table != 0 || held->soulstone_table != 0)) held = nullptr;
 
     StatTable table = {shown, held, table_columns(shown, held)};
-    if (!ImGui::BeginTable("##item_stats", table_column_count(&table), ImGuiTableFlags_SizingFixedFit)) return;
+    if (table_stat_count(shown) == 0 && (held == nullptr || table_stat_count(held) == 0)) return;
 
-    draw_table_header(&table);
-    for (int stat_index = 0; stat_index < shown->stat_count; stat_index++) {
-        draw_stat_row(&table, &shown->stats[stat_index]);
+    /* The tooltip wrap edge is a fixed window x, so a wide cell would squeeze every column after it to nothing. */
+    ImGui::PushTextWrapPos(-1.0F);
+    if (ImGui::BeginTable("##item_stats", table_column_count(&table), ImGuiTableFlags_SizingFixedFit)) {
+        draw_table_header(&table);
+        for (int stat_index = 0; stat_index < shown->stat_count; stat_index++) {
+            if (stat_in_table(&shown->stats[stat_index])) draw_stat_row(&table, &shown->stats[stat_index]);
+        }
+        if (held != nullptr) draw_gained_stats(&table);
+        ImGui::EndTable();
     }
-    if (held != nullptr) draw_gained_stats(&table);
+    ImGui::PopTextWrapPos();
+}
 
-    ImGui::EndTable();
+static void draw_stat_line(const ItemStat *stat, const ItemStat *held_stat, const bool compare) {
+    char value_text[STAT_TEXT_SIZE];
+    char line_text[STAT_TEXT_SIZE * 2];
+
+    format_special(value_text, sizeof(value_text), stat);
+    snprintf(line_text, sizeof(line_text), "%s: %s", stat->name, value_text);
+    text_colored(chat_font_color(CHAT_FONT_YELLOW), line_text);
+    if (compare && stat_comparable(stat)) {
+        draw_delta(stat, (held_stat != nullptr ? held_stat->passive : 0) - stat->passive);
+    }
+}
+
+/* `held` is the item that would replace `shown`, or NULL when not comparing. */
+static void draw_stat_lines(const ItemDetails *shown, const ItemDetails *held) {
+    char gain_text[STAT_TEXT_SIZE];
+
+    if (held != nullptr && (shown->soulstone_table != 0 || held->soulstone_table != 0)) held = nullptr;
+
+    for (int stat_index = 0; stat_index < shown->stat_count; stat_index++) {
+        const ItemStat *stat = &shown->stats[stat_index];
+        if (stat_in_table(stat)) continue;
+        draw_stat_line(stat, held != nullptr ? find_stat(held, stat->name) : nullptr, held != nullptr);
+    }
+    if (held == nullptr) return;
+
+    for (int stat_index = 0; stat_index < held->stat_count; stat_index++) {
+        const ItemStat *gain = &held->stats[stat_index];
+        if (stat_in_table(gain) || find_stat(shown, gain->name) != nullptr) continue;
+
+        snprintf(gain_text, sizeof(gain_text), "%s: -", gain->name);
+        text_colored(TOOLTIP_DIM_COLOR, gain_text);
+        if (stat_comparable(gain)) draw_delta(gain, gain->passive);
+    }
 }
 
 static void draw_line_refs(const TooltipBlock *block, const unsigned char *refs, const int count) {
@@ -389,6 +442,7 @@ static void draw_tooltip_body(const TooltipBlock *block, const ItemDetails *deta
     if (details->stat_count > 0 || (held != nullptr && held->stat_count > 0)) {
         ImGui::Separator();
         draw_stat_table(details, held);
+        draw_stat_lines(details, held);
     }
 
     if (details->mods_applied != 0 || details->mods_possible != 0) {
@@ -445,6 +499,7 @@ static void draw_empty_slot_comparison(const ItemDetails *held) {
     if (held->stat_count > 0) {
         ImGui::Separator();
         draw_stat_table(&empty_slot, held);
+        draw_stat_lines(&empty_slot, held);
     }
     end_item_tooltip();
 }
