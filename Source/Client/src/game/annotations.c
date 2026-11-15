@@ -203,21 +203,23 @@ int annotation_tree_collect(const AnnotationSet *set, const int root_id, int *or
     return count;
 }
 
-static int name_in_use(const AnnotationSet *set, const int parent_id, const char *name) {
+static int name_in_use(const AnnotationSet *set, const int parent_id, const int ignored_id, const char *name) {
     int index;
     for (index = 0; index < set->category_count; index++) {
-        if (set->categories[index].parent_id == parent_id && annotation_name_equal(set->categories[index].name, name)) {
+        if (set->categories[index].id != ignored_id && set->categories[index].parent_id == parent_id &&
+            annotation_name_equal(set->categories[index].name, name)) {
             return 1;
         }
     }
     return 0;
 }
 
-static void make_unique_name(const AnnotationSet *set, const int parent_id, char *destination, const char *wanted) {
+static void make_unique_name(const AnnotationSet *set, const int parent_id, const int ignored_id, char *destination,
+                             const char *wanted) {
     char suffix[16];
     int attempt;
     annotation_copy_text(destination, ANNOTATION_CATEGORY_NAME_MAX, wanted);
-    for (attempt = 2; name_in_use(set, parent_id, destination); attempt++) {
+    for (attempt = 2; name_in_use(set, parent_id, ignored_id, destination); attempt++) {
         snprintf(suffix, sizeof(suffix), " (%d)", attempt);
         annotation_copy_text(destination, ANNOTATION_CATEGORY_NAME_MAX - strlen(suffix), wanted);
         strcat(destination, suffix);
@@ -243,7 +245,7 @@ int annotation_category_add_under(AnnotationSet *set, const int parent_id, const
     AnnotationCategory *category;
     char unique_name[ANNOTATION_CATEGORY_NAME_MAX];
     if (!parent_accepts_child(set, parent_id)) return 0;
-    make_unique_name(set, parent_id, unique_name, name);
+    make_unique_name(set, parent_id, 0, unique_name, name);
     category = append_category(set);
     if (category == NULL) return 0;
     memset(category, 0, sizeof(*category));
@@ -280,7 +282,7 @@ int annotation_category_adopt(AnnotationSet *set, AnnotationCategory *detached) 
     char unique_name[ANNOTATION_CATEGORY_NAME_MAX];
     AnnotationCategory *category;
     int category_id;
-    make_unique_name(set, 0, unique_name, detached->name);
+    make_unique_name(set, 0, 0, unique_name, detached->name);
     category_id = annotation_category_attach(set, detached, 0);
     if (category_id == 0) return 0;
     category = annotation_category_find(set, category_id);
@@ -296,6 +298,44 @@ int annotation_category_remove(AnnotationSet *set, const int category_id) {
     annotation_category_release(category);
     memmove(category, category + 1, sizeof(AnnotationCategory) * (size_t) (set->category_count - index - 1));
     set->category_count--;
+    set->changed = 1;
+    return 1;
+}
+
+int annotation_category_rename(AnnotationSet *set, const int category_id, const char *name) {
+    AnnotationCategory *category = annotation_category_find(set, category_id);
+    if (category == NULL || name == NULL || name[0] == ' ') return 0;
+    make_unique_name(set, category->parent_id, category_id, category->name, name);
+    set->changed = 1;
+    return 1;
+}
+
+int annotation_category_set_colour(AnnotationSet *set, const int category_id, const int colour_index) {
+    AnnotationCategory *category = annotation_category_find(set, category_id);
+    if (category == NULL || colour_index < 0 || colour_index >= ANNOTATION_PALETTE_SIZE) return 0;
+    category->colour_index = colour_index;
+    set->changed = 1;
+    return 1;
+}
+
+int annotation_category_can_move(const AnnotationSet *set, const int category_id, const int new_parent_id) {
+    const int index = find_category_index(set, category_id);
+    if (index < 0) return 0;
+    if (new_parent_id == set->categories[index].parent_id) return 0;
+    if (new_parent_id != 0 && find_category_index(set, new_parent_id) < 0) return 0;
+    if (annotation_category_is_within(set, new_parent_id, category_id)) return 0;
+    return annotation_category_depth(set, new_parent_id) + annotation_category_subtree_height(set, category_id) <=
+           ANNOTATION_MAX_DEPTH;
+}
+
+int annotation_category_move(AnnotationSet *set, const int category_id, const int new_parent_id) {
+    AnnotationCategory *category;
+    char unique_name[ANNOTATION_CATEGORY_NAME_MAX];
+    if (!annotation_category_can_move(set, category_id, new_parent_id)) return 0;
+    category = annotation_category_find(set, category_id);
+    make_unique_name(set, new_parent_id, category_id, unique_name, category->name);
+    memcpy(category->name, unique_name, sizeof(unique_name));
+    category->parent_id = new_parent_id;
     set->changed = 1;
     return 1;
 }
@@ -396,6 +436,54 @@ int annotation_remove(AnnotationSet *set, const int annotation_id) {
     category->annotation_count--;
     set->changed = 1;
     return 1;
+}
+
+int annotation_set_colour(AnnotationSet *set, const int annotation_id, const int colour_index) {
+    Annotation *annotation = annotation_find(set, annotation_id, NULL);
+    if (annotation == NULL) return 0;
+    if (colour_index != ANNOTATION_COLOUR_INHERIT && (colour_index < 0 || colour_index >= ANNOTATION_PALETTE_SIZE)) {
+        return 0;
+    }
+    annotation->colour_index = colour_index;
+    set->changed = 1;
+    return 1;
+}
+
+int annotation_move(AnnotationSet *set, const int annotation_id, const int category_id) {
+    AnnotationCategory *source = NULL;
+    AnnotationCategory *target = annotation_category_find(set, category_id);
+    Annotation *annotation = annotation_find(set, annotation_id, &source);
+    Annotation *added;
+    int index;
+    if (annotation == NULL || target == NULL || target == source) return 0;
+    if (annotation_category_segment_total(target) + annotation->segment_count > ANNOTATION_MAX_SEGMENTS_PER_CATEGORY) {
+        return 0;
+    }
+    added = append_annotation(target);
+    if (added == NULL) return 0;
+    *added = *annotation;
+    index = (int) (annotation - source->annotations);
+    memmove(annotation, annotation + 1, sizeof(Annotation) * (size_t) (source->annotation_count - index - 1));
+    source->annotation_count--;
+    set->changed = 1;
+    return 1;
+}
+
+unsigned int annotation_effective_rgb(const AnnotationCategory *category, const Annotation *annotation) {
+    if (annotation != NULL && annotation->colour_index >= 0 && annotation->colour_index < ANNOTATION_PALETTE_SIZE) {
+        return annotation_palette_rgb(annotation->colour_index);
+    }
+    return annotation_palette_rgb(category->colour_index);
+}
+
+int annotation_identical(const Annotation *left, const Annotation *right) {
+    if (left->kind != right->kind || left->tile_x != right->tile_x || left->tile_y != right->tile_y ||
+        left->colour_index != right->colour_index || left->segment_count != right->segment_count ||
+        strcmp(left->label, right->label) != 0) {
+        return 0;
+    }
+    if (left->segment_count == 0) return 1;
+    return memcmp(left->segments, right->segments, sizeof(AnnotationSegment) * (size_t) left->segment_count) == 0;
 }
 
 int annotation_copy(Annotation *destination, const Annotation *source) {

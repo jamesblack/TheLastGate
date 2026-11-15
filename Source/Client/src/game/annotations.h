@@ -69,6 +69,10 @@ int annotation_category_labels_shown(const AnnotationSet *set, const AnnotationC
 int annotation_tree_collect(const AnnotationSet *set, int root_id, int *ordered_indices, int capacity);
 int annotation_name_equal(const char *left, const char *right);
 int annotation_category_remove(AnnotationSet *set, int category_id);
+int annotation_category_rename(AnnotationSet *set, int category_id, const char *name);
+int annotation_category_set_colour(AnnotationSet *set, int category_id, int colour_index);
+int annotation_category_can_move(const AnnotationSet *set, int category_id, int new_parent_id);
+int annotation_category_move(AnnotationSet *set, int category_id, int new_parent_id);
 AnnotationCategory *annotation_category_find(AnnotationSet *set, int category_id);
 void annotation_category_release(AnnotationCategory *category);
 int annotation_category_count_kind(const AnnotationCategory *category, AnnotationKind kind);
@@ -79,6 +83,10 @@ int annotation_add_path(AnnotationSet *set, int category_id, const AnnotationSeg
                         const char *label);
 Annotation *annotation_find(AnnotationSet *set, int annotation_id, AnnotationCategory **owner);
 int annotation_remove(AnnotationSet *set, int annotation_id);
+int annotation_set_colour(AnnotationSet *set, int annotation_id, int colour_index);
+int annotation_move(AnnotationSet *set, int annotation_id, int category_id);
+unsigned int annotation_effective_rgb(const AnnotationCategory *category, const Annotation *annotation);
+int annotation_identical(const Annotation *left, const Annotation *right);
 int annotation_copy(Annotation *destination, const Annotation *source);
 void annotation_release(Annotation *annotation);
 int annotation_replace(AnnotationSet *set, int annotation_id, const Annotation *edited);

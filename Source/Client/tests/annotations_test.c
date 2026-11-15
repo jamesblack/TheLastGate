@@ -479,6 +479,139 @@ static void test_is_within_and_subtree_height(void) {
     annotation_set_release(&set);
 }
 
+static void test_rename_suffixes_on_sibling_clash_only(void) {
+    AnnotationSet set;
+    int first_id, second_id;
+    annotation_set_init(&set);
+    first_id = annotation_category_add(&set, "Aston", 0);
+    second_id = annotation_category_add(&set, "Bank", 0);
+    CHECK(annotation_category_rename(&set, second_id, "aston") == 1);
+    CHECK(strcmp(annotation_category_find(&set, second_id)->name, "aston (2)") == 0);
+    CHECK(annotation_category_rename(&set, first_id, "ASTON") == 1);
+    CHECK(strcmp(annotation_category_find(&set, first_id)->name, "ASTON") == 0);
+    CHECK(annotation_category_rename(&set, first_id, "") == 0);
+    CHECK(annotation_category_rename(&set, 999, "Name") == 0);
+    annotation_set_release(&set);
+}
+
+static void test_category_colour_change(void) {
+    AnnotationSet set;
+    int category_id;
+    annotation_set_init(&set);
+    category_id = annotation_category_add(&set, "A", 0);
+    CHECK(annotation_category_set_colour(&set, category_id, 5) == 1);
+    CHECK(annotation_category_find(&set, category_id)->colour_index == 5);
+    CHECK(annotation_category_set_colour(&set, category_id, ANNOTATION_PALETTE_SIZE) == 0);
+    CHECK(annotation_category_find(&set, category_id)->colour_index == 5);
+    annotation_set_release(&set);
+}
+
+static void test_move_category_rules(void) {
+    AnnotationSet set;
+    int first_id, child_id, other_id, givers_id, nested_id, level, chain_id = 0, pair_id;
+    annotation_set_init(&set);
+    first_id = annotation_category_add(&set, "A", 0);
+    child_id = annotation_category_add_under(&set, first_id, "A1", 0);
+    CHECK(annotation_category_move(&set, first_id, child_id) == 0);
+    CHECK(annotation_category_move(&set, first_id, first_id) == 0);
+    CHECK(annotation_category_move(&set, child_id, first_id) == 0);
+    CHECK(annotation_category_can_move(&set, child_id, 0) == 1);
+    CHECK(annotation_category_move(&set, child_id, 0) == 1);
+    CHECK(annotation_category_find(&set, child_id)->parent_id == 0);
+
+    other_id = annotation_category_add(&set, "B", 0);
+    givers_id = annotation_category_add_under(&set, other_id, "Quest Givers", 0);
+    nested_id = annotation_category_add_under(&set, first_id, "quest givers", 0);
+    annotation_category_add_under(&set, nested_id, "Leaf", 0);
+    CHECK(annotation_category_move(&set, nested_id, other_id) == 1);
+    CHECK(annotation_category_find(&set, nested_id)->parent_id == other_id);
+    CHECK(strcmp(annotation_category_find(&set, nested_id)->name, "quest givers (2)") == 0);
+    CHECK(annotation_category_subtree_height(&set, nested_id) == 2);
+    CHECK(strcmp(annotation_category_find(&set, givers_id)->name, "Quest Givers") == 0);
+
+    for (level = 1; level <= ANNOTATION_MAX_DEPTH - 1; level++) {
+        chain_id = annotation_category_add_under(&set, chain_id, "Chain", 0);
+    }
+    CHECK(annotation_category_depth(&set, chain_id) == ANNOTATION_MAX_DEPTH - 1);
+    pair_id = annotation_category_add(&set, "Pair", 0);
+    annotation_category_add_under(&set, pair_id, "Pair child", 0);
+    CHECK(annotation_category_can_move(&set, pair_id, chain_id) == 0);
+    CHECK(annotation_category_move(&set, pair_id, chain_id) == 0);
+    CHECK(annotation_category_can_move(&set, other_id, 0) == 0);
+    annotation_set_release(&set);
+}
+
+static void test_annotation_colour_override_and_clear(void) {
+    AnnotationSet set;
+    int category_id, pin_id;
+    AnnotationCategory *category;
+    annotation_set_init(&set);
+    category_id = annotation_category_add(&set, "A", 3);
+    pin_id = annotation_add_point(&set, category_id, ANNOTATION_PIN, 1, 1, "");
+    category = annotation_category_find(&set, category_id);
+    CHECK(annotation_effective_rgb(category, annotation_find(&set, pin_id, NULL)) == annotation_palette_rgb(3));
+    CHECK(annotation_set_colour(&set, pin_id, 2) == 1);
+    CHECK(annotation_effective_rgb(category, annotation_find(&set, pin_id, NULL)) == annotation_palette_rgb(2));
+    CHECK(annotation_set_colour(&set, pin_id, ANNOTATION_COLOUR_INHERIT) == 1);
+    CHECK(annotation_effective_rgb(category, annotation_find(&set, pin_id, NULL)) == annotation_palette_rgb(3));
+    CHECK(annotation_set_colour(&set, pin_id, 9) == 0);
+    CHECK(annotation_set_colour(&set, 999, 1) == 0);
+    annotation_set_release(&set);
+}
+
+static void test_move_annotation_keeps_id_and_respects_limits(void) {
+    AnnotationSet set;
+    int first_id, second_id, pin_id, count;
+    AnnotationCategory *owner = NULL;
+    annotation_set_init(&set);
+    first_id = annotation_category_add(&set, "A", 0);
+    second_id = annotation_category_add(&set, "B", 0);
+    pin_id = annotation_add_point(&set, first_id, ANNOTATION_PIN, 4, 5, "Pin");
+    annotation_set_colour(&set, pin_id, 4);
+    CHECK(annotation_move(&set, pin_id, first_id) == 0);
+    CHECK(annotation_move(&set, pin_id, 999) == 0);
+    CHECK(annotation_move(&set, pin_id, second_id) == 1);
+    CHECK(annotation_find(&set, pin_id, &owner) != NULL);
+    CHECK(owner->id == second_id);
+    CHECK(annotation_find(&set, pin_id, NULL)->colour_index == 4);
+    CHECK(annotation_category_find(&set, first_id)->annotation_count == 0);
+    for (count = 0; count < ANNOTATION_MAX_PER_CATEGORY; count++) {
+        annotation_add_point(&set, first_id, ANNOTATION_PIN, 1, 1, "");
+    }
+    CHECK(annotation_category_find(&set, first_id)->annotation_count == ANNOTATION_MAX_PER_CATEGORY);
+    CHECK(annotation_move(&set, pin_id, first_id) == 0);
+    annotation_set_release(&set);
+}
+
+static void test_identical_compares_everything(void) {
+    AnnotationSet set;
+    AnnotationSegment segments[2] = {{1, 1, 2, 2}, {2, 2, 3, 3}};
+    int category_id, path_id;
+    Annotation original, duplicate;
+    annotation_set_init(&set);
+    category_id = annotation_category_add(&set, "A", 0);
+    path_id = annotation_add_path(&set, category_id, segments, 2, "Road");
+    CHECK(annotation_copy(&original, annotation_find(&set, path_id, NULL)) == 1);
+    CHECK(annotation_copy(&duplicate, &original) == 1);
+    CHECK(annotation_identical(&original, &duplicate) == 1);
+    duplicate.label[0] = 'X';
+    CHECK(annotation_identical(&original, &duplicate) == 0);
+    duplicate.label[0] = original.label[0];
+    duplicate.tile_x++;
+    CHECK(annotation_identical(&original, &duplicate) == 0);
+    duplicate.tile_x--;
+    duplicate.colour_index = 3;
+    CHECK(annotation_identical(&original, &duplicate) == 0);
+    duplicate.colour_index = original.colour_index;
+    duplicate.segments[1].end_y++;
+    CHECK(annotation_identical(&original, &duplicate) == 0);
+    duplicate.segments[1].end_y--;
+    CHECK(annotation_identical(&original, &duplicate) == 1);
+    annotation_release(&original);
+    annotation_release(&duplicate);
+    annotation_set_release(&set);
+}
+
 int main(void) {
     test_attach_renumbers_ids_and_parents();
     test_sibling_names_unique_ignoring_case_but_cousins_may_share();
