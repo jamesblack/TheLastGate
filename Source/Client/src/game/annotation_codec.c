@@ -165,6 +165,7 @@ static int read_annotation(const Reader *reader, int *cursor_x, int *cursor_y, A
     unsigned int kind;
     if (!read_byte(reader, &kind) || kind < ANNOTATION_PIN || kind > ANNOTATION_PATH) return 0;
     annotation->kind = (AnnotationKind) kind;
+    annotation->colour_index = ANNOTATION_COLOUR_INHERIT;
     if (!read_text(reader, annotation->label, ANNOTATION_LABEL_MAX)) return 0;
     if (annotation->kind == ANNOTATION_PATH) return read_path(reader, cursor_x, cursor_y, annotation);
     if (annotation->kind == ANNOTATION_TEXT && annotation->label[0] == '\0') return 0;

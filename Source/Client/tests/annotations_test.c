@@ -331,7 +331,164 @@ static void test_replace_refuses_growing_past_segment_total(void) {
     annotation_set_release(&set);
 }
 
+static void test_attach_renumbers_ids_and_parents(void) {
+    AnnotationSet set;
+    AnnotationCategory detached = make_detached_category("Keys");
+    int parent_id, attached_id;
+    const AnnotationCategory *attached;
+    annotation_set_init(&set);
+    parent_id = annotation_category_add(&set, "Parent", 0);
+    attached_id = annotation_category_attach(&set, &detached, parent_id);
+    attached = annotation_category_find(&set, attached_id);
+    CHECK(attached != NULL);
+    if (attached != NULL) {
+        CHECK(attached->parent_id == parent_id);
+        CHECK(attached->id != 0);
+        CHECK(attached->annotations[0].id != 0);
+        CHECK(attached->annotations[0].id != 77);
+        CHECK(attached->visible == 1);
+    }
+    CHECK(detached.annotations == NULL);
+    CHECK(annotation_category_attach(&set, &detached, 999) == 0);
+    annotation_set_release(&set);
+}
+
+static void test_sibling_names_unique_ignoring_case_but_cousins_may_share(void) {
+    AnnotationSet set;
+    int aston_id, neiseer_id, first_id, second_id, third_id;
+    annotation_set_init(&set);
+    aston_id = annotation_category_add(&set, "Aston", 0);
+    neiseer_id = annotation_category_add(&set, "Neiseer", 0);
+    first_id = annotation_category_add_under(&set, aston_id, "Quest Givers", 0);
+    second_id = annotation_category_add_under(&set, neiseer_id, "Quest Givers", 0);
+    third_id = annotation_category_add_under(&set, aston_id, "quest givers", 0);
+    CHECK(first_id != 0 && second_id != 0 && third_id != 0);
+    CHECK(strcmp(annotation_category_find(&set, first_id)->name, "Quest Givers") == 0);
+    CHECK(strcmp(annotation_category_find(&set, second_id)->name, "Quest Givers") == 0);
+    CHECK(strcmp(annotation_category_find(&set, third_id)->name, "quest givers (2)") == 0);
+    annotation_set_release(&set);
+}
+
+static void test_attach_keeps_clashing_names_verbatim(void) {
+    AnnotationSet set;
+    AnnotationCategory upper = make_detached_category("Aston");
+    AnnotationCategory lower = make_detached_category("aston");
+    int upper_id, lower_id;
+    annotation_set_init(&set);
+    upper_id = annotation_category_attach(&set, &upper, 0);
+    lower_id = annotation_category_attach(&set, &lower, 0);
+    CHECK(upper_id != 0 && lower_id != 0);
+    CHECK(strcmp(annotation_category_find(&set, upper_id)->name, "Aston") == 0);
+    CHECK(strcmp(annotation_category_find(&set, lower_id)->name, "aston") == 0);
+    annotation_set_release(&set);
+}
+
+static void test_new_annotations_inherit_colour(void) {
+    AnnotationSet set;
+    AnnotationSegment segment = {1, 1, 2, 2};
+    int category_id, pin_id, path_id;
+    annotation_set_init(&set);
+    category_id = annotation_category_add(&set, "Keys", 0);
+    pin_id = annotation_add_point(&set, category_id, ANNOTATION_PIN, 1, 1, "a");
+    path_id = annotation_add_path(&set, category_id, &segment, 1, "b");
+    CHECK(annotation_find(&set, pin_id, NULL)->colour_index == ANNOTATION_COLOUR_INHERIT);
+    CHECK(annotation_find(&set, path_id, NULL)->colour_index == ANNOTATION_COLOUR_INHERIT);
+    annotation_set_release(&set);
+}
+
+static void test_depth_limit(void) {
+    AnnotationSet set;
+    int level, parent_id = 0;
+    annotation_set_init(&set);
+    for (level = 1; level <= ANNOTATION_MAX_DEPTH; level++) {
+        parent_id = annotation_category_add_under(&set, parent_id, "Level", 0);
+        CHECK(parent_id != 0);
+    }
+    CHECK(annotation_category_add_under(&set, parent_id, "Too deep", 0) == 0);
+    CHECK(annotation_category_depth(&set, parent_id) == ANNOTATION_MAX_DEPTH);
+    CHECK(annotation_category_depth(&set, 999) == 0);
+    annotation_set_release(&set);
+}
+
+static void test_remove_refuses_category_with_children(void) {
+    AnnotationSet set;
+    int parent_id, child_id;
+    annotation_set_init(&set);
+    parent_id = annotation_category_add(&set, "Parent", 0);
+    child_id = annotation_category_add_under(&set, parent_id, "Child", 0);
+    CHECK(annotation_category_has_children(&set, parent_id) == 1);
+    CHECK(annotation_category_remove(&set, parent_id) == 0);
+    CHECK(annotation_category_remove(&set, child_id) == 1);
+    CHECK(annotation_category_has_children(&set, parent_id) == 0);
+    CHECK(annotation_category_remove(&set, parent_id) == 1);
+    annotation_set_release(&set);
+}
+
+static void test_hidden_ancestor_hides_descendants(void) {
+    AnnotationSet set;
+    int parent_id, child_id;
+    AnnotationCategory *parent;
+    AnnotationCategory *child;
+    annotation_set_init(&set);
+    parent_id = annotation_category_add(&set, "Parent", 0);
+    child_id = annotation_category_add_under(&set, parent_id, "Child", 0);
+    parent = annotation_category_find(&set, parent_id);
+    child = annotation_category_find(&set, child_id);
+    parent->visible = 0;
+    child->visible = 1;
+    CHECK(annotation_category_shown(&set, child) == 0);
+    parent->visible = 1;
+    CHECK(annotation_category_shown(&set, child) == 1);
+    parent->show_labels = 0;
+    child->show_labels = 1;
+    CHECK(annotation_category_labels_shown(&set, child) == 0);
+    parent->show_labels = 1;
+    CHECK(annotation_category_labels_shown(&set, child) == 1);
+    annotation_set_release(&set);
+}
+
+static void test_tree_collect_is_preorder(void) {
+    AnnotationSet set;
+    int ordered[8];
+    int first_id, second_id;
+    annotation_set_init(&set);
+    first_id = annotation_category_add(&set, "A", 0);
+    second_id = annotation_category_add(&set, "B", 0);
+    annotation_category_add_under(&set, first_id, "A1", 0);
+    CHECK(annotation_tree_collect(&set, 0, ordered, 8) == 3);
+    CHECK(ordered[0] == 0 && ordered[1] == 2 && ordered[2] == 1);
+    CHECK(annotation_tree_collect(&set, first_id, ordered, 8) == 2);
+    CHECK(ordered[0] == 0 && ordered[1] == 2);
+    CHECK(annotation_tree_collect(&set, second_id, ordered, 8) == 1);
+    CHECK(ordered[0] == 1);
+    annotation_set_release(&set);
+}
+
+static void test_is_within_and_subtree_height(void) {
+    AnnotationSet set;
+    int first_id, second_id, child_id;
+    annotation_set_init(&set);
+    first_id = annotation_category_add(&set, "A", 0);
+    second_id = annotation_category_add(&set, "B", 0);
+    child_id = annotation_category_add_under(&set, first_id, "A1", 0);
+    CHECK(annotation_category_is_within(&set, child_id, first_id) == 1);
+    CHECK(annotation_category_is_within(&set, first_id, child_id) == 0);
+    CHECK(annotation_category_is_within(&set, first_id, first_id) == 1);
+    CHECK(annotation_category_subtree_height(&set, first_id) == 2);
+    CHECK(annotation_category_subtree_height(&set, second_id) == 1);
+    annotation_set_release(&set);
+}
+
 int main(void) {
+    test_attach_renumbers_ids_and_parents();
+    test_sibling_names_unique_ignoring_case_but_cousins_may_share();
+    test_attach_keeps_clashing_names_verbatim();
+    test_new_annotations_inherit_colour();
+    test_depth_limit();
+    test_remove_refuses_category_with_children();
+    test_hidden_ancestor_hides_descendants();
+    test_tree_collect_is_preorder();
+    test_is_within_and_subtree_height();
     test_ids_are_unique_and_start_at_one();
     test_add_point_rejects_unknown_category_and_out_of_range();
     test_text_needs_a_label();

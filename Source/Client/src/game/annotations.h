@@ -8,7 +8,9 @@ extern "C" {
 
 #define ANNOTATION_LABEL_MAX 48
 #define ANNOTATION_CATEGORY_NAME_MAX 32
-#define ANNOTATION_MAX_CATEGORIES 64
+#define ANNOTATION_MAX_CATEGORIES 256
+#define ANNOTATION_MAX_DEPTH 8
+#define ANNOTATION_COLOUR_INHERIT (-1)
 #define ANNOTATION_MAX_PER_CATEGORY 256
 #define ANNOTATION_MAX_SEGMENTS 512
 #define ANNOTATION_MAX_SEGMENTS_PER_CATEGORY 4096
@@ -28,10 +30,12 @@ typedef struct {
     unsigned short tile_x, tile_y;
     AnnotationSegment *segments;
     int segment_count;
+    int colour_index;
 } Annotation;
 
 typedef struct {
     int id;
+    int parent_id;
     char name[ANNOTATION_CATEGORY_NAME_MAX];
     int colour_index;
     int visible;
@@ -53,7 +57,17 @@ void annotation_copy_text(char *destination, size_t destination_size, const char
 void annotation_set_init(AnnotationSet *set);
 void annotation_set_release(AnnotationSet *set);
 int annotation_category_add(AnnotationSet *set, const char *name, int colour_index);
+int annotation_category_add_under(AnnotationSet *set, int parent_id, const char *name, int colour_index);
 int annotation_category_adopt(AnnotationSet *set, AnnotationCategory *detached);
+int annotation_category_attach(AnnotationSet *set, AnnotationCategory *detached, int parent_id);
+int annotation_category_has_children(const AnnotationSet *set, int category_id);
+int annotation_category_depth(const AnnotationSet *set, int category_id);
+int annotation_category_subtree_height(const AnnotationSet *set, int category_id);
+int annotation_category_is_within(const AnnotationSet *set, int category_id, int ancestor_id);
+int annotation_category_shown(const AnnotationSet *set, const AnnotationCategory *category);
+int annotation_category_labels_shown(const AnnotationSet *set, const AnnotationCategory *category);
+int annotation_tree_collect(const AnnotationSet *set, int root_id, int *ordered_indices, int capacity);
+int annotation_name_equal(const char *left, const char *right);
 int annotation_category_remove(AnnotationSet *set, int category_id);
 AnnotationCategory *annotation_category_find(AnnotationSet *set, int category_id);
 void annotation_category_release(AnnotationCategory *category);

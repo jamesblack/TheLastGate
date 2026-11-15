@@ -124,6 +124,7 @@ static void test_code_round_trip(void) {
     CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_OK);
     check_sample_matches(&imported);
     CHECK(imported.visible == 1);
+    CHECK(imported.annotation_count > 0 && imported.annotations[0].colour_index == ANNOTATION_COLOUR_INHERIT);
     annotation_category_release(&imported);
     annotation_category_release(&sample);
     free(code);

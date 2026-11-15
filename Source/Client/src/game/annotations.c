@@ -83,19 +83,141 @@ AnnotationCategory *annotation_category_find(AnnotationSet *set, const int categ
     return NULL;
 }
 
-static int name_in_use(const AnnotationSet *set, const char *name) {
+int annotation_name_equal(const char *left, const char *right) {
+    while (*left != '\0' && *right != '\0') {
+        char left_char = *left++;
+        char right_char = *right++;
+        if (left_char >= 'A' && left_char <= 'Z') left_char = (char) (left_char - 'A' + 'a');
+        if (right_char >= 'A' && right_char <= 'Z') right_char = (char) (right_char - 'A' + 'a');
+        if (left_char != right_char) return 0;
+    }
+    return *left == *right;
+}
+
+static int find_category_index(const AnnotationSet *set, const int category_id) {
     int index;
+    if (category_id == 0) return -1;
     for (index = 0; index < set->category_count; index++) {
-        if (strcmp(set->categories[index].name, name) == 0) return 1;
+        if (set->categories[index].id == category_id) return index;
+    }
+    return -1;
+}
+
+int annotation_category_depth(const AnnotationSet *set, const int category_id) {
+    int depth = 0, current = category_id;
+    while (current != 0 && depth <= ANNOTATION_MAX_DEPTH) {
+        const int index = find_category_index(set, current);
+        if (index < 0) break;
+        depth++;
+        current = set->categories[index].parent_id;
+    }
+    return depth;
+}
+
+int annotation_category_has_children(const AnnotationSet *set, const int category_id) {
+    int index;
+    if (category_id == 0) return 0;
+    for (index = 0; index < set->category_count; index++) {
+        if (set->categories[index].parent_id == category_id && set->categories[index].id != category_id) return 1;
     }
     return 0;
 }
 
-static void make_unique_name(const AnnotationSet *set, char *destination, const char *wanted) {
+static int height_from(const AnnotationSet *set, const int category_id, const int level) {
+    int index, tallest = 0;
+    if (level > ANNOTATION_MAX_DEPTH) return 0;
+    for (index = 0; index < set->category_count; index++) {
+        if (set->categories[index].parent_id == category_id && set->categories[index].id != category_id) {
+            const int height = height_from(set, set->categories[index].id, level + 1);
+            if (height > tallest) tallest = height;
+        }
+    }
+    return tallest + 1;
+}
+
+int annotation_category_subtree_height(const AnnotationSet *set, const int category_id) {
+    if (find_category_index(set, category_id) < 0) return 0;
+    return height_from(set, category_id, 1);
+}
+
+int annotation_category_is_within(const AnnotationSet *set, const int category_id, const int ancestor_id) {
+    int step, current = category_id;
+    for (step = 0; step <= ANNOTATION_MAX_DEPTH && current != 0; step++) {
+        int index;
+        if (current == ancestor_id) return 1;
+        index = find_category_index(set, current);
+        if (index < 0) break;
+        current = set->categories[index].parent_id;
+    }
+    return 0;
+}
+
+int annotation_category_shown(const AnnotationSet *set, const AnnotationCategory *category) {
+    int step;
+    for (step = 0; step <= ANNOTATION_MAX_DEPTH && category != NULL; step++) {
+        int parent_index;
+        if (!category->visible) return 0;
+        parent_index = find_category_index(set, category->parent_id);
+        category = parent_index < 0 ? NULL : &set->categories[parent_index];
+    }
+    return 1;
+}
+
+int annotation_category_labels_shown(const AnnotationSet *set, const AnnotationCategory *category) {
+    int step;
+    for (step = 0; step <= ANNOTATION_MAX_DEPTH && category != NULL; step++) {
+        int parent_index;
+        if (!category->show_labels) return 0;
+        parent_index = find_category_index(set, category->parent_id);
+        category = parent_index < 0 ? NULL : &set->categories[parent_index];
+    }
+    return 1;
+}
+
+static int collect_subtree(const AnnotationSet *set, const int root_index, const int level, int *ordered_indices,
+                           const int capacity, int count) {
+    int index;
+    if (count >= capacity) return count;
+    ordered_indices[count++] = root_index;
+    if (level >= ANNOTATION_MAX_DEPTH) return count;
+    for (index = 0; index < set->category_count; index++) {
+        if (index != root_index && set->categories[index].parent_id == set->categories[root_index].id) {
+            count = collect_subtree(set, index, level + 1, ordered_indices, capacity, count);
+        }
+    }
+    return count;
+}
+
+int annotation_tree_collect(const AnnotationSet *set, const int root_id, int *ordered_indices, const int capacity) {
+    int index, count = 0;
+    if (root_id != 0) {
+        const int root_index = find_category_index(set, root_id);
+        if (root_index < 0) return 0;
+        return collect_subtree(set, root_index, 1, ordered_indices, capacity, 0);
+    }
+    for (index = 0; index < set->category_count; index++) {
+        if (set->categories[index].parent_id == 0) {
+            count = collect_subtree(set, index, 1, ordered_indices, capacity, count);
+        }
+    }
+    return count;
+}
+
+static int name_in_use(const AnnotationSet *set, const int parent_id, const char *name) {
+    int index;
+    for (index = 0; index < set->category_count; index++) {
+        if (set->categories[index].parent_id == parent_id && annotation_name_equal(set->categories[index].name, name)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void make_unique_name(const AnnotationSet *set, const int parent_id, char *destination, const char *wanted) {
     char suffix[16];
     int attempt;
     annotation_copy_text(destination, ANNOTATION_CATEGORY_NAME_MAX, wanted);
-    for (attempt = 2; name_in_use(set, destination); attempt++) {
+    for (attempt = 2; name_in_use(set, parent_id, destination); attempt++) {
         snprintf(suffix, sizeof(suffix), " (%d)", attempt);
         annotation_copy_text(destination, ANNOTATION_CATEGORY_NAME_MAX - strlen(suffix), wanted);
         strcat(destination, suffix);
@@ -111,14 +233,22 @@ static AnnotationCategory *append_category(AnnotationSet *set) {
     return &set->categories[set->category_count++];
 }
 
-int annotation_category_add(AnnotationSet *set, const char *name, const int colour_index) {
+static int parent_accepts_child(const AnnotationSet *set, const int parent_id) {
+    if (parent_id == 0) return 1;
+    if (find_category_index(set, parent_id) < 0) return 0;
+    return annotation_category_depth(set, parent_id) < ANNOTATION_MAX_DEPTH;
+}
+
+int annotation_category_add_under(AnnotationSet *set, const int parent_id, const char *name, const int colour_index) {
     AnnotationCategory *category;
     char unique_name[ANNOTATION_CATEGORY_NAME_MAX];
-    make_unique_name(set, unique_name, name);
+    if (!parent_accepts_child(set, parent_id)) return 0;
+    make_unique_name(set, parent_id, unique_name, name);
     category = append_category(set);
     if (category == NULL) return 0;
     memset(category, 0, sizeof(*category));
     category->id = set->next_id++;
+    category->parent_id = parent_id;
     memcpy(category->name, unique_name, sizeof(unique_name));
     category->colour_index = colour_index >= 0 && colour_index < ANNOTATION_PALETTE_SIZE ? colour_index : 0;
     category->visible = 1;
@@ -127,15 +257,18 @@ int annotation_category_add(AnnotationSet *set, const char *name, const int colo
     return category->id;
 }
 
-int annotation_category_adopt(AnnotationSet *set, AnnotationCategory *detached) {
+int annotation_category_add(AnnotationSet *set, const char *name, const int colour_index) {
+    return annotation_category_add_under(set, 0, name, colour_index);
+}
+
+int annotation_category_attach(AnnotationSet *set, AnnotationCategory *detached, const int parent_id) {
     AnnotationCategory *category;
-    char unique_name[ANNOTATION_CATEGORY_NAME_MAX];
     int index;
-    make_unique_name(set, unique_name, detached->name);
+    if (!parent_accepts_child(set, parent_id)) return 0;
     category = append_category(set);
     if (category == NULL) return 0;
     *category = *detached;
-    memcpy(category->name, unique_name, sizeof(unique_name));
+    category->parent_id = parent_id;
     category->id = set->next_id++;
     for (index = 0; index < category->annotation_count; index++) category->annotations[index].id = set->next_id++;
     memset(detached, 0, sizeof(*detached));
@@ -143,10 +276,22 @@ int annotation_category_adopt(AnnotationSet *set, AnnotationCategory *detached) 
     return category->id;
 }
 
+int annotation_category_adopt(AnnotationSet *set, AnnotationCategory *detached) {
+    char unique_name[ANNOTATION_CATEGORY_NAME_MAX];
+    AnnotationCategory *category;
+    int category_id;
+    make_unique_name(set, 0, unique_name, detached->name);
+    category_id = annotation_category_attach(set, detached, 0);
+    if (category_id == 0) return 0;
+    category = annotation_category_find(set, category_id);
+    memcpy(category->name, unique_name, sizeof(unique_name));
+    return category_id;
+}
+
 int annotation_category_remove(AnnotationSet *set, const int category_id) {
     AnnotationCategory *category = annotation_category_find(set, category_id);
     int index;
-    if (category == NULL) return 0;
+    if (category == NULL || annotation_category_has_children(set, category_id)) return 0;
     index = (int) (category - set->categories);
     annotation_category_release(category);
     memmove(category, category + 1, sizeof(AnnotationCategory) * (size_t) (set->category_count - index - 1));
@@ -188,6 +333,7 @@ int annotation_add_point(AnnotationSet *set, const int category_id, const Annota
     annotation = append_annotation(category);
     if (annotation == NULL) return 0;
     memset(annotation, 0, sizeof(*annotation));
+    annotation->colour_index = ANNOTATION_COLOUR_INHERIT;
     annotation->id = set->next_id++;
     annotation->kind = kind;
     annotation->tile_x = (unsigned short) tile_x;
@@ -213,6 +359,7 @@ int annotation_add_path(AnnotationSet *set, const int category_id, const Annotat
         return 0;
     }
     memset(annotation, 0, sizeof(*annotation));
+    annotation->colour_index = ANNOTATION_COLOUR_INHERIT;
     annotation->id = set->next_id++;
     annotation->kind = ANNOTATION_PATH;
     annotation->tile_x = segments[0].start_x;
