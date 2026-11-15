@@ -304,7 +304,7 @@ int annotation_category_remove(AnnotationSet *set, const int category_id) {
 
 int annotation_category_rename(AnnotationSet *set, const int category_id, const char *name) {
     AnnotationCategory *category = annotation_category_find(set, category_id);
-    if (category == NULL || name == NULL || name[0] == ' ') return 0;
+    if (category == NULL || name == NULL || name[0] == '\0') return 0;
     make_unique_name(set, category->parent_id, category_id, category->name, name);
     set->changed = 1;
     return 1;

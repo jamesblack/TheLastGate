@@ -638,6 +638,12 @@ int main(void) {
     test_new_category_shows_labels();
     test_segment_total_per_category_is_capped();
     test_replace_refuses_growing_past_segment_total();
+    test_rename_suffixes_on_sibling_clash_only();
+    test_category_colour_change();
+    test_move_category_rules();
+    test_annotation_colour_override_and_clear();
+    test_move_annotation_keeps_id_and_respects_limits();
+    test_identical_compares_everything();
     if (failures != 0) {
         printf("%d annotations check(s) failed\n", failures);
         return 1;
