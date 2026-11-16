@@ -18,6 +18,9 @@ void byte_buffer_release(ByteBuffer *buffer);
 int byte_buffer_append(ByteBuffer *buffer, const void *bytes, size_t size);
 int annotation_category_encode(const AnnotationCategory *category, ByteBuffer *buffer);
 int annotation_category_decode(const unsigned char *bytes, size_t size, size_t *offset, AnnotationCategory *category);
+int annotation_tree_encode(const AnnotationSet *set, int root_id, ByteBuffer *buffer);
+int annotation_tree_decode(const unsigned char *bytes, size_t size, size_t *offset, int single_root,
+                           AnnotationSet *tree);
 int annotation_varint_write(ByteBuffer *buffer, unsigned int value);
 int annotation_varint_read(const unsigned char *bytes, size_t size, size_t *offset, unsigned int *value);
 

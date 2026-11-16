@@ -350,6 +350,201 @@ static void test_trailing_bytes_are_damaged(void) {
     byte_buffer_release(&buffer);
 }
 
+static void build_dungeon_set(AnnotationSet *set, int *dungeons_id, int *cavern_id) {
+    const AnnotationSegment segments[2] = {{100, 100, 100, 140}, {100, 140, 130, 140}};
+    int pin_id, towns_id;
+    annotation_set_init(set);
+    *dungeons_id = annotation_category_add(set, "Dungeons", 5);
+    *cavern_id = annotation_category_add_under(set, *dungeons_id, "Cold Cavern", 1);
+    annotation_category_find(set, *dungeons_id)->show_labels = 0;
+    annotation_category_find(set, *cavern_id)->visible = 0;
+    pin_id = annotation_add_point(set, *cavern_id, ANNOTATION_PIN, 300, 310, "Ice key");
+    annotation_set_colour(set, pin_id, 2);
+    annotation_add_path(set, *cavern_id, segments, 2, "Way down");
+    towns_id = annotation_category_add(set, "Towns", 3);
+    annotation_add_point(set, towns_id, ANNOTATION_PIN, 700, 700, "Inn");
+}
+
+static int decode_tree_bytes(const ByteBuffer *buffer, const int single_root, AnnotationSet *tree) {
+    size_t offset = 0;
+    const int status = annotation_tree_decode(buffer->bytes, buffer->size, &offset, single_root, tree);
+    if (status == 1) CHECK(offset == buffer->size);
+    return status;
+}
+
+static void append_tree_category(ByteBuffer *buffer, const unsigned int parent_ref, const char *name) {
+    annotation_varint_write(buffer, parent_ref);
+    append_byte(buffer, 0x03);
+    append_header(buffer, name, 0);
+}
+
+static void check_tree_emptied(const AnnotationSet *tree) {
+    CHECK(tree->category_count == 0);
+    CHECK(tree->categories == NULL);
+}
+
+static void test_tree_round_trip_keeps_shape_settings_and_colours(void) {
+    AnnotationSet set, decoded;
+    ByteBuffer buffer = {0};
+    const AnnotationCategory *root, *child;
+    int dungeons_id, cavern_id;
+    build_dungeon_set(&set, &dungeons_id, &cavern_id);
+    CHECK(annotation_tree_encode(&set, dungeons_id, &buffer) == 1);
+    CHECK(decode_tree_bytes(&buffer, 1, &decoded) == 1);
+    CHECK(decoded.category_count == 2);
+    if (decoded.category_count == 2) {
+        root = &decoded.categories[0];
+        child = &decoded.categories[1];
+        CHECK(strcmp(root->name, "Dungeons") == 0);
+        CHECK(root->parent_id == 0);
+        CHECK(root->colour_index == 5);
+        CHECK(root->visible == 1 && root->show_labels == 0);
+        CHECK(root->annotation_count == 0);
+        CHECK(strcmp(child->name, "Cold Cavern") == 0);
+        CHECK(child->parent_id == root->id);
+        CHECK(child->colour_index == 1);
+        CHECK(child->visible == 0 && child->show_labels == 1);
+        CHECK(child->annotation_count == 2);
+        if (child->annotation_count == 2) {
+            const Annotation *pin = &child->annotations[0];
+            const Annotation *path = &child->annotations[1];
+            CHECK(pin->kind == ANNOTATION_PIN && strcmp(pin->label, "Ice key") == 0);
+            CHECK(pin->tile_x == 300 && pin->tile_y == 310);
+            CHECK(pin->colour_index == 2);
+            CHECK(path->kind == ANNOTATION_PATH && strcmp(path->label, "Way down") == 0);
+            CHECK(path->colour_index == ANNOTATION_COLOUR_INHERIT);
+            CHECK(path->segment_count == 2);
+            if (path->segment_count == 2) {
+                CHECK(annotation_identical(path, &annotation_category_find(&set, cavern_id)->annotations[1]));
+                CHECK(path->segments[0].start_x == 100 && path->segments[0].start_y == 100);
+                CHECK(path->segments[0].end_x == 100 && path->segments[0].end_y == 140);
+                CHECK(path->segments[1].start_x == 100 && path->segments[1].start_y == 140);
+                CHECK(path->segments[1].end_x == 130 && path->segments[1].end_y == 140);
+            }
+        }
+    }
+    annotation_set_release(&decoded);
+    annotation_set_release(&set);
+    byte_buffer_release(&buffer);
+}
+
+static void test_tree_encode_subtree_excludes_siblings(void) {
+    AnnotationSet set, decoded;
+    ByteBuffer buffer = {0};
+    int dungeons_id, cavern_id;
+    build_dungeon_set(&set, &dungeons_id, &cavern_id);
+    annotation_category_add_under(&set, dungeons_id, "Warm Cavern", 4);
+    CHECK(annotation_tree_encode(&set, cavern_id, &buffer) == 1);
+    CHECK(decode_tree_bytes(&buffer, 1, &decoded) == 1);
+    CHECK(decoded.category_count == 1);
+    if (decoded.category_count == 1) {
+        CHECK(strcmp(decoded.categories[0].name, "Cold Cavern") == 0);
+        CHECK(decoded.categories[0].parent_id == 0);
+        CHECK(decoded.categories[0].annotation_count == 2);
+    }
+    annotation_set_release(&decoded);
+    annotation_set_release(&set);
+    byte_buffer_release(&buffer);
+}
+
+static void test_tree_whole_set_keeps_every_root(void) {
+    AnnotationSet set, decoded;
+    ByteBuffer buffer = {0};
+    int dungeons_id, cavern_id;
+    build_dungeon_set(&set, &dungeons_id, &cavern_id);
+    CHECK(annotation_tree_encode(&set, 0, &buffer) == 1);
+    CHECK(decode_tree_bytes(&buffer, 0, &decoded) == 1);
+    CHECK(decoded.category_count == 3);
+    if (decoded.category_count == 3) {
+        CHECK(strcmp(decoded.categories[2].name, "Towns") == 0);
+        CHECK(decoded.categories[2].parent_id == 0);
+        CHECK(decoded.categories[1].parent_id == decoded.categories[0].id);
+    }
+    annotation_set_release(&decoded);
+    annotation_set_release(&set);
+    byte_buffer_release(&buffer);
+}
+
+static void test_tree_rejects_forward_and_self_parent(void) {
+    ByteBuffer first_refers_ahead = {0}, refers_beyond = {0}, refers_to_self = {0};
+    AnnotationSet decoded;
+    annotation_varint_write(&first_refers_ahead, 1);
+    append_tree_category(&first_refers_ahead, 1, "Ahead");
+    CHECK(decode_tree_bytes(&first_refers_ahead, 0, &decoded) == 0);
+    check_tree_emptied(&decoded);
+
+    annotation_varint_write(&refers_beyond, 2);
+    append_tree_category(&refers_beyond, 0, "Root");
+    append_tree_category(&refers_beyond, 3, "Beyond");
+    CHECK(decode_tree_bytes(&refers_beyond, 0, &decoded) == 0);
+    check_tree_emptied(&decoded);
+
+    annotation_varint_write(&refers_to_self, 2);
+    append_tree_category(&refers_to_self, 0, "Root");
+    append_tree_category(&refers_to_self, 2, "Self");
+    CHECK(decode_tree_bytes(&refers_to_self, 0, &decoded) == 0);
+    check_tree_emptied(&decoded);
+
+    byte_buffer_release(&first_refers_ahead);
+    byte_buffer_release(&refers_beyond);
+    byte_buffer_release(&refers_to_self);
+}
+
+static void test_tree_rejects_second_root_when_single(void) {
+    ByteBuffer buffer = {0};
+    AnnotationSet decoded;
+    annotation_varint_write(&buffer, 2);
+    append_tree_category(&buffer, 0, "First");
+    append_tree_category(&buffer, 0, "Second");
+    CHECK(decode_tree_bytes(&buffer, 1, &decoded) == 0);
+    check_tree_emptied(&decoded);
+    CHECK(decode_tree_bytes(&buffer, 0, &decoded) == 1);
+    CHECK(decoded.category_count == 2);
+    if (decoded.category_count == 2) {
+        CHECK(decoded.categories[0].parent_id == 0 && decoded.categories[1].parent_id == 0);
+    }
+    annotation_set_release(&decoded);
+    byte_buffer_release(&buffer);
+}
+
+static void append_chain(ByteBuffer *buffer, const int length) {
+    int level;
+    annotation_varint_write(buffer, (unsigned int) length);
+    for (level = 0; level < length; level++) append_tree_category(buffer, (unsigned int) level, "Level");
+}
+
+static void test_tree_rejects_depth_nine(void) {
+    ByteBuffer deepest_allowed = {0}, too_deep = {0};
+    AnnotationSet decoded;
+    append_chain(&deepest_allowed, ANNOTATION_MAX_DEPTH);
+    CHECK(decode_tree_bytes(&deepest_allowed, 1, &decoded) == 1);
+    CHECK(decoded.category_count == ANNOTATION_MAX_DEPTH);
+    annotation_set_release(&decoded);
+
+    append_chain(&too_deep, ANNOTATION_MAX_DEPTH + 1);
+    CHECK(decode_tree_bytes(&too_deep, 1, &decoded) == 0);
+    check_tree_emptied(&decoded);
+    byte_buffer_release(&deepest_allowed);
+    byte_buffer_release(&too_deep);
+}
+
+static void test_tree_rejects_too_many_categories(void) {
+    ByteBuffer at_cap = {0}, over_cap = {0};
+    AnnotationSet decoded;
+    int index;
+    annotation_varint_write(&at_cap, ANNOTATION_MAX_CATEGORIES);
+    for (index = 0; index < ANNOTATION_MAX_CATEGORIES; index++) append_tree_category(&at_cap, 0, "Many");
+    CHECK(decode_tree_bytes(&at_cap, 0, &decoded) == 1);
+    CHECK(decoded.category_count == ANNOTATION_MAX_CATEGORIES);
+    annotation_set_release(&decoded);
+
+    annotation_varint_write(&over_cap, ANNOTATION_MAX_CATEGORIES + 1);
+    CHECK(decode_tree_bytes(&over_cap, 0, &decoded) == -1);
+    check_tree_emptied(&decoded);
+    byte_buffer_release(&at_cap);
+    byte_buffer_release(&over_cap);
+}
+
 int main(void) {
     test_varint_round_trip();
     test_code_round_trip();
@@ -364,6 +559,13 @@ int main(void) {
     test_empty_category_name_becomes_imported();
     test_empty_text_label_is_damaged();
     test_trailing_bytes_are_damaged();
+    test_tree_round_trip_keeps_shape_settings_and_colours();
+    test_tree_encode_subtree_excludes_siblings();
+    test_tree_whole_set_keeps_every_root();
+    test_tree_rejects_forward_and_self_parent();
+    test_tree_rejects_second_root_when_single();
+    test_tree_rejects_depth_nine();
+    test_tree_rejects_too_many_categories();
     if (failures != 0) {
         printf("%d annotation code check(s) failed\n", failures);
         return 1;
