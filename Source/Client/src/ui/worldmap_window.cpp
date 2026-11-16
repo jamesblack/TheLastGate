@@ -81,6 +81,7 @@ struct WorldmapPanelState {
     AnnotationCodeStatus import_status;
     int import_conflict_id;
     char import_root_name[ANNOTATION_CATEGORY_NAME_MAX];
+    char import_error[ANNOTATION_CATEGORY_NAME_MAX + 64];
     char export_message[64];
     bool export_too_long;
     char status_text[192];
@@ -364,6 +365,7 @@ static void release_import(WorldmapPanelState *panel) {
     panel->import_capacity = 0;
     annotation_set_release(&panel->import_preview);
     annotation_set_init(&panel->import_preview);
+    panel->import_error[0] = '\0';
 }
 
 static void update_import_preview(WorldmapPanelState *panel, const AnnotationSet *set) {
@@ -372,6 +374,7 @@ static void update_import_preview(WorldmapPanelState *panel, const AnnotationSet
     panel->import_status = annotation_code_import(panel->import_text, &panel->import_preview);
     panel->import_conflict_id = 0;
     panel->import_root_name[0] = '\0';
+    panel->import_error[0] = '\0';
     if (panel->import_status != ANNOTATION_CODE_OK || panel->import_preview.category_count < 1) return;
     panel->import_conflict_id = annotation_import_conflict(set, &panel->import_preview);
     annotation_copy_text(panel->import_root_name, sizeof(panel->import_root_name),
@@ -412,19 +415,28 @@ static void begin_rename(WorldmapPanelState *panel, const AnnotationCategory *ca
     panel->rename_focus_pending = true;
 }
 
+static void expand_with_ancestors(WorldmapPanelState *panel, AnnotationSet *set, int category_id) {
+    for (int depth = 0; category_id != 0 && depth <= ANNOTATION_MAX_DEPTH; depth++) {
+        const AnnotationCategory *category = annotation_category_find(set, category_id);
+        if (!category) return;
+        set_category_expanded(panel, category_id, true);
+        category_id = category->parent_id;
+    }
+}
+
 static void move_annotation(WorldmapPanelState *panel, AnnotationSet *set, int annotation_id, int category_id) {
-    if (panel->editing && panel->edit_annotation_id == annotation_id) cancel_edit(panel);
     if (!annotation_move(set, annotation_id, category_id)) {
         set_status(panel, "That category is full.");
         return;
     }
-    set_category_expanded(panel, category_id, true);
+    if (panel->editing && panel->edit_annotation_id == annotation_id) cancel_edit(panel);
+    expand_with_ancestors(panel, set, category_id);
     worldmap_save_annotations();
 }
 
 static void move_category(WorldmapPanelState *panel, AnnotationSet *set, int category_id, int parent_id) {
     if (!annotation_category_move(set, category_id, parent_id)) return;
-    if (parent_id != 0) set_category_expanded(panel, parent_id, true);
+    expand_with_ancestors(panel, set, parent_id);
     worldmap_save_annotations();
 }
 
@@ -1007,11 +1019,13 @@ static void render_swatch(ImU32 colour, bool dimmed) {
                                               ImGui::ColorConvertFloat4ToU32(swatch));
 }
 
-static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set, const AnnotationCategory *category) {
+static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set, const AnnotationCategory *category,
+                                   const bool dimmed) {
     for (int annotation_index = 0; annotation_index < category->annotation_count; annotation_index++) {
         const Annotation *annotation = &category->annotations[annotation_index];
         const bool selected = annotation->id == panel->selected_annotation_id;
         ImGui::PushID(annotation->id);
+        if (dimmed) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
 
         const float row_start_x = ImGui::GetCursorPosX();
         if (ImGui::Selectable("##row", selected, ImGuiSelectableFlags_AllowOverlap)) {
@@ -1024,7 +1038,7 @@ static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set
         }
         ImGui::SameLine(row_start_x);
         if (annotation->colour_index != ANNOTATION_COLOUR_INHERIT) {
-            render_swatch(rgb_colour(annotation_effective_rgb(category, annotation)), false);
+            render_swatch(rgb_colour(annotation_effective_rgb(category, annotation)), dimmed);
             ImGui::SameLine();
         }
         ImGui::TextUnformatted(annotation_kind_prefix(annotation->kind));
@@ -1036,6 +1050,7 @@ static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set
             ImGui::SameLine();
             if (game_button("Edit")) begin_edit(panel, set, annotation->id);
         }
+        if (dimmed) ImGui::PopStyleColor();
         ImGui::PopID();
     }
 }
@@ -1090,7 +1105,7 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
 
     if (expanded) {
         render_category_branch(panel, set, category->id);
-        render_annotation_rows(panel, set, category);
+        render_annotation_rows(panel, set, category, dimmed);
         ImGui::TreePop();
     }
 
@@ -1406,7 +1421,8 @@ static void render_new_category_popup(WorldmapPanelState *panel, AnnotationSet *
         const int category_id =
                 annotation_category_add_under(set, parent_id, panel->new_category_name, panel->new_category_colour);
         if (category_id == 0) {
-            set_status(panel, "Too many categories.");
+            const bool too_deep = annotation_category_depth(set, parent_id) >= ANNOTATION_MAX_DEPTH;
+            set_status(panel, too_deep ? "Categories can only nest 8 deep." : "Too many categories.");
         } else {
             panel->current_category_id = category_id;
             if (parent_id != 0) set_category_expanded(panel, parent_id, true);
@@ -1468,26 +1484,33 @@ static bool top_level_name_taken(const AnnotationSet *set, const char *name) {
     return false;
 }
 
-static void report_import_result(WorldmapPanelState *panel, const AnnotationImportResult result) {
+static bool report_import_result(WorldmapPanelState *panel, const AnnotationImportResult result) {
     switch (result.status) {
         case ANNOTATION_IMPORT_OK:
             panel->current_category_id = result.root_id;
             set_category_expanded(panel, result.root_id, true);
             worldmap_save_annotations();
+            return true;
+        case ANNOTATION_IMPORT_NAME_TAKEN:
+            annotation_copy_text(panel->import_error, sizeof(panel->import_error), "That name is already taken.");
             break;
-        case ANNOTATION_IMPORT_NAME_TAKEN: set_status(panel, "That name is already taken."); break;
         case ANNOTATION_IMPORT_TOO_MANY_CATEGORIES:
-            set_status(panel, "Import would go over the 256 category limit.");
+            annotation_copy_text(panel->import_error, sizeof(panel->import_error),
+                                 "Import would go over the 256 category limit.");
             break;
-        case ANNOTATION_IMPORT_TOO_DEEP: set_status(panel, "Import would nest categories more than 8 deep."); break;
-        case ANNOTATION_IMPORT_CATEGORY_FULL: {
-            char message[ANNOTATION_CATEGORY_NAME_MAX + 32];
-            snprintf(message, sizeof(message), "Import would overfill \"%s\".", result.category_name);
-            set_status(panel, message);
+        case ANNOTATION_IMPORT_TOO_DEEP:
+            annotation_copy_text(panel->import_error, sizeof(panel->import_error),
+                                 "Import would nest categories more than 8 deep.");
             break;
-        }
-        case ANNOTATION_IMPORT_FAILED: set_status(panel, "Import failed."); break;
+        case ANNOTATION_IMPORT_CATEGORY_FULL:
+            snprintf(panel->import_error, sizeof(panel->import_error), "Import would overfill \"%s\".",
+                     result.category_name);
+            break;
+        case ANNOTATION_IMPORT_FAILED:
+            annotation_copy_text(panel->import_error, sizeof(panel->import_error), "Import failed.");
+            break;
     }
+    return false;
 }
 
 static void render_import_popup(WorldmapPanelState *panel, AnnotationSet *set) {
@@ -1515,9 +1538,8 @@ static void render_import_popup(WorldmapPanelState *panel, AnnotationSet *set) {
                  panel->import_preview.categories[0].name);
         ImGui::TextUnformatted(conflict_text);
         if (game_button("Merge")) {
-            report_import_result(panel,
-                                 annotation_import_merge(set, &panel->import_preview, panel->import_conflict_id));
-            finished = true;
+            finished = report_import_result(
+                    panel, annotation_import_merge(set, &panel->import_preview, panel->import_conflict_id));
         }
         ImGui::TextUnformatted("Rename to");
         ImGui::SameLine();
@@ -1525,18 +1547,18 @@ static void render_import_popup(WorldmapPanelState *panel, AnnotationSet *set) {
         const bool can_rename =
                 panel->import_root_name[0] != '\0' && !top_level_name_taken(set, panel->import_root_name);
         if (game_button("Add as new", can_rename) && can_rename) {
-            report_import_result(panel, annotation_import_add(set, &panel->import_preview, panel->import_root_name));
-            finished = true;
+            finished = report_import_result(
+                    panel, annotation_import_add(set, &panel->import_preview, panel->import_root_name));
         }
         ImGui::SameLine();
     } else {
         if (game_button("Add", code_ready) && code_ready) {
-            report_import_result(panel, annotation_import_add(set, &panel->import_preview, NULL));
-            finished = true;
+            finished = report_import_result(panel, annotation_import_add(set, &panel->import_preview, NULL));
         }
         ImGui::SameLine();
     }
     if (game_button("Cancel")) finished = true;
+    if (panel->import_error[0] != '\0') ImGui::TextUnformatted(panel->import_error);
 
     if (finished) {
         release_import(panel);
