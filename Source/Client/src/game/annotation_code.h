@@ -6,7 +6,8 @@
 extern "C" {
 #endif
 
-#define ANNOTATION_CODE_PREFIX "TLGMAP1:"
+#define ANNOTATION_CODE_PREFIX "TLGMAP2:"
+#define ANNOTATION_CODE_LEGACY_PREFIX "TLGMAP1:"
 #define ANNOTATION_CODE_DISCORD_LIMIT 2000
 
 typedef enum {
@@ -16,8 +17,9 @@ typedef enum {
     ANNOTATION_CODE_TOO_LARGE,
 } AnnotationCodeStatus;
 
-char *annotation_code_export(const AnnotationCategory *category);
-AnnotationCodeStatus annotation_code_import(const char *code, AnnotationCategory *imported);
+int annotation_code_has_prefix(const char *text);
+char *annotation_code_export(const AnnotationSet *set, int category_id);
+AnnotationCodeStatus annotation_code_import(const char *code, AnnotationSet *imported);
 
 #ifdef __cplusplus
 }

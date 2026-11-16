@@ -9,6 +9,7 @@
 
 #include "engine.h"
 #include "game/annotation_code.h"
+#include "game/annotation_import.h"
 #include "game/annotations.h"
 #include "game/game_ui.h"
 #include "game/minimap.h"
@@ -71,7 +72,7 @@ struct WorldmapPanelState {
     int new_category_colour;
     char *import_text;
     int import_capacity;
-    AnnotationCategory import_preview;
+    AnnotationSet import_preview;
     AnnotationCodeStatus import_status;
     char export_message[64];
     bool export_too_long;
@@ -141,6 +142,7 @@ static WorldmapPanelState initial_panel_state(void) {
     state.view.centre_tile_x = WORLDMAP_TILES_DOWN / 2.0;
     state.view.centre_tile_y = WORLDMAP_TILES_ACROSS / 2.0;
     state.active_tool = WORLDMAP_TOOL_SELECT;
+    annotation_set_init(&state.import_preview);
     return state;
 }
 
@@ -325,9 +327,8 @@ static void delete_category(WorldmapPanelState *panel, AnnotationSet *set, int c
 }
 
 static void export_category(WorldmapPanelState *panel, AnnotationSet *set, int category_id) {
-    const AnnotationCategory *category = annotation_category_find(set, category_id);
-    if (!category) return;
-    char *code = annotation_code_export(category);
+    if (!annotation_category_find(set, category_id)) return;
+    char *code = annotation_code_export(set, category_id);
     if (!code) {
         set_status(panel, "Export failed.");
         return;
@@ -349,11 +350,13 @@ static void release_import(WorldmapPanelState *panel) {
     free(panel->import_text);
     panel->import_text = NULL;
     panel->import_capacity = 0;
-    annotation_category_release(&panel->import_preview);
+    annotation_set_release(&panel->import_preview);
+    annotation_set_init(&panel->import_preview);
 }
 
 static void update_import_preview(WorldmapPanelState *panel) {
-    annotation_category_release(&panel->import_preview);
+    annotation_set_release(&panel->import_preview);
+    annotation_set_init(&panel->import_preview);
     panel->import_status = annotation_code_import(panel->import_text, &panel->import_preview);
 }
 
@@ -363,7 +366,7 @@ static void open_import(WorldmapPanelState *panel) {
     char *clipboard = SDL_GetClipboardText();
     const char *trimmed = clipboard ? clipboard : "";
     while (*trimmed == ' ' || *trimmed == '\t' || *trimmed == '\r' || *trimmed == '\n') trimmed++;
-    const bool is_code = strncmp(trimmed, ANNOTATION_CODE_PREFIX, strlen(ANNOTATION_CODE_PREFIX)) == 0;
+    const bool is_code = annotation_code_has_prefix(trimmed) != 0;
     const int wanted_capacity = is_code ? (int) strlen(trimmed) + 1 : 0;
 
     panel->import_capacity = wanted_capacity > IMPORT_INITIAL_CAPACITY ? wanted_capacity : IMPORT_INITIAL_CAPACITY;
@@ -1284,11 +1287,19 @@ static void render_import_preview(const WorldmapPanelState *panel) {
     if (panel->import_text[0] == '\0') return;
     switch (panel->import_status) {
         case ANNOTATION_CODE_OK: {
-            char preview[128];
-            snprintf(preview, sizeof(preview), "%s: %d pins, %d labels, %d paths", panel->import_preview.name,
-                     annotation_category_count_kind(&panel->import_preview, ANNOTATION_PIN),
-                     annotation_category_count_kind(&panel->import_preview, ANNOTATION_TEXT),
-                     annotation_category_count_kind(&panel->import_preview, ANNOTATION_PATH));
+            const AnnotationSet *imported = &panel->import_preview;
+            int pin_count = 0, label_count = 0, path_count = 0;
+            for (int category_index = 0; category_index < imported->category_count; category_index++) {
+                const AnnotationCategory *category = &imported->categories[category_index];
+                pin_count += annotation_category_count_kind(category, ANNOTATION_PIN);
+                label_count += annotation_category_count_kind(category, ANNOTATION_TEXT);
+                path_count += annotation_category_count_kind(category, ANNOTATION_PATH);
+            }
+            const char *root_name = imported->category_count > 0 ? imported->categories[0].name : "";
+            const char *category_word = imported->category_count == 1 ? "category" : "categories";
+            char preview[160];
+            snprintf(preview, sizeof(preview), "%s: %d %s, %d pins, %d labels, %d paths", root_name,
+                     imported->category_count, category_word, pin_count, label_count, path_count);
             ImGui::TextUnformatted(preview);
             break;
         }
@@ -1321,12 +1332,24 @@ static void render_import_popup(WorldmapPanelState *panel, AnnotationSet *set) {
     const bool cancelled = game_button("Cancel");
 
     if (added && can_add) {
-        const int category_id = annotation_category_adopt(set, &panel->import_preview);
-        if (category_id == 0) {
-            set_status(panel, "Too many categories.");
-        } else {
-            panel->current_category_id = category_id;
-            worldmap_save_annotations();
+        const AnnotationImportResult result = annotation_import_add(set, &panel->import_preview, NULL);
+        switch (result.status) {
+            case ANNOTATION_IMPORT_OK:
+                panel->current_category_id = result.root_id;
+                worldmap_save_annotations();
+                break;
+            case ANNOTATION_IMPORT_NAME_TAKEN: set_status(panel, "That name is already taken."); break;
+            case ANNOTATION_IMPORT_TOO_MANY_CATEGORIES:
+                set_status(panel, "Import would go over the 256 category limit.");
+                break;
+            case ANNOTATION_IMPORT_TOO_DEEP: set_status(panel, "Import would nest categories more than 8 deep."); break;
+            case ANNOTATION_IMPORT_CATEGORY_FULL: {
+                char message[ANNOTATION_CATEGORY_NAME_MAX + 32];
+                snprintf(message, sizeof(message), "Import would overfill \"%s\".", result.category_name);
+                set_status(panel, message);
+                break;
+            }
+            case ANNOTATION_IMPORT_FAILED: set_status(panel, "Import failed."); break;
         }
     }
     if (added || cancelled) {

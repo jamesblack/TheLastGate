@@ -19,13 +19,14 @@ static int failures = 0;
 
 static const char base64_alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-static char *code_from_bytes(const unsigned char *bytes, const size_t size) {
+static char *code_from_bytes(const char *prefix, const unsigned char *bytes, const size_t size) {
     uLongf compressed_size = compressBound((uLong) size);
     unsigned char *compressed = malloc(compressed_size);
-    char *code = malloc(strlen(ANNOTATION_CODE_PREFIX) + (size_t) compressed_size * 2 + 8);
+    char *code;
     size_t position, written;
     compress2(compressed, &compressed_size, bytes, (uLong) size, 9);
-    strcpy(code, ANNOTATION_CODE_PREFIX);
+    code = malloc(strlen(prefix) + (size_t) compressed_size * 2 + 8);
+    strcpy(code, prefix);
     written = strlen(code);
     for (position = 0; position < compressed_size; position += 3) {
         unsigned int group = (unsigned int) compressed[position] << 16;
@@ -40,6 +41,20 @@ static char *code_from_bytes(const unsigned char *bytes, const size_t size) {
     code[written] = '\0';
     free(compressed);
     return code;
+}
+
+static char *legacy_code_from_bytes(const ByteBuffer *buffer) {
+    return code_from_bytes(ANNOTATION_CODE_LEGACY_PREFIX, buffer->bytes, buffer->size);
+}
+
+static AnnotationCodeStatus import_code(const char *code, AnnotationSet *imported) {
+    annotation_set_init(imported);
+    return annotation_code_import(code, imported);
+}
+
+static void check_tree_emptied(const AnnotationSet *tree) {
+    CHECK(tree->category_count == 0);
+    CHECK(tree->categories == NULL);
 }
 
 static void append_byte(ByteBuffer *buffer, const unsigned char value) {
@@ -72,20 +87,16 @@ static void test_varint_round_trip(void) {
     }
 }
 
-static AnnotationCategory build_sample_category(void) {
-    AnnotationSet set;
-    AnnotationCategory category;
+static int build_sample_set(AnnotationSet *set) {
     AnnotationSegment segments[2] = {{100, 100, 100, 140}, {100, 140, 130, 140}};
     int category_id;
-    annotation_set_init(&set);
-    category_id = annotation_category_add(&set, "Stronghold keys", 2);
-    annotation_add_point(&set, category_id, ANNOTATION_PIN, 512, 498, "Silver key");
-    annotation_add_point(&set, category_id, ANNOTATION_PIN, 520, 505, "Gold key");
-    annotation_add_point(&set, category_id, ANNOTATION_TEXT, 500, 500, "Start");
-    annotation_add_path(&set, category_id, segments, 2, "Route to boss");
-    category = set.categories[0];
-    free(set.categories);
-    return category;
+    annotation_set_init(set);
+    category_id = annotation_category_add(set, "Stronghold keys", 2);
+    annotation_add_point(set, category_id, ANNOTATION_PIN, 512, 498, "Silver key");
+    annotation_add_point(set, category_id, ANNOTATION_PIN, 520, 505, "Gold key");
+    annotation_add_point(set, category_id, ANNOTATION_TEXT, 500, 500, "Start");
+    annotation_add_path(set, category_id, segments, 2, "Route to boss");
+    return category_id;
 }
 
 static void check_sample_matches(const AnnotationCategory *category) {
@@ -113,27 +124,39 @@ static void check_sample_matches(const AnnotationCategory *category) {
     CHECK(category->annotations[3].segments[1].end_x == 130 && category->annotations[3].segments[1].end_y == 140);
 }
 
+static void check_single_sample_imported(const AnnotationSet *imported) {
+    CHECK(imported->category_count == 1);
+    if (imported->category_count != 1) return;
+    CHECK(imported->categories[0].parent_id == 0);
+    check_sample_matches(&imported->categories[0]);
+}
+
 static void test_code_round_trip(void) {
-    AnnotationCategory sample = build_sample_category();
-    AnnotationCategory imported;
-    char *code = annotation_code_export(&sample);
+    AnnotationSet sample, imported;
+    const int category_id = build_sample_set(&sample);
+    char *code = annotation_code_export(&sample, category_id);
     CHECK(code != NULL);
-    if (code == NULL) return;
-    CHECK(strncmp(code, "TLGMAP1:", 8) == 0);
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_OK);
-    check_sample_matches(&imported);
-    CHECK(imported.visible == 1);
-    CHECK(imported.annotation_count > 0 && imported.annotations[0].colour_index == ANNOTATION_COLOUR_INHERIT);
-    annotation_category_release(&imported);
-    annotation_category_release(&sample);
+    if (code == NULL) {
+        annotation_set_release(&sample);
+        return;
+    }
+    CHECK(strncmp(code, "TLGMAP2:", 8) == 0);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_OK);
+    check_single_sample_imported(&imported);
+    if (imported.category_count == 1) {
+        CHECK(imported.categories[0].visible == 1);
+        CHECK(imported.categories[0].annotation_count > 0 &&
+              imported.categories[0].annotations[0].colour_index == ANNOTATION_COLOUR_INHERIT);
+    }
+    annotation_set_release(&imported);
+    annotation_set_release(&sample);
     free(code);
 }
 
 static void test_code_with_whitespace_imports(void) {
-    AnnotationCategory sample = build_sample_category();
-    AnnotationCategory imported;
-    char *code = annotation_code_export(&sample);
+    AnnotationSet sample, imported;
+    const int category_id = build_sample_set(&sample);
+    char *code = annotation_code_export(&sample, category_id);
     const size_t length = strlen(code);
     char *spaced = malloc(length * 2 + 8);
     size_t position, written = 0;
@@ -147,81 +170,78 @@ static void test_code_with_whitespace_imports(void) {
     }
     spaced[written++] = ' ';
     spaced[written] = '\0';
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import(spaced, &imported) == ANNOTATION_CODE_OK);
-    check_sample_matches(&imported);
-    annotation_category_release(&imported);
-    annotation_category_release(&sample);
+    CHECK(import_code(spaced, &imported) == ANNOTATION_CODE_OK);
+    check_single_sample_imported(&imported);
+    annotation_set_release(&imported);
+    annotation_set_release(&sample);
     free(spaced);
     free(code);
 }
 
 static void test_missing_prefix_is_not_a_code(void) {
-    AnnotationCategory imported;
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import("hello", &imported) == ANNOTATION_CODE_NOT_A_CODE);
+    AnnotationSet imported;
+    CHECK(import_code("hello", &imported) == ANNOTATION_CODE_NOT_A_CODE);
+    check_tree_emptied(&imported);
+    CHECK(import_code("TLGMAP3:eNoDAAAAAAE=", &imported) == ANNOTATION_CODE_NOT_A_CODE);
+    check_tree_emptied(&imported);
 }
 
 static void test_truncated_code_is_damaged(void) {
-    AnnotationCategory sample = build_sample_category();
-    AnnotationCategory imported;
-    char *code = annotation_code_export(&sample);
-    memset(&imported, 0, sizeof(imported));
+    AnnotationSet sample, imported;
+    const int category_id = build_sample_set(&sample);
+    char *code = annotation_code_export(&sample, category_id);
     code[strlen(code) - 8] = '\0';
     CHECK(strchr(code, '=') == NULL);
     CHECK(strlen(code) % 4 == 0);
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
-    CHECK(imported.annotation_count == 0);
-    CHECK(imported.annotations == NULL);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    check_tree_emptied(&imported);
     code[strlen(code) - 2] = '\0';
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
-    CHECK(imported.annotations == NULL);
-    annotation_category_release(&sample);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    check_tree_emptied(&imported);
+    annotation_set_release(&sample);
     free(code);
 }
 
 static void test_out_of_range_coordinate_is_damaged(void) {
     ByteBuffer buffer = {0};
-    AnnotationCategory imported;
+    AnnotationSet imported;
     char *code;
     append_header(&buffer, "Bad", 1);
     append_byte(&buffer, ANNOTATION_PIN);
     append_byte(&buffer, 0);
     append_zigzag(&buffer, 3000);
     append_zigzag(&buffer, 0);
-    code = code_from_bytes(buffer.bytes, buffer.size);
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
-    CHECK(imported.annotations == NULL);
+    code = legacy_code_from_bytes(&buffer);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    check_tree_emptied(&imported);
     free(code);
     byte_buffer_release(&buffer);
 }
 
 static void test_huge_delta_is_damaged(void) {
     ByteBuffer buffer = {0};
-    AnnotationCategory imported;
+    AnnotationSet imported;
     char *code;
     append_header(&buffer, "Huge delta", 1);
     append_byte(&buffer, ANNOTATION_PIN);
     append_byte(&buffer, 0);
     annotation_varint_write(&buffer, 0xFFFFFFFEu);
     append_zigzag(&buffer, 0);
-    code = code_from_bytes(buffer.bytes, buffer.size);
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
-    CHECK(imported.annotations == NULL);
+    code = legacy_code_from_bytes(&buffer);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    check_tree_emptied(&imported);
     free(code);
     byte_buffer_release(&buffer);
 }
 
 static void test_oversized_count_is_rejected(void) {
     ByteBuffer buffer = {0};
-    AnnotationCategory imported;
+    AnnotationSet imported;
     char *code;
     append_header(&buffer, "Huge", 100000);
-    code = code_from_bytes(buffer.bytes, buffer.size);
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_TOO_LARGE);
+    code = legacy_code_from_bytes(&buffer);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_TOO_LARGE);
+    check_tree_emptied(&imported);
     free(code);
     byte_buffer_release(&buffer);
 }
@@ -249,7 +269,7 @@ static void test_typical_maze_guide_fits_discord(void) {
         sprintf(label, "Key %d", index);
         annotation_add_point(&set, category_id, ANNOTATION_PIN, 400 + index * 7, 400 + index * 5, label);
     }
-    code = annotation_code_export(&set.categories[0]);
+    code = annotation_code_export(&set, category_id);
     CHECK(code != NULL);
     if (code != NULL) {
         CHECK(strlen(code) < ANNOTATION_CODE_DISCORD_LIMIT);
@@ -274,67 +294,68 @@ static char *code_for_flood(const int path_count) {
             append_zigzag(&buffer, 0);
         }
     }
-    code = code_from_bytes(buffer.bytes, buffer.size);
+    code = legacy_code_from_bytes(&buffer);
     byte_buffer_release(&buffer);
     return code;
 }
 
 static void test_segment_total_over_cap_is_too_large(void) {
     const int paths_at_cap = ANNOTATION_MAX_SEGMENTS_PER_CATEGORY / ANNOTATION_MAX_SEGMENTS;
-    AnnotationCategory imported;
+    AnnotationSet imported;
     char *code = code_for_flood(paths_at_cap);
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_OK);
-    annotation_category_release(&imported);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_OK);
+    CHECK(imported.category_count == 1);
+    annotation_set_release(&imported);
     free(code);
 
     code = code_for_flood(paths_at_cap + 1);
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_TOO_LARGE);
-    CHECK(imported.annotations == NULL);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_TOO_LARGE);
+    check_tree_emptied(&imported);
     free(code);
 }
 
 static void test_empty_category_name_becomes_imported(void) {
     ByteBuffer buffer = {0};
-    AnnotationCategory imported;
+    AnnotationSet imported;
     char *code;
     append_header(&buffer, "", 1);
     append_byte(&buffer, ANNOTATION_PIN);
     append_byte(&buffer, 0);
     append_zigzag(&buffer, 10);
     append_zigzag(&buffer, 20);
-    code = code_from_bytes(buffer.bytes, buffer.size);
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_OK);
-    CHECK(strcmp(imported.name, "Imported") == 0);
-    CHECK(imported.annotation_count == 1);
-    if (imported.annotation_count == 1) CHECK(imported.annotations[0].label[0] == '\0');
-    annotation_category_release(&imported);
+    code = legacy_code_from_bytes(&buffer);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_OK);
+    CHECK(imported.category_count == 1);
+    if (imported.category_count == 1) {
+        const AnnotationCategory *category = &imported.categories[0];
+        CHECK(strcmp(category->name, "Imported") == 0);
+        CHECK(category->annotation_count == 1);
+        if (category->annotation_count == 1) CHECK(category->annotations[0].label[0] == '\0');
+    }
+    annotation_set_release(&imported);
     free(code);
     byte_buffer_release(&buffer);
 }
 
 static void test_empty_text_label_is_damaged(void) {
     ByteBuffer buffer = {0};
-    AnnotationCategory imported;
+    AnnotationSet imported;
     char *code;
     append_header(&buffer, "Notes", 1);
     append_byte(&buffer, ANNOTATION_TEXT);
     append_byte(&buffer, 0);
     append_zigzag(&buffer, 10);
     append_zigzag(&buffer, 20);
-    code = code_from_bytes(buffer.bytes, buffer.size);
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
-    CHECK(imported.annotations == NULL);
+    code = legacy_code_from_bytes(&buffer);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    check_tree_emptied(&imported);
     free(code);
     byte_buffer_release(&buffer);
 }
 
 static void test_trailing_bytes_are_damaged(void) {
     ByteBuffer buffer = {0};
-    AnnotationCategory imported;
+    AnnotationSet imported;
     char *code;
     append_header(&buffer, "Keys", 1);
     append_byte(&buffer, ANNOTATION_PIN);
@@ -342,12 +363,50 @@ static void test_trailing_bytes_are_damaged(void) {
     append_zigzag(&buffer, 10);
     append_zigzag(&buffer, 20);
     append_byte(&buffer, 0);
-    code = code_from_bytes(buffer.bytes, buffer.size);
-    memset(&imported, 0, sizeof(imported));
-    CHECK(annotation_code_import(code, &imported) == ANNOTATION_CODE_DAMAGED);
-    CHECK(imported.annotations == NULL);
+    code = legacy_code_from_bytes(&buffer);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    check_tree_emptied(&imported);
     free(code);
     byte_buffer_release(&buffer);
+}
+
+static void test_frozen_version_one_code_still_imports(void) {
+    const AnnotationSegment expected[3] = {{120, 200, 120, 215}, {120, 215, 135, 215}, {135, 215, 135, 230}};
+    AnnotationSet imported;
+    int segment_index;
+    CHECK(import_code("TLGMAP1:eNpj8U6tLGZiYmQPSk1RyE6tPME4gZmZxTexKpVZg4FBDowYGOQAuoUHpg==", &imported) ==
+          ANNOTATION_CODE_OK);
+    CHECK(imported.category_count == 1);
+    if (imported.category_count == 1) {
+        const AnnotationCategory *category = &imported.categories[0];
+        CHECK(strcmp(category->name, "Keys") == 0);
+        CHECK(category->parent_id == 0);
+        CHECK(category->colour_index == 2);
+        CHECK(category->visible == 1);
+        CHECK(category->show_labels == 1);
+        CHECK(category->annotation_count == 2);
+        if (category->annotation_count == 2) {
+            const Annotation *pin = &category->annotations[0];
+            const Annotation *path = &category->annotations[1];
+            CHECK(pin->kind == ANNOTATION_PIN);
+            CHECK(strcmp(pin->label, "Red key") == 0);
+            CHECK(pin->tile_x == 100 && pin->tile_y == 200);
+            CHECK(pin->colour_index == ANNOTATION_COLOUR_INHERIT);
+            CHECK(path->kind == ANNOTATION_PATH);
+            CHECK(strcmp(path->label, "Maze") == 0);
+            CHECK(path->colour_index == ANNOTATION_COLOUR_INHERIT);
+            CHECK(path->tile_x == 120 && path->tile_y == 200);
+            CHECK(path->segment_count == 3);
+            for (segment_index = 0; segment_index < 3 && segment_index < path->segment_count; segment_index++) {
+                const AnnotationSegment *segment = &path->segments[segment_index];
+                CHECK(segment->start_x == expected[segment_index].start_x);
+                CHECK(segment->start_y == expected[segment_index].start_y);
+                CHECK(segment->end_x == expected[segment_index].end_x);
+                CHECK(segment->end_y == expected[segment_index].end_y);
+            }
+        }
+    }
+    annotation_set_release(&imported);
 }
 
 static void build_dungeon_set(AnnotationSet *set, int *dungeons_id, int *cavern_id) {
@@ -376,11 +435,6 @@ static void append_tree_category(ByteBuffer *buffer, const unsigned int parent_r
     annotation_varint_write(buffer, parent_ref);
     append_byte(buffer, 0x03);
     append_header(buffer, name, 0);
-}
-
-static void check_tree_emptied(const AnnotationSet *tree) {
-    CHECK(tree->category_count == 0);
-    CHECK(tree->categories == NULL);
 }
 
 static void test_tree_round_trip_keeps_shape_settings_and_colours(void) {
@@ -545,6 +599,106 @@ static void test_tree_rejects_too_many_categories(void) {
     byte_buffer_release(&over_cap);
 }
 
+static void test_export_is_version_two_and_carries_children(void) {
+    AnnotationSet set, imported;
+    int dungeons_id, cavern_id;
+    char *code;
+    build_dungeon_set(&set, &dungeons_id, &cavern_id);
+    code = annotation_code_export(&set, dungeons_id);
+    CHECK(code != NULL);
+    if (code != NULL) {
+        CHECK(strncmp(code, "TLGMAP2:", 8) == 0);
+        CHECK(import_code(code, &imported) == ANNOTATION_CODE_OK);
+        CHECK(imported.category_count == 2);
+        CHECK(imported.changed == 0);
+        if (imported.category_count == 2) {
+            const AnnotationCategory *root = &imported.categories[0];
+            const AnnotationCategory *child = &imported.categories[1];
+            CHECK(strcmp(root->name, "Dungeons") == 0);
+            CHECK(root->parent_id == 0);
+            CHECK(root->show_labels == 0);
+            CHECK(strcmp(child->name, "Cold Cavern") == 0);
+            CHECK(child->parent_id == root->id);
+            CHECK(child->visible == 0);
+            CHECK(child->annotation_count == 2);
+            if (child->annotation_count == 2) CHECK(child->annotations[0].colour_index == 2);
+        }
+        annotation_set_release(&imported);
+    }
+    free(code);
+    annotation_set_release(&set);
+}
+
+static void test_export_unknown_category_is_null(void) {
+    AnnotationSet set;
+    int dungeons_id, cavern_id;
+    build_dungeon_set(&set, &dungeons_id, &cavern_id);
+    CHECK(annotation_code_export(&set, 9999) == NULL);
+    CHECK(annotation_code_export(&set, 0) == NULL);
+    annotation_set_release(&set);
+}
+
+static void test_has_prefix_accepts_both(void) {
+    CHECK(annotation_code_has_prefix("TLGMAP1:x") == 1);
+    CHECK(annotation_code_has_prefix("TLGMAP2:x") == 1);
+    CHECK(annotation_code_has_prefix("TLGMAP3:x") == 0);
+    CHECK(annotation_code_has_prefix("TLGMAP") == 0);
+    CHECK(annotation_code_has_prefix("") == 0);
+}
+
+static void test_version_two_with_two_roots_is_damaged(void) {
+    AnnotationSet set, imported;
+    ByteBuffer buffer = {0};
+    int dungeons_id, cavern_id;
+    char *code;
+    build_dungeon_set(&set, &dungeons_id, &cavern_id);
+    CHECK(annotation_tree_encode(&set, 0, &buffer) == 1);
+    code = code_from_bytes(ANNOTATION_CODE_PREFIX, buffer.bytes, buffer.size);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    check_tree_emptied(&imported);
+    free(code);
+    byte_buffer_release(&buffer);
+    annotation_set_release(&set);
+}
+
+static void test_version_two_trailing_bytes_are_damaged(void) {
+    AnnotationSet set, imported;
+    ByteBuffer buffer = {0};
+    int dungeons_id, cavern_id;
+    char *code;
+    build_dungeon_set(&set, &dungeons_id, &cavern_id);
+    CHECK(annotation_tree_encode(&set, dungeons_id, &buffer) == 1);
+    append_byte(&buffer, 0);
+    code = code_from_bytes(ANNOTATION_CODE_PREFIX, buffer.bytes, buffer.size);
+    CHECK(import_code(code, &imported) == ANNOTATION_CODE_DAMAGED);
+    check_tree_emptied(&imported);
+    free(code);
+    byte_buffer_release(&buffer);
+    annotation_set_release(&set);
+}
+
+static AnnotationCodeStatus import_zeros(const char *prefix, const size_t size) {
+    unsigned char *zeros = calloc(size, 1);
+    AnnotationSet imported;
+    AnnotationCodeStatus status;
+    char *code = code_from_bytes(prefix, zeros, size);
+    status = import_code(code, &imported);
+    check_tree_emptied(&imported);
+    annotation_set_release(&imported);
+    free(code);
+    free(zeros);
+    return status;
+}
+
+static void test_version_two_over_limit_is_too_large(void) {
+    CHECK(import_zeros(ANNOTATION_CODE_PREFIX, (size_t) 16 * 1024 * 1024 + 1) == ANNOTATION_CODE_TOO_LARGE);
+}
+
+static void test_version_one_limit_is_unchanged(void) {
+    CHECK(import_zeros(ANNOTATION_CODE_LEGACY_PREFIX, 262144) == ANNOTATION_CODE_DAMAGED);
+    CHECK(import_zeros(ANNOTATION_CODE_LEGACY_PREFIX, 262145) == ANNOTATION_CODE_TOO_LARGE);
+}
+
 int main(void) {
     test_varint_round_trip();
     test_code_round_trip();
@@ -559,6 +713,7 @@ int main(void) {
     test_empty_category_name_becomes_imported();
     test_empty_text_label_is_damaged();
     test_trailing_bytes_are_damaged();
+    test_frozen_version_one_code_still_imports();
     test_tree_round_trip_keeps_shape_settings_and_colours();
     test_tree_encode_subtree_excludes_siblings();
     test_tree_whole_set_keeps_every_root();
@@ -566,6 +721,13 @@ int main(void) {
     test_tree_rejects_second_root_when_single();
     test_tree_rejects_depth_nine();
     test_tree_rejects_too_many_categories();
+    test_export_is_version_two_and_carries_children();
+    test_export_unknown_category_is_null();
+    test_has_prefix_accepts_both();
+    test_version_two_with_two_roots_is_damaged();
+    test_version_two_trailing_bytes_are_damaged();
+    test_version_two_over_limit_is_too_large();
+    test_version_one_limit_is_unchanged();
     if (failures != 0) {
         printf("%d annotation code check(s) failed\n", failures);
         return 1;
