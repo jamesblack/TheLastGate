@@ -1019,8 +1019,7 @@ static void render_swatch(ImU32 colour, bool dimmed) {
                                               ImGui::ColorConvertFloat4ToU32(swatch));
 }
 
-static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set, const AnnotationCategory *category,
-                                   const bool dimmed) {
+static void render_annotation_rows(WorldmapPanelState *panel, const AnnotationCategory *category, const bool dimmed) {
     for (int annotation_index = 0; annotation_index < category->annotation_count; annotation_index++) {
         const Annotation *annotation = &category->annotations[annotation_index];
         const bool selected = annotation->id == panel->selected_annotation_id;
@@ -1039,17 +1038,13 @@ static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set
         ImGui::SameLine(row_start_x);
         if (annotation->colour_index != ANNOTATION_COLOUR_INHERIT) {
             render_swatch(rgb_colour(annotation_effective_rgb(category, annotation)), dimmed);
-            ImGui::SameLine();
+        } else {
+            ImGui::Dummy(ImVec2(SWATCH_SIZE, SWATCH_SIZE));
         }
+        ImGui::SameLine();
         ImGui::TextUnformatted(annotation_kind_prefix(annotation->kind));
         ImGui::SameLine(0.0F, 0.0F);
         ImGui::TextUnformatted(annotation->label);
-
-        const bool being_edited = panel->editing && panel->edit_annotation_id == annotation->id;
-        if (selected && !being_edited) {
-            ImGui::SameLine();
-            if (game_button("Edit")) begin_edit(panel, set, annotation->id);
-        }
         if (dimmed) ImGui::PopStyleColor();
         ImGui::PopID();
     }
@@ -1105,7 +1100,7 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
 
     if (expanded) {
         render_category_branch(panel, set, category->id);
-        render_annotation_rows(panel, set, category, dimmed);
+        render_annotation_rows(panel, category, dimmed);
         ImGui::TreePop();
     }
 
@@ -1163,11 +1158,6 @@ static void render_edit_controls(WorldmapPanelState *panel, AnnotationSet *set) 
         if (game_button("Save", !empty_text)) save_edit(panel, set);
         ImGui::SameLine();
         if (game_button("Cancel")) cancel_edit(panel);
-        return;
-    }
-    if (panel->selected_annotation_id != 0 && annotation_find(set, panel->selected_annotation_id, NULL)) {
-        ImGui::SameLine();
-        if (game_button("Edit")) begin_edit(panel, set, panel->selected_annotation_id);
     }
 }
 
@@ -1329,6 +1319,16 @@ static void render_category_menu(WorldmapPanelState *panel, AnnotationSet *set) 
         ImGui::EndMenu();
         if (chosen_id >= 0) move_category(panel, set, category_id, chosen_id);
     }
+    ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
+    if (ImGui::MenuItem("Move up", NULL, false, annotation_category_can_shift(set, category_id, -1) != 0) &&
+        annotation_category_shift(set, category_id, -1)) {
+        worldmap_save_annotations();
+    }
+    if (ImGui::MenuItem("Move down", NULL, false, annotation_category_can_shift(set, category_id, 1) != 0) &&
+        annotation_category_shift(set, category_id, 1)) {
+        worldmap_save_annotations();
+    }
+    ImGui::PopItemFlag();
     ImGui::Separator();
 
     if (ImGui::MenuItem("Export")) export_category(panel, set, category_id);

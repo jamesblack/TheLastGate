@@ -333,6 +333,32 @@ int annotation_category_move(AnnotationSet *set, const int category_id, const in
     return 1;
 }
 
+static int neighbouring_sibling_index(const AnnotationSet *set, const int category_id, const int direction) {
+    const int index = find_category_index(set, category_id);
+    int candidate;
+    if (index < 0 || (direction != -1 && direction != 1)) return -1;
+    for (candidate = index + direction; candidate >= 0 && candidate < set->category_count; candidate += direction) {
+        if (set->categories[candidate].parent_id == set->categories[index].parent_id) return candidate;
+    }
+    return -1;
+}
+
+int annotation_category_can_shift(const AnnotationSet *set, const int category_id, const int direction) {
+    return neighbouring_sibling_index(set, category_id, direction) >= 0;
+}
+
+int annotation_category_shift(AnnotationSet *set, const int category_id, const int direction) {
+    const int neighbour = neighbouring_sibling_index(set, category_id, direction);
+    const int index = find_category_index(set, category_id);
+    AnnotationCategory swapped;
+    if (neighbour < 0) return 0;
+    swapped = set->categories[index];
+    set->categories[index] = set->categories[neighbour];
+    set->categories[neighbour] = swapped;
+    set->changed = 1;
+    return 1;
+}
+
 int annotation_category_count_kind(const AnnotationCategory *category, const AnnotationKind kind) {
     int index, total = 0;
     for (index = 0; index < category->annotation_count; index++) {

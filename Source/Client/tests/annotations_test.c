@@ -587,7 +587,46 @@ static void test_identical_compares_everything(void) {
     annotation_set_release(&set);
 }
 
+static void test_shift_category_swaps_with_neighbouring_sibling(void) {
+    AnnotationSet set;
+    int aston, neiseer, dungeons, quest_givers, treasure;
+    int ordered[8];
+    annotation_set_init(&set);
+    aston = annotation_category_add(&set, "Aston", 0);
+    quest_givers = annotation_category_add_under(&set, aston, "Quest Givers", 1);
+    neiseer = annotation_category_add(&set, "Neiseer", 2);
+    treasure = annotation_category_add_under(&set, aston, "Treasure", 3);
+    dungeons = annotation_category_add(&set, "Dungeons", 4);
+    set.changed = 0;
+
+    CHECK(annotation_category_can_shift(&set, aston, -1) == 0);
+    CHECK(annotation_category_can_shift(&set, dungeons, 1) == 0);
+    CHECK(annotation_category_can_shift(&set, quest_givers, -1) == 0);
+    CHECK(annotation_category_can_shift(&set, treasure, 1) == 0);
+    CHECK(annotation_category_can_shift(&set, 999, 1) == 0);
+    CHECK(annotation_category_shift(&set, aston, -1) == 0);
+    CHECK(set.changed == 0);
+
+    CHECK(annotation_category_shift(&set, dungeons, -1) == 1);
+    CHECK(set.changed == 1);
+    CHECK(annotation_tree_collect(&set, 0, ordered, 8) == 5);
+    CHECK(set.categories[ordered[0]].id == aston);
+    CHECK(set.categories[ordered[1]].id == quest_givers);
+    CHECK(set.categories[ordered[2]].id == treasure);
+    CHECK(set.categories[ordered[3]].id == dungeons);
+    CHECK(set.categories[ordered[4]].id == neiseer);
+
+    CHECK(annotation_category_shift(&set, treasure, -1) == 1);
+    CHECK(annotation_tree_collect(&set, aston, ordered, 8) == 3);
+    CHECK(set.categories[ordered[1]].id == treasure);
+    CHECK(set.categories[ordered[2]].id == quest_givers);
+    CHECK(annotation_category_find(&set, treasure)->parent_id == aston);
+    CHECK(strcmp(annotation_category_find(&set, treasure)->name, "Treasure") == 0);
+    annotation_set_release(&set);
+}
+
 int main(void) {
+    test_shift_category_swaps_with_neighbouring_sibling();
     test_attach_renumbers_ids_and_parents();
     test_sibling_names_unique_ignoring_case_but_cousins_may_share();
     test_attach_keeps_clashing_names_verbatim();

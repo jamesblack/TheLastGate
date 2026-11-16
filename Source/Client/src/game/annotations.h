@@ -73,6 +73,8 @@ int annotation_category_rename(AnnotationSet *set, int category_id, const char *
 int annotation_category_set_colour(AnnotationSet *set, int category_id, int colour_index);
 int annotation_category_can_move(const AnnotationSet *set, int category_id, int new_parent_id);
 int annotation_category_move(AnnotationSet *set, int category_id, int new_parent_id);
+int annotation_category_can_shift(const AnnotationSet *set, int category_id, int direction);
+int annotation_category_shift(AnnotationSet *set, int category_id, int direction);
 AnnotationCategory *annotation_category_find(AnnotationSet *set, int category_id);
 void annotation_category_release(AnnotationCategory *category);
 int annotation_category_count_kind(const AnnotationCategory *category, AnnotationKind kind);
