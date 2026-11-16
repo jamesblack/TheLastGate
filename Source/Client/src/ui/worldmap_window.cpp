@@ -79,6 +79,8 @@ struct WorldmapPanelState {
     int import_capacity;
     AnnotationSet import_preview;
     AnnotationCodeStatus import_status;
+    int import_conflict_id;
+    char import_root_name[ANNOTATION_CATEGORY_NAME_MAX];
     char export_message[64];
     bool export_too_long;
     char status_text[192];
@@ -364,13 +366,19 @@ static void release_import(WorldmapPanelState *panel) {
     annotation_set_init(&panel->import_preview);
 }
 
-static void update_import_preview(WorldmapPanelState *panel) {
+static void update_import_preview(WorldmapPanelState *panel, const AnnotationSet *set) {
     annotation_set_release(&panel->import_preview);
     annotation_set_init(&panel->import_preview);
     panel->import_status = annotation_code_import(panel->import_text, &panel->import_preview);
+    panel->import_conflict_id = 0;
+    panel->import_root_name[0] = '\0';
+    if (panel->import_status != ANNOTATION_CODE_OK || panel->import_preview.category_count < 1) return;
+    panel->import_conflict_id = annotation_import_conflict(set, &panel->import_preview);
+    annotation_copy_text(panel->import_root_name, sizeof(panel->import_root_name),
+                         panel->import_preview.categories[0].name);
 }
 
-static void open_import(WorldmapPanelState *panel) {
+static void open_import(WorldmapPanelState *panel, const AnnotationSet *set) {
     release_import(panel);
 
     char *clipboard = SDL_GetClipboardText();
@@ -383,7 +391,7 @@ static void open_import(WorldmapPanelState *panel) {
     panel->import_text = (char *) malloc((size_t) panel->import_capacity);
     if (panel->import_text) {
         annotation_copy_text(panel->import_text, (size_t) panel->import_capacity, is_code ? trimmed : "");
-        update_import_preview(panel);
+        update_import_preview(panel, set);
         panel->popup_request = IMPORT_POPUP_ID;
     } else {
         panel->import_capacity = 0;
@@ -1110,7 +1118,7 @@ static void render_category_list(WorldmapPanelState *panel, AnnotationSet *set, 
     ImGui::Separator();
     if (game_button("+ New")) open_new_category(panel, 0);
     ImGui::SameLine();
-    if (game_button("Import")) open_import(panel);
+    if (game_button("Import")) open_import(panel, set);
     ImGui::SameLine();
     if (game_button("Export", annotation_category_find(set, panel->current_category_id) != NULL)) {
         export_category(panel, set, panel->current_category_id);
@@ -1452,6 +1460,36 @@ static void render_import_preview(const WorldmapPanelState *panel) {
     }
 }
 
+static bool top_level_name_taken(const AnnotationSet *set, const char *name) {
+    for (int category_index = 0; category_index < set->category_count; category_index++) {
+        const AnnotationCategory *category = &set->categories[category_index];
+        if (category->parent_id == 0 && annotation_name_equal(category->name, name)) return true;
+    }
+    return false;
+}
+
+static void report_import_result(WorldmapPanelState *panel, const AnnotationImportResult result) {
+    switch (result.status) {
+        case ANNOTATION_IMPORT_OK:
+            panel->current_category_id = result.root_id;
+            set_category_expanded(panel, result.root_id, true);
+            worldmap_save_annotations();
+            break;
+        case ANNOTATION_IMPORT_NAME_TAKEN: set_status(panel, "That name is already taken."); break;
+        case ANNOTATION_IMPORT_TOO_MANY_CATEGORIES:
+            set_status(panel, "Import would go over the 256 category limit.");
+            break;
+        case ANNOTATION_IMPORT_TOO_DEEP: set_status(panel, "Import would nest categories more than 8 deep."); break;
+        case ANNOTATION_IMPORT_CATEGORY_FULL: {
+            char message[ANNOTATION_CATEGORY_NAME_MAX + 32];
+            snprintf(message, sizeof(message), "Import would overfill \"%s\".", result.category_name);
+            set_status(panel, message);
+            break;
+        }
+        case ANNOTATION_IMPORT_FAILED: set_status(panel, "Import failed."); break;
+    }
+}
+
 static void render_import_popup(WorldmapPanelState *panel, AnnotationSet *set) {
     if (!begin_game_modal(IMPORT_POPUP_ID)) return;
     if (!panel->import_text) {
@@ -1465,37 +1503,42 @@ static void render_import_popup(WorldmapPanelState *panel, AnnotationSet *set) {
     if (ImGui::InputTextMultiline("##code", panel->import_text, (size_t) panel->import_capacity,
                                   ImVec2(420.0F, ImGui::GetTextLineHeight() * 6.0F), ImGuiInputTextFlags_CallbackResize,
                                   import_text_resize, panel)) {
-        update_import_preview(panel);
+        update_import_preview(panel, set);
     }
     render_import_preview(panel);
 
-    const bool can_add = panel->import_text[0] != '\0' && panel->import_status == ANNOTATION_CODE_OK;
-    const bool added = game_button("Add", can_add);
-    ImGui::SameLine();
-    const bool cancelled = game_button("Cancel");
-
-    if (added && can_add) {
-        const AnnotationImportResult result = annotation_import_add(set, &panel->import_preview, NULL);
-        switch (result.status) {
-            case ANNOTATION_IMPORT_OK:
-                panel->current_category_id = result.root_id;
-                worldmap_save_annotations();
-                break;
-            case ANNOTATION_IMPORT_NAME_TAKEN: set_status(panel, "That name is already taken."); break;
-            case ANNOTATION_IMPORT_TOO_MANY_CATEGORIES:
-                set_status(panel, "Import would go over the 256 category limit.");
-                break;
-            case ANNOTATION_IMPORT_TOO_DEEP: set_status(panel, "Import would nest categories more than 8 deep."); break;
-            case ANNOTATION_IMPORT_CATEGORY_FULL: {
-                char message[ANNOTATION_CATEGORY_NAME_MAX + 32];
-                snprintf(message, sizeof(message), "Import would overfill \"%s\".", result.category_name);
-                set_status(panel, message);
-                break;
-            }
-            case ANNOTATION_IMPORT_FAILED: set_status(panel, "Import failed."); break;
+    const bool code_ready = panel->import_text[0] != '\0' && panel->import_status == ANNOTATION_CODE_OK;
+    bool finished = false;
+    if (code_ready && panel->import_conflict_id != 0) {
+        char conflict_text[ANNOTATION_CATEGORY_NAME_MAX + 48];
+        snprintf(conflict_text, sizeof(conflict_text), "You already have a category called \"%s\".",
+                 panel->import_preview.categories[0].name);
+        ImGui::TextUnformatted(conflict_text);
+        if (game_button("Merge")) {
+            report_import_result(panel,
+                                 annotation_import_merge(set, &panel->import_preview, panel->import_conflict_id));
+            finished = true;
         }
+        ImGui::TextUnformatted("Rename to");
+        ImGui::SameLine();
+        ImGui::InputText("##import_rename", panel->import_root_name, sizeof(panel->import_root_name));
+        const bool can_rename =
+                panel->import_root_name[0] != '\0' && !top_level_name_taken(set, panel->import_root_name);
+        if (game_button("Add as new", can_rename) && can_rename) {
+            report_import_result(panel, annotation_import_add(set, &panel->import_preview, panel->import_root_name));
+            finished = true;
+        }
+        ImGui::SameLine();
+    } else {
+        if (game_button("Add", code_ready) && code_ready) {
+            report_import_result(panel, annotation_import_add(set, &panel->import_preview, NULL));
+            finished = true;
+        }
+        ImGui::SameLine();
     }
-    if (added || cancelled) {
+    if (game_button("Cancel")) finished = true;
+
+    if (finished) {
         release_import(panel);
         ImGui::CloseCurrentPopup();
     }
