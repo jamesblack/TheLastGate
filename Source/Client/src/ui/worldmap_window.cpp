@@ -2,6 +2,7 @@
 
 #include <SDL2/SDL.h>
 #include <imgui.h>
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,6 +71,10 @@ struct WorldmapPanelState {
     int menu_category_id;
     char new_category_name[ANNOTATION_CATEGORY_NAME_MAX];
     int new_category_colour;
+    int new_category_parent_id;
+    int rename_category_id;
+    char rename_text[ANNOTATION_CATEGORY_NAME_MAX];
+    bool rename_focus_pending;
     char *import_text;
     int import_capacity;
     AnnotationSet import_preview;
@@ -105,6 +110,7 @@ static const float FOLLOW_RING_RADIUS = 5.0F;
 static const float DASH_LENGTH = 6.0F;
 static const float DASH_GAP = 4.0F;
 static const float SWATCH_SIZE = 12.0F;
+static const float DIMMED_SWATCH_ALPHA = 0.35F;
 static const float TITLE_HEIGHT = 20.0F;
 static const int CLOSE_CROSS_SIZE = 7;
 static const ImU32 CLOSE_CROSS_HOVERED_COLOUR = IM_COL32(217, 191, 79, 255);
@@ -148,9 +154,12 @@ static WorldmapPanelState initial_panel_state(void) {
 
 static WorldmapPanelState panel_state = initial_panel_state();
 
-static ImU32 palette_colour(int colour_index) {
-    const unsigned int rgb = annotation_palette_rgb(colour_index);
+static ImU32 rgb_colour(unsigned int rgb) {
     return IM_COL32((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, 255);
+}
+
+static ImU32 palette_colour(int colour_index) {
+    return rgb_colour(annotation_palette_rgb(colour_index));
 }
 
 static ImU32 category_colour(const AnnotationCategory *category) {
@@ -322,6 +331,7 @@ static void delete_category(WorldmapPanelState *panel, AnnotationSet *set, int c
     if (annotation_in_category(set, panel->selected_annotation_id, category_id)) panel->selected_annotation_id = 0;
     if (panel->pending_category_id == category_id) panel->pending_segment_count = 0;
     if (panel->current_category_id == category_id) panel->current_category_id = 0;
+    if (panel->rename_category_id == category_id) panel->rename_category_id = 0;
     set_category_expanded(panel, category_id, false);
     if (annotation_category_remove(set, category_id)) worldmap_save_annotations();
 }
@@ -381,10 +391,39 @@ static void open_import(WorldmapPanelState *panel) {
     SDL_free(clipboard);
 }
 
-static void open_new_category(WorldmapPanelState *panel) {
+static void open_new_category(WorldmapPanelState *panel, int parent_id) {
     panel->new_category_name[0] = '\0';
     panel->new_category_colour = 0;
+    panel->new_category_parent_id = parent_id;
     panel->popup_request = NEW_CATEGORY_POPUP_ID;
+}
+
+static void begin_rename(WorldmapPanelState *panel, const AnnotationCategory *category) {
+    panel->rename_category_id = category->id;
+    annotation_copy_text(panel->rename_text, sizeof(panel->rename_text), category->name);
+    panel->rename_focus_pending = true;
+}
+
+static void move_annotation(WorldmapPanelState *panel, AnnotationSet *set, int annotation_id, int category_id) {
+    if (panel->editing && panel->edit_annotation_id == annotation_id) cancel_edit(panel);
+    if (!annotation_move(set, annotation_id, category_id)) {
+        set_status(panel, "That category is full.");
+        return;
+    }
+    set_category_expanded(panel, category_id, true);
+    worldmap_save_annotations();
+}
+
+static void move_category(WorldmapPanelState *panel, AnnotationSet *set, int category_id, int parent_id) {
+    if (!annotation_category_move(set, category_id, parent_id)) return;
+    if (parent_id != 0) set_category_expanded(panel, parent_id, true);
+    worldmap_save_annotations();
+}
+
+static void set_annotation_colour(WorldmapPanelState *panel, AnnotationSet *set, int annotation_id, int colour_index) {
+    if (!annotation_set_colour(set, annotation_id, colour_index)) return;
+    if (panel->editing && panel->edit_annotation_id == annotation_id) panel->edit_copy.colour_index = colour_index;
+    worldmap_save_annotations();
 }
 
 static void draw_pixel(ImDrawList *draw_list, float left, float top, ImU32 colour) {
@@ -516,9 +555,9 @@ static void draw_path(const WorldmapPanelState *panel, const MapArea *area, ImDr
     fill_square(draw_list, end_mark, 2, colour);
 }
 
-static bool pin_label_shown(const WorldmapPanelState *panel, const AnnotationCategory *category,
-                            const Annotation *annotation) {
-    return category->show_labels && annotation->label[0] != '\0' &&
+static bool pin_label_shown(const WorldmapPanelState *panel, const AnnotationSet *set,
+                            const AnnotationCategory *category, const Annotation *annotation) {
+    return annotation_category_labels_shown(set, category) && annotation->label[0] != '\0' &&
            panel->view.pixels_per_tile >= PIN_LABEL_MIN_PIXELS_PER_TILE;
 }
 
@@ -553,17 +592,17 @@ static void draw_annotations(const WorldmapPanelState *panel, AnnotationSet *set
                              ImDrawList *draw_list) {
     for (int category_index = 0; category_index < set->category_count; category_index++) {
         const AnnotationCategory *category = &set->categories[category_index];
-        if (!category->visible) continue;
-        const ImU32 colour = category_colour(category);
+        if (!annotation_category_shown(set, category)) continue;
         for (int annotation_index = 0; annotation_index < category->annotation_count; annotation_index++) {
             const Annotation *annotation = &category->annotations[annotation_index];
             const bool selected = annotation->id == panel->selected_annotation_id;
             if (panel->editing && annotation->id == panel->edit_annotation_id) annotation = &panel->edit_copy;
+            const ImU32 colour = rgb_colour(annotation_effective_rgb(category, annotation));
             switch (annotation->kind) {
                 case ANNOTATION_PATH: draw_path(panel, area, draw_list, annotation, colour, selected); break;
                 case ANNOTATION_PIN:
                     draw_pin(panel, area, draw_list, annotation, colour, selected,
-                             pin_label_shown(panel, category, annotation));
+                             pin_label_shown(panel, set, category, annotation));
                     break;
                 case ANNOTATION_TEXT: draw_text_label(panel, area, draw_list, annotation, colour, selected); break;
                 case ANNOTATION_NONE: break;
@@ -890,7 +929,7 @@ static void show_pin_tooltip(const WorldmapPanelState *panel, AnnotationSet *set
     AnnotationCategory *owner = NULL;
     const Annotation *annotation = annotation_find(set, hit.annotation_id, &owner);
     if (annotation && owner && annotation->kind == ANNOTATION_PIN && annotation->label[0] != '\0' &&
-        !pin_label_shown(panel, owner, annotation)) {
+        !pin_label_shown(panel, set, owner, annotation)) {
         ui_tooltip(annotation->label);
     }
 }
@@ -952,6 +991,14 @@ static const char *annotation_kind_prefix(AnnotationKind kind) {
     return "";
 }
 
+static void render_swatch(ImU32 colour, bool dimmed) {
+    ImVec4 swatch = ImGui::ColorConvertU32ToFloat4(colour);
+    if (dimmed) swatch.w = DIMMED_SWATCH_ALPHA;
+    ImGui::Dummy(ImVec2(SWATCH_SIZE, SWATCH_SIZE));
+    ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
+                                              ImGui::ColorConvertFloat4ToU32(swatch));
+}
+
 static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set, const AnnotationCategory *category) {
     for (int annotation_index = 0; annotation_index < category->annotation_count; annotation_index++) {
         const Annotation *annotation = &category->annotations[annotation_index];
@@ -968,6 +1015,10 @@ static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set
             panel->popup_request = ANNOTATION_MENU_ID;
         }
         ImGui::SameLine(row_start_x);
+        if (annotation->colour_index != ANNOTATION_COLOUR_INHERIT) {
+            render_swatch(rgb_colour(annotation_effective_rgb(category, annotation)), false);
+            ImGui::SameLine();
+        }
         ImGui::TextUnformatted(annotation_kind_prefix(annotation->kind));
         ImGui::SameLine(0.0F, 0.0F);
         ImGui::TextUnformatted(annotation->label);
@@ -981,62 +1032,37 @@ static void render_annotation_rows(WorldmapPanelState *panel, AnnotationSet *set
     }
 }
 
-static float checkbox_column_width(void) {
-    return fmaxf(ImGui::CalcTextSize("Labels").x, ImGui::GetFrameHeight());
-}
-
-static float category_list_column_x(float row_start_x, int column) {
-    return row_start_x + (float) column * (checkbox_column_width() + ImGui::GetStyle().ItemSpacing.x);
-}
-
-static void render_category_list_header(void) {
-    const char *const headers[] = {"Map", "Labels", "Category"};
-    const float row_start_x = ImGui::GetCursorPosX();
-    for (int column = 0; column < 3; column++) {
-        float header_x = category_list_column_x(row_start_x, column);
-        if (column < 2) header_x += (checkbox_column_width() - ImGui::CalcTextSize(headers[column]).x) / 2.0F;
-        if (column > 0) {
-            ImGui::SameLine(header_x);
-        } else {
-            ImGui::SetCursorPosX(header_x);
+static void render_rename_input(WorldmapPanelState *panel, AnnotationSet *set) {
+    if (panel->rename_focus_pending) {
+        ImGui::SetKeyboardFocusHere();
+        panel->rename_focus_pending = false;
+    }
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    const bool submitted = ImGui::InputText("##rename", panel->rename_text, sizeof(panel->rename_text),
+                                            ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+    if (submitted) {
+        if (annotation_category_rename(set, panel->rename_category_id, panel->rename_text)) {
+            worldmap_save_annotations();
         }
-        ImGui::TextDisabled("%s", headers[column]);
+        panel->rename_category_id = 0;
+    } else if (ImGui::IsItemDeactivated()) {
+        panel->rename_category_id = 0;
     }
 }
+
+static void render_category_branch(WorldmapPanelState *panel, AnnotationSet *set, int parent_id);
 
 static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, AnnotationCategory *category) {
     ImGui::PushID(category->id);
+    const bool dimmed = !annotation_category_shown(set, category);
+    if (dimmed) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+
     const float row_start_x = ImGui::GetCursorPosX();
-    const float checkbox_offset = (checkbox_column_width() - ImGui::GetFrameHeight()) / 2.0F;
-
-    ImGui::SetCursorPosX(category_list_column_x(row_start_x, 0) + checkbox_offset);
-    bool visible = category->visible != 0;
-    if (ImGui::Checkbox("##visible", &visible)) {
-        category->visible = visible ? 1 : 0;
-        set->changed = 1;
-        worldmap_save_annotations();
-    }
-    if (ImGui::IsItemHovered()) ui_tooltip("Show on map");
-
-    ImGui::SameLine(category_list_column_x(row_start_x, 1) + checkbox_offset);
-    bool show_labels = category->show_labels != 0;
-    if (ImGui::Checkbox("##labels", &show_labels)) {
-        category->show_labels = show_labels ? 1 : 0;
-        set->changed = 1;
-        worldmap_save_annotations();
-    }
-    if (ImGui::IsItemHovered()) ui_tooltip("Show pin labels");
-
-    ImGui::SameLine(category_list_column_x(row_start_x, 2));
-    const ImVec4 swatch = ImGui::ColorConvertU32ToFloat4(category_colour(category));
-    ImGui::ColorButton("##swatch", swatch, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoPicker,
-                       ImVec2(SWATCH_SIZE, SWATCH_SIZE));
-
-    ImGui::SameLine();
-    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow;
+    ImGuiTreeNodeFlags node_flags =
+            ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_AllowOverlap;
     if (category->id == panel->current_category_id) node_flags |= ImGuiTreeNodeFlags_Selected;
     ImGui::SetNextItemOpen(category_is_expanded(panel, category->id));
-    const bool expanded = ImGui::TreeNodeEx("##category", node_flags, "%s", category->name);
+    const bool expanded = ImGui::TreeNodeEx("##category", node_flags);
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) panel->current_category_id = category->id;
     if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
         panel->menu_category_id = category->id;
@@ -1044,12 +1070,30 @@ static void render_category_row(WorldmapPanelState *panel, AnnotationSet *set, A
     }
     set_category_expanded(panel, category->id, expanded);
 
+    ImGui::SameLine(row_start_x + ImGui::GetTreeNodeToLabelSpacing());
+    render_swatch(category_colour(category), dimmed);
+    ImGui::SameLine();
+    if (panel->rename_category_id == category->id) {
+        render_rename_input(panel, set);
+    } else {
+        ImGui::TextUnformatted(category->name);
+    }
+    if (dimmed) ImGui::PopStyleColor();
+
     if (expanded) {
+        render_category_branch(panel, set, category->id);
         render_annotation_rows(panel, set, category);
         ImGui::TreePop();
     }
 
     ImGui::PopID();
+}
+
+static void render_category_branch(WorldmapPanelState *panel, AnnotationSet *set, int parent_id) {
+    for (int category_index = 0; category_index < set->category_count; category_index++) {
+        AnnotationCategory *category = &set->categories[category_index];
+        if (category->parent_id == parent_id && category->id != parent_id) render_category_row(panel, set, category);
+    }
 }
 
 static void render_category_list(WorldmapPanelState *panel, AnnotationSet *set, float height) {
@@ -1059,15 +1103,12 @@ static void render_category_list(WorldmapPanelState *panel, AnnotationSet *set, 
     const ImGuiStyle &style = ImGui::GetStyle();
     const float button_row_height = fmaxf((float) BUTTON_SPRITE_HEIGHT, ImGui::GetFrameHeight()) + style.ItemSpacing.y;
     const float footer_height = button_row_height + ImGui::GetFrameHeightWithSpacing() + style.ItemSpacing.y;
-    render_category_list_header();
     ImGui::BeginChild("category_rows", ImVec2(0.0F, -footer_height));
-    for (int category_index = 0; category_index < set->category_count; category_index++) {
-        render_category_row(panel, set, &set->categories[category_index]);
-    }
+    render_category_branch(panel, set, 0);
     ImGui::EndChild();
 
     ImGui::Separator();
-    if (game_button("+ New")) open_new_category(panel);
+    if (game_button("+ New")) open_new_category(panel, 0);
     ImGui::SameLine();
     if (game_button("Import")) open_import(panel);
     ImGui::SameLine();
@@ -1146,16 +1187,135 @@ static void render_bottom_bar(WorldmapPanelState *panel, AnnotationSet *set) {
     }
 }
 
+static void outline_last_item(void) {
+    const ImVec2 item_min = ImGui::GetItemRectMin();
+    const ImVec2 item_max = ImGui::GetItemRectMax();
+    ImGui::GetWindowDrawList()->AddRect(ImVec2(item_min.x - 2.0F, item_min.y - 2.0F),
+                                        ImVec2(item_max.x + 2.0F, item_max.y + 2.0F), GOLD_FONT_COLOR, 0.0F, 0, 2.0F);
+}
+
+static bool render_palette_row(int *colour_index) {
+    bool chosen = false;
+    for (int palette_index = 0; palette_index < ANNOTATION_PALETTE_SIZE; palette_index++) {
+        if (palette_index > 0) ImGui::SameLine();
+        ImGui::PushID(palette_index);
+        const ImVec4 swatch = ImGui::ColorConvertU32ToFloat4(palette_colour(palette_index));
+        if (ImGui::ColorButton("##colour", swatch, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoPicker,
+                               ImVec2(PICKER_SWATCH_SIZE, PICKER_SWATCH_SIZE))) {
+            *colour_index = palette_index;
+            chosen = true;
+        }
+        if (palette_index == *colour_index) outline_last_item();
+        ImGui::PopID();
+    }
+    return chosen;
+}
+
+static bool send_to_allowed(const AnnotationSet *set, int moving_category_id, int owner_category_id, int target_id) {
+    if (moving_category_id != 0) return annotation_category_can_move(set, moving_category_id, target_id) != 0;
+    return target_id != owner_category_id;
+}
+
+static void render_send_to_branch(const AnnotationSet *set, int parent_id, int moving_category_id,
+                                  int owner_category_id, int *chosen_id) {
+    for (int category_index = 0; category_index < set->category_count; category_index++) {
+        const AnnotationCategory *category = &set->categories[category_index];
+        if (category->parent_id != parent_id || category->id == parent_id) continue;
+        ImGui::PushID(category->id);
+        const bool allowed = send_to_allowed(set, moving_category_id, owner_category_id, category->id);
+        if (ImGui::MenuItem(category->name, NULL, false, allowed)) *chosen_id = category->id;
+        ImGui::Indent(ImGui::GetStyle().IndentSpacing);
+        render_send_to_branch(set, category->id, moving_category_id, owner_category_id, chosen_id);
+        ImGui::Unindent(ImGui::GetStyle().IndentSpacing);
+        ImGui::PopID();
+    }
+}
+
 static void render_annotation_menu(WorldmapPanelState *panel, AnnotationSet *set) {
     if (!begin_game_menu(ANNOTATION_MENU_ID)) return;
-    if (ImGui::MenuItem("Delete")) delete_annotation(panel, set, panel->menu_annotation_id);
+    AnnotationCategory *owner = NULL;
+    const Annotation *annotation = annotation_find(set, panel->menu_annotation_id, &owner);
+    if (!annotation) {
+        ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+        return;
+    }
+    const int annotation_id = annotation->id;
+
+    if (ImGui::MenuItem("Edit")) begin_edit(panel, set, annotation_id);
+    if (ImGui::BeginMenu("Colour")) {
+        int colour_index = annotation->colour_index;
+        if (render_palette_row(&colour_index)) set_annotation_colour(panel, set, annotation_id, colour_index);
+        if (ImGui::MenuItem("Use category colour", NULL, annotation->colour_index == ANNOTATION_COLOUR_INHERIT)) {
+            set_annotation_colour(panel, set, annotation_id, ANNOTATION_COLOUR_INHERIT);
+        }
+        ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("Send to")) {
+        int chosen_id = -1;
+        render_send_to_branch(set, 0, 0, owner->id, &chosen_id);
+        ImGui::EndMenu();
+        if (chosen_id > 0) move_annotation(panel, set, annotation_id, chosen_id);
+    }
+    if (ImGui::MenuItem("Delete")) delete_annotation(panel, set, annotation_id);
     ImGui::EndPopup();
 }
 
 static void render_category_menu(WorldmapPanelState *panel, AnnotationSet *set) {
     if (!begin_game_menu(CATEGORY_MENU_ID)) return;
-    if (ImGui::MenuItem("Export")) export_category(panel, set, panel->menu_category_id);
-    if (ImGui::MenuItem("Delete category...")) panel->popup_request = DELETE_CATEGORY_POPUP_ID;
+    AnnotationCategory *category = annotation_category_find(set, panel->menu_category_id);
+    if (!category) {
+        ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+        return;
+    }
+    const int category_id = category->id;
+
+    ImGui::TextDisabled("%s", category->name);
+    ImGui::Separator();
+    ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
+    if (ImGui::MenuItem("Show on map", NULL, category->visible != 0)) {
+        category->visible = category->visible ? 0 : 1;
+        set->changed = 1;
+        worldmap_save_annotations();
+    }
+    if (ImGui::MenuItem("Show labels", NULL, category->show_labels != 0)) {
+        category->show_labels = category->show_labels ? 0 : 1;
+        set->changed = 1;
+        worldmap_save_annotations();
+    }
+    ImGui::PopItemFlag();
+    ImGui::Separator();
+
+    const bool can_nest = annotation_category_depth(set, category_id) < ANNOTATION_MAX_DEPTH;
+    if (ImGui::MenuItem("New subcategory...", NULL, false, can_nest)) open_new_category(panel, category_id);
+    if (ImGui::MenuItem("Rename")) begin_rename(panel, category);
+    if (ImGui::BeginMenu("Colour")) {
+        int colour_index = category->colour_index;
+        if (render_palette_row(&colour_index) && annotation_category_set_colour(set, category_id, colour_index)) {
+            worldmap_save_annotations();
+        }
+        ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("Send to")) {
+        int chosen_id = -1;
+        if (ImGui::MenuItem("Top level", NULL, false, annotation_category_can_move(set, category_id, 0) != 0)) {
+            chosen_id = 0;
+        }
+        render_send_to_branch(set, 0, category_id, 0, &chosen_id);
+        ImGui::EndMenu();
+        if (chosen_id >= 0) move_category(panel, set, category_id, chosen_id);
+    }
+    ImGui::Separator();
+
+    if (ImGui::MenuItem("Export")) export_category(panel, set, category_id);
+    const bool has_children = annotation_category_has_children(set, category_id) != 0;
+    if (ImGui::MenuItem("Delete category...", NULL, false, !has_children)) {
+        panel->popup_request = DELETE_CATEGORY_POPUP_ID;
+    }
+    if (has_children && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+        ui_tooltip("Delete or move its subcategories first.");
+    }
     ImGui::EndPopup();
 }
 
@@ -1219,26 +1379,6 @@ static void render_label_popup(WorldmapPanelState *panel, AnnotationSet *set) {
     ImGui::EndPopup();
 }
 
-static void render_colour_picker(WorldmapPanelState *panel) {
-    for (int colour_index = 0; colour_index < ANNOTATION_PALETTE_SIZE; colour_index++) {
-        if (colour_index > 0) ImGui::SameLine();
-        ImGui::PushID(colour_index);
-        const ImVec4 swatch = ImGui::ColorConvertU32ToFloat4(palette_colour(colour_index));
-        if (ImGui::ColorButton("##colour", swatch, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoPicker,
-                               ImVec2(PICKER_SWATCH_SIZE, PICKER_SWATCH_SIZE))) {
-            panel->new_category_colour = colour_index;
-        }
-        if (colour_index == panel->new_category_colour) {
-            const ImVec2 item_min = ImGui::GetItemRectMin();
-            const ImVec2 item_max = ImGui::GetItemRectMax();
-            ImGui::GetWindowDrawList()->AddRect(ImVec2(item_min.x - 2.0F, item_min.y - 2.0F),
-                                                ImVec2(item_max.x + 2.0F, item_max.y + 2.0F), GOLD_FONT_COLOR, 0.0F, 0,
-                                                2.0F);
-        }
-        ImGui::PopID();
-    }
-}
-
 static void render_new_category_popup(WorldmapPanelState *panel, AnnotationSet *set) {
     if (!begin_game_modal(NEW_CATEGORY_POPUP_ID)) return;
 
@@ -1246,7 +1386,7 @@ static void render_new_category_popup(WorldmapPanelState *panel, AnnotationSet *
     if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
     const bool submitted = ImGui::InputText("##name", panel->new_category_name, sizeof(panel->new_category_name),
                                             ImGuiInputTextFlags_EnterReturnsTrue);
-    render_colour_picker(panel);
+    render_palette_row(&panel->new_category_colour);
     const bool can_create = panel->new_category_name[0] != '\0';
 
     const bool created = game_button("Create", can_create);
@@ -1254,11 +1394,14 @@ static void render_new_category_popup(WorldmapPanelState *panel, AnnotationSet *
     const bool cancelled = game_button("Cancel");
 
     if ((created || submitted) && can_create) {
-        const int category_id = annotation_category_add(set, panel->new_category_name, panel->new_category_colour);
+        const int parent_id = panel->new_category_parent_id;
+        const int category_id =
+                annotation_category_add_under(set, parent_id, panel->new_category_name, panel->new_category_colour);
         if (category_id == 0) {
             set_status(panel, "Too many categories.");
         } else {
             panel->current_category_id = category_id;
+            if (parent_id != 0) set_category_expanded(panel, parent_id, true);
             worldmap_save_annotations();
         }
         ImGui::CloseCurrentPopup();
@@ -1372,7 +1515,7 @@ static void render_export_popup(WorldmapPanelState *panel) {
 static void render_delete_category_popup(WorldmapPanelState *panel, AnnotationSet *set) {
     if (!begin_game_modal(DELETE_CATEGORY_POPUP_ID)) return;
     const AnnotationCategory *category = annotation_category_find(set, panel->menu_category_id);
-    if (!category) {
+    if (!category || annotation_category_has_children(set, category->id)) {
         ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
         return;
@@ -1413,6 +1556,7 @@ static void drop_interrupted_work(WorldmapPanelState *panel) {
         panel->active_tool = WORLDMAP_TOOL_LINE;
     }
     panel->label_purpose = LABEL_PURPOSE_NONE;
+    panel->rename_category_id = 0;
     panel->popup_request = NULL;
     panel->dismiss_popups = true;
     release_import(panel);
