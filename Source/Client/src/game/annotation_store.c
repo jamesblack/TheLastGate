@@ -14,11 +14,12 @@
 #endif
 
 /* File layout: the four magic bytes, then 32-bit little-endian words for the format version, uncompressed payload
- * size and compressed byte count, then the payload compressed with zlib. The payload is the show-on-minimap byte, a
- * varint category count, then per category a visible byte, a show-labels byte (format 2 onwards) and the category
- * encoding. Format 1 files load with labels shown. */
+ * size and compressed byte count, then the payload compressed with zlib. The payload is the show-on-minimap byte
+ * followed, from format 3, by the category tree encoding and nothing else. Formats 1 and 2 hold a varint category
+ * count, then per category a visible byte, a show-labels byte (format 2 only) and the flat category encoding. Format 1
+ * files load with labels shown. Saving over a format 1 or 2 file first keeps a copy beside it as <path>.format2.bak. */
 static const char ANNOTATION_STORE_MAGIC[4] = {'T', 'L', 'G', 'A'};
-#define ANNOTATION_STORE_FORMAT 2
+#define ANNOTATION_STORE_FORMAT 3
 #define ANNOTATION_STORE_FIRST_FORMAT 1
 #define ANNOTATION_STORE_HEADER_BYTES 12
 #define ANNOTATION_STORE_MAX_PAYLOAD (16u * 1024u * 1024u)
@@ -45,18 +46,57 @@ static int replace_file(const char *source_path, const char *path) {
 
 static int build_payload(const AnnotationSet *set, ByteBuffer *payload) {
     const unsigned char show_byte = set->show_on_minimap ? 1 : 0;
-    int index;
 
     if (!byte_buffer_append(payload, &show_byte, 1)) return 0;
-    if (!annotation_varint_write(payload, (unsigned int) set->category_count)) return 0;
-    for (index = 0; index < set->category_count; index++) {
-        const unsigned char visible_byte = set->categories[index].visible ? 1 : 0;
-        const unsigned char labels_byte = set->categories[index].show_labels ? 1 : 0;
-        if (!byte_buffer_append(payload, &visible_byte, 1)) return 0;
-        if (!byte_buffer_append(payload, &labels_byte, 1)) return 0;
-        if (!annotation_category_encode(&set->categories[index], payload)) return 0;
+    return annotation_tree_encode(set, 0, payload);
+}
+
+static int has_legacy_header(const char *path) {
+    FILE *file = fopen(path, "rb");
+    char magic[sizeof(ANNOTATION_STORE_MAGIC)];
+    unsigned char header[ANNOTATION_STORE_HEADER_BYTES];
+    int legacy = 0;
+
+    if (file == NULL) return 0;
+    if (fread(magic, sizeof(magic), 1, file) == 1 && memcmp(magic, ANNOTATION_STORE_MAGIC, sizeof(magic)) == 0 &&
+        fread(header, 1, sizeof(header), file) == sizeof(header)) {
+        const uint32_t format = read_word(header);
+        legacy = format >= ANNOTATION_STORE_FIRST_FORMAT && format < ANNOTATION_STORE_FORMAT;
     }
-    return 1;
+    fclose(file);
+    return legacy;
+}
+
+static void back_up_legacy_file(const char *path) {
+    char backup_path[512];
+    unsigned char chunk[4096];
+    FILE *source;
+    FILE *backup;
+    size_t chunk_size;
+    int copied = 1;
+
+    if (!has_legacy_header(path)) return;
+    snprintf(backup_path, sizeof(backup_path), "%s.format2.bak", path);
+    backup = fopen(backup_path, "rb");
+    if (backup != NULL) {
+        fclose(backup);
+        return;
+    }
+
+    source = fopen(path, "rb");
+    if (source == NULL) return;
+    backup = fopen(backup_path, "wb");
+    if (backup == NULL) {
+        fclose(source);
+        return;
+    }
+    while (copied && (chunk_size = fread(chunk, 1, sizeof(chunk), source)) > 0) {
+        copied = fwrite(chunk, 1, chunk_size, backup) == chunk_size;
+    }
+    if (ferror(source)) copied = 0;
+    fclose(source);
+    if (fclose(backup) != 0) copied = 0;
+    if (!copied) remove(backup_path);
 }
 
 static int write_file(const char *path, const unsigned char *header, const unsigned char *compressed,
@@ -94,8 +134,11 @@ int annotation_store_save(const char *path, AnnotationSet *set) {
         write_word(header + 8, (uint32_t) compressed_size);
 
         snprintf(temporary_path, sizeof(temporary_path), "%s.tmp", path);
-        if (write_file(temporary_path, header, compressed, compressed_size) && replace_file(temporary_path, path)) {
-            saved = 1;
+        if (write_file(temporary_path, header, compressed, compressed_size)) {
+            back_up_legacy_file(path);
+            saved = replace_file(temporary_path, path);
+        }
+        if (saved) {
             set->changed = 0;
         } else {
             remove(temporary_path);
@@ -145,7 +188,7 @@ static int read_payload(FILE *file, unsigned char **payload, size_t *payload_siz
     return read_ok;
 }
 
-static int parse_payload(const unsigned char *payload, const size_t payload_size, const uint32_t format,
+static int parse_legacy_payload(const unsigned char *payload, const size_t payload_size, const uint32_t format,
                          AnnotationSet *set) {
     size_t offset = 0;
     unsigned int category_count;
@@ -170,12 +213,30 @@ static int parse_payload(const unsigned char *payload, const size_t payload_size
         if (annotation_category_decode(payload, payload_size, &offset, &category) != 1) return 0;
         category.visible = visible;
         category.show_labels = show_labels;
-        if (!annotation_category_adopt(set, &category)) {
+        if (!annotation_category_attach(set, &category, 0)) {
             annotation_category_release(&category);
             return 0;
         }
     }
     return offset == payload_size;
+}
+
+static int parse_payload(const unsigned char *payload, const size_t payload_size, const uint32_t format,
+                         AnnotationSet *set) {
+    AnnotationSet tree;
+    size_t offset = 1;
+    const int show_on_minimap = payload_size >= 1 && payload[0] ? 1 : 0;
+
+    if (format < 3) return parse_legacy_payload(payload, payload_size, format, set);
+    if (payload_size < 1 || annotation_tree_decode(payload, payload_size, &offset, 0, &tree) != 1) return 0;
+    if (offset != payload_size) {
+        annotation_set_release(&tree);
+        return 0;
+    }
+    annotation_set_release(set);
+    *set = tree;
+    set->show_on_minimap = show_on_minimap;
+    return 1;
 }
 
 static void move_aside(const char *path) {
