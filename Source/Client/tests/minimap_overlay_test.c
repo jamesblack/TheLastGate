@@ -322,6 +322,47 @@ static void test_nearest_shown_pin_wins(void) {
     annotation_set_release(&set);
 }
 
+static void test_child_of_hidden_parent_is_not_painted(void) {
+    AnnotationSet set;
+    int parent;
+    int child;
+
+    annotation_set_init(&set);
+    parent = annotation_category_add(&set, "Parent", 0);
+    child = annotation_category_add_under(&set, parent, "Child", 0);
+    annotation_add_point(&set, child, ANNOTATION_PIN, 10, 20, "pin");
+    annotation_category_find(&set, parent)->visible = 0;
+    set.show_on_minimap = 1;
+    memset(view, 0, sizeof(view));
+
+    minimap_overlay_paint(view, VIEW_SIZE, 0, 0, 1, &set);
+    CHECK(count_painted() == 0);
+    CHECK(minimap_overlay_pin_at(&set, 0, 0, 1, 10, 20) == NULL);
+    annotation_set_release(&set);
+}
+
+static void test_pin_paints_in_its_own_colour(void) {
+    AnnotationSet set;
+    int category;
+    int pin_id;
+
+    annotation_set_init(&set);
+    category = annotation_category_add(&set, "Pins", 0);
+    pin_id = annotation_add_point(&set, category, ANNOTATION_PIN, 10, 20, "pin");
+    annotation_set_colour(&set, pin_id, 2);
+    set.show_on_minimap = 1;
+    memset(view, 0, sizeof(view));
+
+    minimap_overlay_paint(view, VIEW_SIZE, 0, 0, 1, &set);
+    {
+        const unsigned int rgb = annotation_palette_rgb(2);
+        const unsigned int expected = 0xFF000000u | ((rgb & 0xFFu) << 16) | (rgb & 0xFF00u) | ((rgb >> 16) & 0xFFu);
+        CHECK(view[10 * VIEW_SIZE + 20] == expected);
+        CHECK(expected != PAINTED);
+    }
+    annotation_set_release(&set);
+}
+
 int main(void) {
     test_nothing_painted_when_disabled();
     test_pin_paints_five_by_five_diamond();
@@ -335,6 +376,8 @@ int main(void) {
     test_off_view_segments_paint_nothing();
     test_pin_found_under_mouse();
     test_nearest_shown_pin_wins();
+    test_child_of_hidden_parent_is_not_painted();
+    test_pin_paints_in_its_own_colour();
 
     if (failures) {
         printf("%d check(s) failed\n", failures);

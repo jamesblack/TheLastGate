@@ -127,7 +127,7 @@ WorldmapHit worldmap_hit_test(AnnotationSet *set, const WorldmapView *view, doub
         for (category_index = 0; category_index < set->category_count; category_index++) {
             const AnnotationCategory *category = &set->categories[category_index];
             int annotation_index;
-            if (!category->visible) {
+            if (!annotation_category_shown(set, category)) {
                 continue;
             }
             for (annotation_index = 0; annotation_index < category->annotation_count; annotation_index++) {

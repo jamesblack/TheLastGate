@@ -128,12 +128,11 @@ void minimap_overlay_paint(unsigned int *pixels, const int pixel_size, const int
     for (category_index = 0; category_index < set->category_count; category_index++) {
         const AnnotationCategory *category = &set->categories[category_index];
 
-        if (!category->visible) continue;
-        canvas.colour = abgr_from_rgb(annotation_palette_rgb(category->colour_index));
-
+        if (!annotation_category_shown(set, category)) continue;
         for (annotation_index = 0; annotation_index < category->annotation_count; annotation_index++) {
             const Annotation *annotation = &category->annotations[annotation_index];
 
+            canvas.colour = abgr_from_rgb(annotation_effective_rgb(category, annotation));
             if (annotation->kind == ANNOTATION_PIN) {
                 paint_pin(&canvas, annotation->tile_x, annotation->tile_y);
             } else if (annotation->kind == ANNOTATION_PATH) {
@@ -157,7 +156,7 @@ const Annotation *minimap_overlay_pin_at(const AnnotationSet *set, const int ori
     for (category_index = 0; category_index < set->category_count; category_index++) {
         const AnnotationCategory *category = &set->categories[category_index];
 
-        if (!category->visible) continue;
+        if (!annotation_category_shown(set, category)) continue;
         for (annotation_index = 0; annotation_index < category->annotation_count; annotation_index++) {
             const Annotation *annotation = &category->annotations[annotation_index];
             int offset_x;

@@ -226,6 +226,25 @@ static void test_hit_ignores_hidden_category(void) {
     annotation_set_release(&set);
 }
 
+static void test_hit_ignores_child_of_hidden_parent(void) {
+    AnnotationSet set;
+    WorldmapView view = standard_view();
+    WorldmapHit hit;
+    double panel_x, panel_y;
+    int parent_id;
+    int child_id;
+    annotation_set_init(&set);
+    parent_id = annotation_category_add(&set, "Parent", 0);
+    child_id = annotation_category_add_under(&set, parent_id, "Child", 0);
+    annotation_add_point(&set, child_id, ANNOTATION_PIN, 500, 1015, "pin");
+    annotation_category_find(&set, parent_id)->visible = 0;
+    tile_centre_to_panel(&view, 500, 1015, &panel_x, &panel_y);
+    hit = worldmap_hit_test(&set, &view, PANEL_WIDTH, PANEL_HEIGHT, panel_x, panel_y, 6.0);
+    CHECK(hit.annotation_id == 0);
+    CHECK(hit.segment_index == -1);
+    annotation_set_release(&set);
+}
+
 static void test_hit_miss_outside_radius(void) {
     AnnotationSet set;
     WorldmapView view = standard_view();
@@ -267,6 +286,7 @@ int main(void) {
     test_hit_returns_segment_index();
     test_hit_segment_on_single_path();
     test_hit_ignores_hidden_category();
+    test_hit_ignores_child_of_hidden_parent();
     test_hit_miss_outside_radius();
     test_snap_to_nearby_endpoint();
     if (failures) {
