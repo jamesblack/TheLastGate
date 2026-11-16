@@ -106,31 +106,6 @@ static void test_per_category_limit(void) {
     annotation_set_release(&set);
 }
 
-static void test_adopt_renames_duplicate_category(void) {
-    AnnotationSet set;
-    AnnotationCategory first = make_detached_category("Keys");
-    AnnotationCategory second = make_detached_category("Keys");
-    int first_id, second_id;
-    AnnotationCategory *adopted;
-    annotation_set_init(&set);
-    annotation_category_add(&set, "Keys", 0);
-    first_id = annotation_category_adopt(&set, &first);
-    adopted = annotation_category_find(&set, first_id);
-    CHECK(adopted != NULL);
-    if (adopted != NULL) {
-        CHECK(strcmp(adopted->name, "Keys (2)") == 0);
-        CHECK(adopted->annotations[0].id != 0);
-        CHECK(adopted->annotations[0].id != 77);
-        CHECK(adopted->visible == 1);
-    }
-    CHECK(first.annotations == NULL);
-    second_id = annotation_category_adopt(&set, &second);
-    adopted = annotation_category_find(&set, second_id);
-    CHECK(adopted != NULL);
-    if (adopted != NULL) CHECK(strcmp(adopted->name, "Keys (3)") == 0);
-    annotation_set_release(&set);
-}
-
 static void test_long_utf8_label_is_cut_on_character_boundary(void) {
     AnnotationSet set;
     char label[64];
@@ -627,7 +602,6 @@ int main(void) {
     test_text_needs_a_label();
     test_add_path_copies_segments();
     test_per_category_limit();
-    test_adopt_renames_duplicate_category();
     test_long_utf8_label_is_cut_on_character_boundary();
     test_copy_and_replace_round_trip();
     test_replace_moves_path_anchor_to_first_segment();

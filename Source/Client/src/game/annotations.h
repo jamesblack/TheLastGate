@@ -58,7 +58,6 @@ void annotation_set_init(AnnotationSet *set);
 void annotation_set_release(AnnotationSet *set);
 int annotation_category_add(AnnotationSet *set, const char *name, int colour_index);
 int annotation_category_add_under(AnnotationSet *set, int parent_id, const char *name, int colour_index);
-int annotation_category_adopt(AnnotationSet *set, AnnotationCategory *detached);
 int annotation_category_attach(AnnotationSet *set, AnnotationCategory *detached, int parent_id);
 int annotation_category_has_children(const AnnotationSet *set, int category_id);
 int annotation_category_depth(const AnnotationSet *set, int category_id);

@@ -283,18 +283,6 @@ int annotation_category_attach(AnnotationSet *set, AnnotationCategory *detached,
     return category->id;
 }
 
-int annotation_category_adopt(AnnotationSet *set, AnnotationCategory *detached) {
-    char unique_name[ANNOTATION_CATEGORY_NAME_MAX];
-    AnnotationCategory *category;
-    int category_id;
-    make_unique_name(set, 0, 0, unique_name, detached->name);
-    category_id = annotation_category_attach(set, detached, 0);
-    if (category_id == 0) return 0;
-    category = annotation_category_find(set, category_id);
-    memcpy(category->name, unique_name, sizeof(unique_name));
-    return category_id;
-}
-
 int annotation_category_remove(AnnotationSet *set, const int category_id) {
     AnnotationCategory *category = annotation_category_find(set, category_id);
     int index;
