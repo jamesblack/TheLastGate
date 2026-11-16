@@ -1,5 +1,33 @@
 # Changelog
 
+## [5.1.0](https://github.com/jamesblack/TheLastGate/compare/v5.0.0...v5.1.0) (2026-11-16)
+
+
+### Features
+
+* Encode nested world map categories ([805d1d0](https://github.com/jamesblack/TheLastGate/commit/805d1d006cd2423998b6ba43e4f7f4a2f548e59a))
+* Export whole category trees and resolve import conflicts ([4bc2b46](https://github.com/jamesblack/TheLastGate/commit/4bc2b467d5b1e5988763f4d3f8c93d58e36a30ee))
+* Give world map categories a parent and annotations their own colour slot ([1e0fa01](https://github.com/jamesblack/TheLastGate/commit/1e0fa01d73819f50511fca564ae40bf3050c7aef))
+* Merge or rename imported world map categories ([27a0501](https://github.com/jamesblack/TheLastGate/commit/27a050107906754d82fff837baa290c19890ffa4))
+* Nested world map category list with right-click editing ([800f6ed](https://github.com/jamesblack/TheLastGate/commit/800f6edbff0a4fb38210372ae124ee212b35df2b))
+* Rename, recolour and move world map categories and annotations ([4c70868](https://github.com/jamesblack/TheLastGate/commit/4c708682779e2d789cf50eb7cdf49c11fecbf415))
+* Reorder world map categories from the right-click menu and drop the Edit buttons ([9287f3a](https://github.com/jamesblack/TheLastGate/commit/9287f3a00c6ee2a8e63f73df5480abfbea366f80))
+* Respect nested visibility and annotation colours on the minimap ([22a76fc](https://github.com/jamesblack/TheLastGate/commit/22a76fc07d6f9d7c2f83af8998e12c3435718993))
+* Save nested world map categories as format 3 ([a8c87d3](https://github.com/jamesblack/TheLastGate/commit/a8c87d38b62920a3c19e15d149c5f35fc1093141))
+* Share nested world map categories as TLGMAP2 codes ([277d22d](https://github.com/jamesblack/TheLastGate/commit/277d22da40f8eb2f9d85f81993a5a970bcc28c3c))
+
+
+### Bug Fixes
+
+* Polish nested category list and import popup ([64308dc](https://github.com/jamesblack/TheLastGate/commit/64308dcee2c967c3c1281d90c94a9877451c6358))
+* Register the category editing tests and repair the rename guard ([bccc6b7](https://github.com/jamesblack/TheLastGate/commit/bccc6b74e87053834af116e71daa9bc742dd3c42))
+* Restore LF line endings in annotations.c ([aa4f048](https://github.com/jamesblack/TheLastGate/commit/aa4f04885188d63027cca4bdb6b647c35e8926eb))
+
+
+### Miscellaneous Chores
+
+* bump version ([70c100f](https://github.com/jamesblack/TheLastGate/commit/70c100faba0e09ae7a337958023c081fc41bc15c))
+
 ## [5.0.0](https://github.com/jamesblack/TheLastGate/compare/v4.1.0...v5.0.0) (2026-11-14)
 
 
