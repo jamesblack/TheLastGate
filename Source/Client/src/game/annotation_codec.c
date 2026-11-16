@@ -280,7 +280,7 @@ int annotation_tree_decode(const unsigned char *bytes, const size_t size, size_t
         result = read_category_body(&reader, &category, 1);
         if (result == 1) {
             category_id =
-                annotation_category_attach(tree, &category, parent_ref == 0 ? 0 : assigned_ids[parent_ref - 1]);
+                    annotation_category_attach(tree, &category, parent_ref == 0 ? 0 : assigned_ids[parent_ref - 1]);
             if (category_id == 0) result = 0;
         }
         if (result != 1) {

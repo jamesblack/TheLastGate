@@ -140,7 +140,7 @@ static AnnotationImportStatus plan_annotations(ImportPass *pass, const int impor
     }
     if (local->annotation_count + pass->planned_count[local_index] > ANNOTATION_MAX_PER_CATEGORY ||
         annotation_category_segment_total(local) + pass->planned_segments[local_index] >
-            ANNOTATION_MAX_SEGMENTS_PER_CATEGORY) {
+                ANNOTATION_MAX_SEGMENTS_PER_CATEGORY) {
         annotation_copy_text(pass->result.category_name, sizeof(pass->result.category_name), local->name);
         return ANNOTATION_IMPORT_CATEGORY_FULL;
     }
