@@ -226,6 +226,11 @@ static void make_unique_name(const AnnotationSet *set, const int parent_id, cons
     }
 }
 
+void annotation_category_unique_name(const AnnotationSet *set, const int parent_id, char *destination,
+                                     const char *wanted) {
+    make_unique_name(set, parent_id, 0, destination, wanted);
+}
+
 static AnnotationCategory *append_category(AnnotationSet *set) {
     AnnotationCategory *grown;
     if (set->category_count >= ANNOTATION_MAX_CATEGORIES) return NULL;

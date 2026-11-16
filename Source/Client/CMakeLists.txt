@@ -76,6 +76,7 @@ add_executable(TheLastGate
         src/game/annotations.c
         src/game/annotation_codec.c
         src/game/annotation_code.c
+        src/game/annotation_import.c
         src/game/annotation_store.c
         src/game/worldmap_view.c
         src/game/worldmap.c
@@ -217,6 +218,14 @@ if (TLG_BUILD_TESTS)
     )
     target_include_directories(annotations_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
     add_test(NAME annotations COMMAND annotations_test)
+
+    add_executable(annotation_import_test
+            tests/annotation_import_test.c
+            src/game/annotations.c
+            src/game/annotation_import.c
+    )
+    target_include_directories(annotation_import_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
+    add_test(NAME annotation_import COMMAND annotation_import_test)
 
     find_package(ZLIB REQUIRED)
     add_executable(annotation_code_test

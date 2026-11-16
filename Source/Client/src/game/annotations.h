@@ -68,6 +68,7 @@ int annotation_category_shown(const AnnotationSet *set, const AnnotationCategory
 int annotation_category_labels_shown(const AnnotationSet *set, const AnnotationCategory *category);
 int annotation_tree_collect(const AnnotationSet *set, int root_id, int *ordered_indices, int capacity);
 int annotation_name_equal(const char *left, const char *right);
+void annotation_category_unique_name(const AnnotationSet *set, int parent_id, char *destination, const char *wanted);
 int annotation_category_remove(AnnotationSet *set, int category_id);
 int annotation_category_rename(AnnotationSet *set, int category_id, const char *name);
 int annotation_category_set_colour(AnnotationSet *set, int category_id, int colour_index);
