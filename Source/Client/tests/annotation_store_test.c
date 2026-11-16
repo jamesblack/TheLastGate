@@ -299,7 +299,7 @@ static void test_nested_round_trip(void) {
     annotation_set_init(&loaded);
     aston = annotation_category_add(&saved, "Aston", 1);
     neiseer = annotation_category_add(&saved, "Neiseer", 2);
-    annotation_category_add_under(&saved, aston, "Quest Givers", ANNOTATION_COLOUR_INHERIT);
+    annotation_category_add_under(&saved, aston, "Quest Givers", 3);
     neiseer_givers = annotation_category_add_under(&saved, neiseer, "Quest Givers", 6);
     annotation_add_point(&saved, neiseer_givers, ANNOTATION_PIN, 55, 66, "Elder");
     saved.show_on_minimap = 1;
@@ -317,7 +317,7 @@ static void test_nested_round_trip(void) {
         if (first_givers != NULL && second_givers != NULL) {
             CHECK(strcmp(first_givers->name, "Quest Givers") == 0);
             CHECK(strcmp(second_givers->name, "Quest Givers") == 0);
-            CHECK(first_givers->colour_index == ANNOTATION_COLOUR_INHERIT);
+            CHECK(first_givers->colour_index == 3);
             CHECK(second_givers->colour_index == 6);
             CHECK(second_givers->annotation_count == 1);
             if (second_givers->annotation_count == 1) {
