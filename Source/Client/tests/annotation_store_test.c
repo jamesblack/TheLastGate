@@ -249,6 +249,7 @@ static void test_version_two_file_with_case_clash_loads_verbatim(void) {
     annotation_set_init(&source);
     annotation_category_add(&source, "Aston", 3);
     annotation_category_add(&source, "aston", 4);
+    annotation_copy_text(source.categories[1].name, sizeof(source.categories[1].name), "aston");
     source.categories[0].show_labels = 0;
     source.categories[1].visible = 0;
     write_legacy_file(2, &source);

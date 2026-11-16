@@ -189,7 +189,7 @@ static int read_payload(FILE *file, unsigned char **payload, size_t *payload_siz
 }
 
 static int parse_legacy_payload(const unsigned char *payload, const size_t payload_size, const uint32_t format,
-                         AnnotationSet *set) {
+                                AnnotationSet *set) {
     size_t offset = 0;
     unsigned int category_count;
     unsigned int index;
