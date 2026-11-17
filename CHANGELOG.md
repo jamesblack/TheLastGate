@@ -1,5 +1,17 @@
 # Changelog
 
+## [5.2.0](https://github.com/jamesblack/TheLastGate/compare/v5.1.0...v5.2.0) (2026-11-17)
+
+
+### Features
+
+* Add world map help pages, segment delete and delete confirmation, and keep the title bar on screen ([fb6ffec](https://github.com/jamesblack/TheLastGate/commit/fb6ffec4f2c27b6ddf66f01c69ec0df1f41cf34b))
+
+
+### Miscellaneous Chores
+
+* bump version ([4ed0f4b](https://github.com/jamesblack/TheLastGate/commit/4ed0f4bfe992e7b60bea36ea6aa563737d4c7193))
+
 ## [5.1.0](https://github.com/jamesblack/TheLastGate/compare/v5.0.0...v5.1.0) (2026-11-16)
 
 
